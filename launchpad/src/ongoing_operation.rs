@@ -1,12 +1,16 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-const MIN_GAS_TO_SAVE_PROGRESS: u64 = 150_000 + 50_000 * 20; // base_cost + 50K per bytes of key and value
+const MIN_GAS_TO_SAVE_PROGRESS: u64 = 25_000_000;
 
 #[derive(TopDecode, TopEncode, TypeAbi, PartialEq)]
 pub enum OngoingOperationType {
     None,
     AddTickets {
+        index: usize
+    },
+    SelectWinners {
+        seed: H256,
         index: usize
     }
 }
@@ -17,6 +21,10 @@ pub trait OngoingOperationModule {
         let gas_left = self.blockchain().get_gas_left();
 
         gas_left - operation_cost > MIN_GAS_TO_SAVE_PROGRESS
+    }
+
+    fn save_progress(&self, operation: &OngoingOperationType) {
+        self.current_ongoing_operation().set(operation);
     }
 
     #[storage_mapper("operation")]

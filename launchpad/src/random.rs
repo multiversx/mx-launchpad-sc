@@ -7,12 +7,12 @@ const U_32_BYTES: usize = 4;
 
 struct Random<CA: CryptoApi> {
     api: CA,
-    seed: H256,
-    index: usize,
+    pub seed: H256,
+    pub index: usize,
 }
 
 impl<CA: CryptoApi> Random<CA> {
-    pub fn new(
+    pub fn from_seeds(
         api: CA,
         prev_block_seed: BlockRandomSeed,
         current_block_seed: BlockRandomSeed,
@@ -25,6 +25,14 @@ impl<CA: CryptoApi> Random<CA> {
         Self {
             seed: api.sha256(&summed_seeds[..]),
             index: 0,
+            api,
+        }
+    }
+
+    pub fn from_hash(api: CA, hash: H256, index: usize) -> Self {
+        Self {
+            seed: hash,
+            index,
             api,
         }
     }

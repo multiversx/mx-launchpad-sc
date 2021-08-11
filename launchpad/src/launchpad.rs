@@ -2,6 +2,8 @@
 
 elrond_wasm::imports!();
 
+mod setup;
+
 mod ongoing_operation;
 use ongoing_operation::*;
 
@@ -9,31 +11,7 @@ mod random;
 use random::*;
 
 #[elrond_wasm::derive::contract]
-pub trait Launchpad: ongoing_operation::OngoingOperationModule {
-    #[init]
-    fn init(
-        &self,
-        launchpad_token_id: TokenIdentifier,
-        ticket_payment_token: TokenIdentifier,
-        ticket_price: Self::BigUint,
-    ) -> SCResult<()> {
-        require!(
-            launchpad_token_id.is_valid_esdt_identifier(),
-            "Invalid Launchpad token ID"
-        );
-        require!(
-            ticket_payment_token.is_egld() || ticket_payment_token.is_valid_esdt_identifier(),
-            "Invalid ticket payment token"
-        );
-        require!(ticket_price > 0, "Ticket price must be higher than 0");
-
-        self.launchpad_token_id().set(&launchpad_token_id);
-        self.ticket_payment_token().set(&ticket_payment_token);
-        self.ticket_price().set(&ticket_price);
-
-        Ok(())
-    }
-
+pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationModule {
     // endpoints - owner-only
 
     #[only_owner]
@@ -51,7 +29,7 @@ pub trait Launchpad: ongoing_operation::OngoingOperationModule {
 
         let address_number_pairs_vec = address_number_pairs.into_vec();
         let nr_pairs = address_number_pairs_vec.len();
-        
+
         let (first_buyer, first_nr_tickets) = address_number_pairs_vec[index].clone().into_tuple();
         index += 1;
 
@@ -70,8 +48,7 @@ pub trait Launchpad: ongoing_operation::OngoingOperationModule {
                 self.create_tickets(&buyer, nr_tickets);
                 index += 1;
             } else {
-                self.current_ongoing_operation()
-                    .set(&OngoingOperationType::AddTickets { index });
+                self.save_progress(&OngoingOperationType::AddTickets { index });
 
                 break;
             }
@@ -79,6 +56,8 @@ pub trait Launchpad: ongoing_operation::OngoingOperationModule {
 
         Ok(())
     }
+
+    // endpoints
 
     // private
 
@@ -89,18 +68,6 @@ pub trait Launchpad: ongoing_operation::OngoingOperationModule {
     }
 
     // storage
-
-    #[view(getLaunchpadTokenId)]
-    #[storage_mapper("launchpadTokenId")]
-    fn launchpad_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
-
-    #[view(getTicketPaymentToken)]
-    #[storage_mapper("ticketPaymentToken")]
-    fn ticket_payment_token(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
-
-    #[view(getTicketPrice)]
-    #[storage_mapper("ticketPrice")]
-    fn ticket_price(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
     // ticket ID -> address mapping
     #[storage_mapper("ticketOwners")]
