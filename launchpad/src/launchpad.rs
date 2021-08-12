@@ -14,6 +14,8 @@ use random::Random;
 mod ticket_status;
 use ticket_status::TicketStatus;
 
+use crate::setup::SetupModule;
+
 const VEC_MAPPER_START_INDEX: usize = 1;
 const FIRST_GENERATION: u8 = 1;
 
@@ -44,7 +46,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     ) -> SCResult<OperationCompletionStatus> {
         let ongoing_operation = self.current_ongoing_operation().get();
         let mut index = match ongoing_operation {
-            OngoingOperationType::None => 0,
+            OngoingOperationType::None => {
+                require!(self.ticket_owners().is_empty(), "Cannot add more tickets");
+                0
+            }
             OngoingOperationType::AddTickets { index } => {
                 self.clear_operation();
                 index
@@ -177,8 +182,16 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_amount] payment_amount: Self::BigUint,
         nr_tickets_to_confirm: usize,
-    ) -> SCResult<()> {
-        self.require_no_ongoing_operation()?;
+    ) -> SCResult<OperationCompletionStatus> {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let claim_start_epoch = self.claim_period_start_epoch().get();
+        let claim_period_in_epochs = self.claim_period_in_epochs().get();
+        let claim_end_epoch = claim_start_epoch + claim_period_in_epochs;
+
+        if current_epoch > claim_end_epoch {
+            self.select_new_winners()?;
+            return Ok(OperationCompletionStatus::InterruptedBeforeOutOfGas);
+        }
 
         let caller = self.blockchain().get_caller();
         require!(
@@ -186,7 +199,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             "You have been put into the blacklist and may not confirm tickets"
         );
 
-        let current_epoch = self.blockchain().get_block_epoch();
         let confirmation_start_epoch = self.confirmation_period_start_epoch().get();
         let confirmation_period_in_epochs = self.confirmation_period_in_epochs().get();
         let confirmation_end_epoch = confirmation_start_epoch + confirmation_period_in_epochs;
@@ -245,22 +257,16 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             "Couldn't confirm all tickets"
         );
 
-        Ok(())
+        Ok(OperationCompletionStatus::Completed)
     }
 
     #[endpoint(claimLaunchpadTokens)]
-    fn claim_launchpad_tokens(&self) -> SCResult<()> {
-        self.require_no_ongoing_operation()?;
-
+    fn claim_launchpad_tokens(&self) -> SCResult<OperationCompletionStatus> {
         let caller = self.blockchain().get_caller();
         require!(
             !self.blacklist().contains(&caller),
             "You have been put into the blacklist and may not claim tokens"
         );
-
-        // TODO:
-        // reset range and start confirm period again if past claim period
-        // and remove "require" for no ongoing op
 
         let current_epoch = self.blockchain().get_block_epoch();
         let claim_start_epoch = self.claim_period_start_epoch().get();
@@ -271,11 +277,15 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             current_epoch > claim_start_epoch,
             "Claim period has not started yet"
         );
-        require!(current_epoch <= claim_end_epoch, "Claim period has ended");
+
+        if current_epoch > claim_end_epoch {
+            self.select_new_winners()?;
+            return Ok(OperationCompletionStatus::InterruptedBeforeOutOfGas);
+        }
 
         let (first_ticket_id, last_ticket_id) = self.try_get_ticket_range(&caller)?;
         let current_generation = self.current_generation().get();
-        let mut nr_redeemed_tickets = 0u32;
+        let mut nr_redeemed_tickets = 0;
 
         for ticket_id in first_ticket_id..=last_ticket_id {
             let ticket_status = self.ticket_status().get(ticket_id);
@@ -289,6 +299,9 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         require!(nr_redeemed_tickets > 0, "No tickets to redeem");
 
+        self.nr_redeemed_tickets()
+            .update(|redeemed| *redeemed += nr_redeemed_tickets);
+
         let launchpad_token_id = self.launchpad_token_id().get();
         let tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
         let amount_to_send = Self::BigUint::from(nr_redeemed_tickets) * tokens_per_winning_ticket;
@@ -296,7 +309,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         self.send()
             .direct(&caller, &launchpad_token_id, 0, &amount_to_send, &[]);
 
-        Ok(())
+        Ok(OperationCompletionStatus::Completed)
     }
 
     // views
@@ -395,6 +408,73 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             .update(|current_generation| *current_generation += 1);
     }
 
+    fn select_new_winners(&self) -> SCResult<()> {
+        let (prev_first_winning_ticket_position, prev_last_winning_ticket_position) =
+            self.winning_tickets_range().get();
+        let winning_tickets =
+            prev_last_winning_ticket_position - prev_first_winning_ticket_position + 1;
+        let redeemed_tickets = self.nr_redeemed_tickets().get();
+        let remaining_tickets = winning_tickets - redeemed_tickets;
+
+        let new_first_winning_ticket_position = prev_first_winning_ticket_position + 1;
+        let new_last_winning_ticket_position =
+            new_first_winning_ticket_position + remaining_tickets - 1;
+
+        let next_generation = self.current_generation().get() + 1;
+
+        let ongoing_operation = self.current_ongoing_operation().get();
+        let mut current_ticket_position = match ongoing_operation {
+            OngoingOperationType::None => new_first_winning_ticket_position,
+            OngoingOperationType::RestartConfirmationPeriod { ticket_position } => ticket_position,
+            _ => return sc_error!("Another ongoing operation is in progress"),
+        };
+
+        let gas_before = self.blockchain().get_gas_left();
+
+        let mut winning_ticket_id = self.shuffled_tickets().get(current_ticket_position);
+        self.set_ticket_status(
+            winning_ticket_id,
+            TicketStatus::Winning {
+                generation: next_generation,
+            },
+        );
+        current_ticket_position += 1;
+
+        let gas_after = self.blockchain().get_gas_left();
+        let gas_per_iteration = gas_before - gas_after;
+
+        while current_ticket_position <= new_last_winning_ticket_position {
+            if self.can_continue_operation(gas_per_iteration) {
+                winning_ticket_id = self.shuffled_tickets().get(current_ticket_position);
+                self.set_ticket_status(
+                    winning_ticket_id,
+                    TicketStatus::Winning {
+                        generation: next_generation,
+                    },
+                );
+                current_ticket_position += 1;
+            } else {
+                self.save_progress(&OngoingOperationType::RestartConfirmationPeriod {
+                    ticket_position: current_ticket_position,
+                })
+            }
+        }
+
+        self.winning_tickets_range().set(&(
+            new_first_winning_ticket_position,
+            new_last_winning_ticket_position,
+        ));
+        self.nr_winning_tickets().set(&remaining_tickets);
+        self.nr_redeemed_tickets().clear();
+
+        self.start_confirmation_period(
+            new_first_winning_ticket_position,
+            new_last_winning_ticket_position,
+        );
+
+        Ok(())
+    }
+
     fn try_get_ticket_range(&self, address: &Address) -> SCResult<(usize, usize)> {
         require!(
             !self.ticket_range_for_address(address).is_empty(),
@@ -435,4 +515,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     #[storage_mapper("currentGeneration")]
     fn current_generation(&self) -> SingleValueMapper<Self::Storage, u8>;
+
+    #[storage_mapper("nrRedeemedTickets")]
+    fn nr_redeemed_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
 }
