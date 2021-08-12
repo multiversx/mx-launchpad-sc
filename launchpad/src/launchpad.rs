@@ -165,6 +165,12 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     ) -> SCResult<()> {
         self.require_no_ongoing_operation()?;
 
+        let caller = self.blockchain().get_caller();
+        require!(
+            !self.blacklist().contains(&caller),
+            "You have been put into the blacklist and may not confirm tickets"
+        );
+
         let current_epoch = self.blockchain().get_block_epoch();
         let confirmation_start_epoch = self.confirmation_period_start_epoch().get();
         let confirmation_period_in_epochs = self.confirmation_period_in_epochs().get();
@@ -189,7 +195,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         );
         require!(payment_amount == total_ticket_price, "Wrong amount sent");
 
-        let caller = self.blockchain().get_caller();
         let (first_ticket_id, last_ticket_id) = self.try_get_ticket_range(&caller)?;
         let nr_tickets = last_ticket_id - first_ticket_id + 1;
 
@@ -232,6 +237,12 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     fn claim_launchpad_tokens(&self) -> SCResult<()> {
         self.require_no_ongoing_operation()?;
 
+        let caller = self.blockchain().get_caller();
+        require!(
+            !self.blacklist().contains(&caller),
+            "You have been put into the blacklist and may not claim tokens"
+        );
+
         // TODO:
         // reset range and start confirm period again if past claim period
         // and remove "require" for no ongoing op
@@ -247,7 +258,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         );
         require!(current_epoch <= claim_end_epoch, "Claim period has ended");
 
-        let caller = self.blockchain().get_caller();
         let (first_ticket_id, last_ticket_id) = self.try_get_ticket_range(&caller)?;
         let current_generation = self.current_generation().get();
         let mut nr_redeemed_tickets = 0;
