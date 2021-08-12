@@ -7,13 +7,13 @@ const MIN_GAS_TO_SAVE_PROGRESS: u64 = 25_000_000;
 pub enum OngoingOperationType {
     None,
     AddTickets {
-        index: usize
+        index: usize,
     },
     SelectWinners {
         seed: H256,
         seed_index: usize,
         ticket_position: usize,
-    }
+    },
 }
 
 #[elrond_wasm::module]
@@ -30,6 +30,14 @@ pub trait OngoingOperationModule {
 
     fn clear_operation(&self) {
         self.current_ongoing_operation().clear();
+    }
+
+    fn require_no_ongoing_operation(&self) -> SCResult<()> {
+        require!(
+            self.current_ongoing_operation().is_empty(),
+            "Another ongoing operation is in progress"
+        );
+        Ok(())
     }
 
     #[storage_mapper("operation")]

@@ -74,12 +74,8 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[endpoint(selectWinners)]
     fn select_winners(&self) -> SCResult<OperationCompletionStatus> {
         require!(
-            !self.winner_selection_start_epoch().is_empty(),
-            "Winner selection start epoch not set"
-        );
-        require!(
-            self.claim_period_start_epoch().is_empty(),
-            "Cannot select winners after claim period started"
+            self.confirmation_period_start_epoch().is_empty(),
+            "Cannot select winners after confirmation period started"
         );
 
         let current_epoch = self.blockchain().get_block_epoch();
@@ -145,14 +141,110 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         Ok(OperationCompletionStatus::Completed)
     }
 
+    #[payable("*")]
+    #[endpoint(confirmTickets)]
+    fn confirm_tickets(
+        &self,
+        #[payment_token] payment_token: TokenIdentifier,
+        #[payment_amount] payment_amount: Self::BigUint,
+        nr_tickets_to_confirm: usize,
+    ) -> SCResult<()> {
+        self.require_no_ongoing_operation()?;
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        let confirmation_start_epoch = self.confirmation_period_start_epoch().get();
+        let confirmation_period_in_epochs = self.confirmation_period_in_epochs().get();
+        let confirmation_end_epoch = confirmation_start_epoch + confirmation_period_in_epochs;
+
+        require!(
+            current_epoch > confirmation_start_epoch,
+            "Confirmation has not started yet"
+        );
+        require!(
+            current_epoch <= confirmation_end_epoch,
+            "Confirmation period has ended"
+        );
+
+        let ticket_payment_token = self.ticket_payment_token().get();
+        let ticket_price = self.ticket_price().get();
+        let total_ticket_price = Self::BigUint::from(nr_tickets_to_confirm) * ticket_price;
+
+        require!(
+            payment_token == ticket_payment_token,
+            "Wrong payment token used"
+        );
+        require!(payment_amount == total_ticket_price, "Wrong amount sent");
+
+        let caller = self.blockchain().get_caller();
+        require!(
+            !self.ticket_range_for_address(&caller).is_empty(),
+            "You have no tickets"
+        );
+
+        let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(&caller).get();
+        let nr_tickets = last_ticket_id - first_ticket_id + 1;
+
+        require!(
+            nr_tickets >= nr_tickets_to_confirm,
+            "Trying to confirm too many tickets"
+        );
+
+        let mut actual_confirmed_tickets = 0;
+        for ticket_id in first_ticket_id..=last_ticket_id {
+            let ticket_status = self.ticket_status().get(ticket_id);
+            if ticket_status != TicketStatus::Winning {
+                continue;
+            }
+
+            self.set_ticket_status(ticket_id, TicketStatus::Confirmed);
+            actual_confirmed_tickets += 1;
+
+            if actual_confirmed_tickets == nr_tickets_to_confirm {
+                break;
+            }
+        }
+
+        require!(
+            actual_confirmed_tickets == nr_tickets_to_confirm,
+            "Couldn't confirm all tickets"
+        );
+
+        Ok(())
+    }
+
+    // views
+
+    #[view(getNumberOfWinningTicketsForAddress)]
+    fn get_number_of_winning_tickets_for_address(&self, address: Address) -> usize {
+        if self.ticket_range_for_address(&address).is_empty() {
+            return 0;
+        }
+
+        let mut nr_winning_tickets = 0;
+        let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(&address).get();
+
+        for ticket_id in first_ticket_id..=last_ticket_id {
+            let ticket_status = self.ticket_status().get(ticket_id);
+            if ticket_status != TicketStatus::Winning {
+                nr_winning_tickets += 1;
+            }
+        }
+
+        nr_winning_tickets
+    }
+    
     // private
 
     fn create_tickets(&self, buyer: &Address, nr_tickets: usize) {
+        let first_ticket_id = self.ticket_owners().len() + 1;
+        let last_ticket_id = first_ticket_id + nr_tickets - 1;
+        self.ticket_range_for_address(buyer)
+            .set(&(first_ticket_id, last_ticket_id));
+
         for _ in 0..nr_tickets {
             let ticket_id = self.ticket_owners().push(buyer);
             self.ticket_status().push(&TicketStatus::Normal);
             self.shuffled_tickets().push(&ticket_id);
-            self.tickets_for_address(buyer).insert(ticket_id);
         }
     }
 
@@ -205,8 +297,11 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[storage_mapper("ticketStatus")]
     fn ticket_status(&self) -> VecMapper<Self::Storage, TicketStatus>;
 
-    #[storage_mapper("ticketsForAddress")]
-    fn tickets_for_address(&self, address: &Address) -> SafeSetMapper<Self::Storage, usize>;
+    #[storage_mapper("ticketRangeForAddress")]
+    fn ticket_range_for_address(
+        &self,
+        address: &Address,
+    ) -> SingleValueMapper<Self::Storage, (usize, usize)>;
 
     #[storage_mapper("shuffledTickets")]
     fn shuffled_tickets(&self) -> VecMapper<Self::Storage, usize>;
