@@ -15,6 +15,7 @@ mod ticket_status;
 use ticket_status::TicketStatus;
 
 const VEC_MAPPER_START_INDEX: usize = 1;
+const FIRST_GENERATION: u8 = 1;
 
 #[elrond_wasm::derive::contract]
 pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationModule {
@@ -112,10 +113,17 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         };
 
         let last_ticket_position = self.ticket_owners().len();
+        let nr_winning_tickets = self.nr_winning_tickets().get();
 
         let gas_before = self.blockchain().get_gas_left();
 
-        self.select_single_winning_ticket(&mut rng, ticket_position, last_ticket_position);
+        let is_winning_ticket = ticket_position <= nr_winning_tickets;
+        self.shuffle_single_ticket(
+            &mut rng,
+            ticket_position,
+            last_ticket_position,
+            is_winning_ticket,
+        );
         ticket_position += 1;
 
         let gas_after = self.blockchain().get_gas_left();
@@ -123,7 +131,13 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         while ticket_position < last_ticket_position - 1 {
             if self.can_continue_operation(gas_per_iteration) {
-                self.select_single_winning_ticket(&mut rng, ticket_position, last_ticket_position);
+                let is_winning_ticket = ticket_position <= nr_winning_tickets;
+                self.shuffle_single_ticket(
+                    &mut rng,
+                    ticket_position,
+                    last_ticket_position,
+                    is_winning_ticket,
+                );
                 ticket_position += 1;
             } else {
                 self.save_progress(&OngoingOperationType::SelectWinners {
@@ -136,7 +150,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             }
         }
 
-        self.start_confirmation_period();
+        self.start_confirmation_period(VEC_MAPPER_START_INDEX, nr_winning_tickets);
 
         Ok(OperationCompletionStatus::Completed)
     }
@@ -158,7 +172,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         require!(
             current_epoch > confirmation_start_epoch,
-            "Confirmation has not started yet"
+            "Confirmation period has not started yet"
         );
         require!(
             current_epoch <= confirmation_end_epoch,
@@ -176,12 +190,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         require!(payment_amount == total_ticket_price, "Wrong amount sent");
 
         let caller = self.blockchain().get_caller();
-        require!(
-            !self.ticket_range_for_address(&caller).is_empty(),
-            "You have no tickets"
-        );
-
-        let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(&caller).get();
+        let (first_ticket_id, last_ticket_id) = self.try_get_ticket_range(&caller)?;
         let nr_tickets = last_ticket_id - first_ticket_id + 1;
 
         require!(
@@ -189,14 +198,21 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             "Trying to confirm too many tickets"
         );
 
+        let current_generation = self.current_generation().get();
         let mut actual_confirmed_tickets = 0;
+
         for ticket_id in first_ticket_id..=last_ticket_id {
             let ticket_status = self.ticket_status().get(ticket_id);
-            if ticket_status != TicketStatus::Winning {
+            if !ticket_status.is_winning(current_generation) {
                 continue;
             }
 
-            self.set_ticket_status(ticket_id, TicketStatus::Confirmed);
+            self.set_ticket_status(
+                ticket_id,
+                TicketStatus::Confirmed {
+                    generation: current_generation,
+                },
+            );
             actual_confirmed_tickets += 1;
 
             if actual_confirmed_tickets == nr_tickets_to_confirm {
@@ -212,6 +228,47 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         Ok(())
     }
 
+    #[endpoint(claimLaunchpadTokens)]
+    fn claim_launchpad_tokens(&self) -> SCResult<()> {
+        self.require_no_ongoing_operation()?;
+
+        // TODO:
+        // reset range and start confirm period again if past claim period
+        // and remove "require" for no ongoing op
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        let claim_start_epoch = self.claim_period_start_epoch().get();
+        let claim_period_in_epochs = self.claim_period_in_epochs().get();
+        let claim_end_epoch = claim_start_epoch + claim_period_in_epochs;
+
+        require!(
+            current_epoch > claim_start_epoch,
+            "Claim period has not started yet"
+        );
+        require!(current_epoch <= claim_end_epoch, "Claim period has ended");
+
+        let caller = self.blockchain().get_caller();
+        let (first_ticket_id, last_ticket_id) = self.try_get_ticket_range(&caller)?;
+        let current_generation = self.current_generation().get();
+        let mut nr_redeemed_tickets = 0;
+
+        for ticket_id in first_ticket_id..=last_ticket_id {
+            let ticket_status = self.ticket_status().get(ticket_id);
+            if !ticket_status.is_confirmed(current_generation) {
+                continue;
+            }
+
+            self.set_ticket_status(ticket_id, TicketStatus::Redeemed);
+            nr_redeemed_tickets += 1;
+        }
+
+        require!(nr_redeemed_tickets > 0, "No tickets to redeem");
+
+        // TODO: send launchpad tokens
+
+        Ok(())
+    }
+
     // views
 
     #[view(getNumberOfWinningTicketsForAddress)]
@@ -222,17 +279,18 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         let mut nr_winning_tickets = 0;
         let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(&address).get();
+        let current_generation = self.current_generation().get();
 
         for ticket_id in first_ticket_id..=last_ticket_id {
             let ticket_status = self.ticket_status().get(ticket_id);
-            if ticket_status != TicketStatus::Winning {
+            if ticket_status.is_winning(current_generation) {
                 nr_winning_tickets += 1;
             }
         }
 
         nr_winning_tickets
     }
-    
+
     // private
 
     fn create_tickets(&self, buyer: &Address, nr_tickets: usize) {
@@ -243,27 +301,32 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         for _ in 0..nr_tickets {
             let ticket_id = self.ticket_owners().push(buyer);
-            self.ticket_status().push(&TicketStatus::Normal);
             self.shuffled_tickets().push(&ticket_id);
         }
     }
 
     /// Fisher-Yates algorithm,
-    /// each position is swapped with a random one that's after it,
-    /// as we select the first N positions as winning, once a position has been swapped,
-    /// it's guaranteed to not be swapped again, so we can mark the ticket as Winning
-    fn select_single_winning_ticket(
+    /// each position is swapped with a random one that's after it.
+    fn shuffle_single_ticket(
         &self,
         rng: &mut Random<Self::CryptoApi>,
         current_ticket_position: usize,
         last_ticket_position: usize,
+        is_winning_ticket: bool,
     ) {
         let rand_index =
             rng.next_usize_in_range(current_ticket_position + 1, last_ticket_position + 1);
         self.swap(self.shuffled_tickets(), current_ticket_position, rand_index);
 
-        let winning_ticket_id = self.shuffled_tickets().get(current_ticket_position);
-        self.set_ticket_status(winning_ticket_id, TicketStatus::Winning);
+        if is_winning_ticket {
+            let winning_ticket_id = self.shuffled_tickets().get(current_ticket_position);
+            self.set_ticket_status(
+                winning_ticket_id,
+                TicketStatus::Winning {
+                    generation: FIRST_GENERATION,
+                },
+            );
+        }
     }
 
     fn swap<T: TopEncode + TopDecode>(
@@ -283,9 +346,32 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         self.ticket_status().set(ticket_id, &status);
     }
 
-    fn start_confirmation_period(&self) {
+    fn start_confirmation_period(
+        &self,
+        first_winning_ticket_position: usize,
+        last_winning_ticket_position: usize,
+    ) {
         let current_epoch = self.blockchain().get_block_epoch();
         self.confirmation_period_start_epoch().set(&current_epoch);
+
+        let confirmation_period_in_epochs = self.confirmation_period_in_epochs().get();
+        let claim_period_start_epoch = current_epoch + confirmation_period_in_epochs + 1;
+        self.claim_period_start_epoch()
+            .set(&claim_period_start_epoch);
+
+        self.winning_tickets_range()
+            .set(&(first_winning_ticket_position, last_winning_ticket_position));
+        self.current_generation()
+            .update(|current_generation| *current_generation += 1);
+    }
+
+    fn try_get_ticket_range(&self, address: &Address) -> SCResult<(usize, usize)> {
+        require!(
+            !self.ticket_range_for_address(address).is_empty(),
+            "You have no tickets"
+        );
+
+        Ok(self.ticket_range_for_address(address).get())
     }
 
     // storage
@@ -303,6 +389,9 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         address: &Address,
     ) -> SingleValueMapper<Self::Storage, (usize, usize)>;
 
+    #[storage_mapper("winningTicketsRange")]
+    fn winning_tickets_range(&self) -> SingleValueMapper<Self::Storage, (usize, usize)>;
+
     #[storage_mapper("shuffledTickets")]
     fn shuffled_tickets(&self) -> VecMapper<Self::Storage, usize>;
 
@@ -313,4 +402,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[view(getClaimPeriodStartEpoch)]
     #[storage_mapper("claimPeriodStartEpoch")]
     fn claim_period_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[storage_mapper("currentGeneration")]
+    fn current_generation(&self) -> SingleValueMapper<Self::Storage, u8>;
 }

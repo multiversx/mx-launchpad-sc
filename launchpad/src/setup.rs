@@ -8,6 +8,7 @@ pub trait SetupModule {
         launchpad_token_id: TokenIdentifier,
         ticket_payment_token: TokenIdentifier,
         ticket_price: Self::BigUint,
+        nr_winning_tickets: usize,
         winner_selection_start_epoch: u64,
         confirmation_period_in_epochs: u64,
         claim_period_in_epochs: u64,
@@ -20,9 +21,23 @@ pub trait SetupModule {
 
         self.try_set_ticket_payment_token(&ticket_payment_token)?;
         self.try_set_ticket_price(&ticket_price)?;
+        self.try_set_nr_winning_tickets(nr_winning_tickets)?;
         self.try_set_winner_selection_start_epoch(winner_selection_start_epoch)?;
         self.try_set_confirmation_period_in_epochs(confirmation_period_in_epochs)?;
         self.try_set_claim_period_in_epochs(claim_period_in_epochs)?;
+
+        Ok(())
+    }
+
+    #[only_owner]
+    #[payable("*")]
+    #[endpoint(depositLaunchpadTokens)]
+    fn deposit_launchpad_tokens(
+        &self,
+        #[payment_token] payment_token: TokenIdentifier,
+    ) -> SCResult<()> {
+        let launchpad_token_id = self.launchpad_token_id().get();
+        require!(payment_token == launchpad_token_id, "Wrong token deposited");
 
         Ok(())
     }
@@ -107,6 +122,14 @@ pub trait SetupModule {
         Ok(())
     }
 
+    fn try_set_nr_winning_tickets(&self, nr_winning_tickets: usize) -> SCResult<()> {
+        require!(nr_winning_tickets > 0, "Cannot set number of winning tickets to zero");
+
+        self.nr_winning_tickets().set(&nr_winning_tickets);
+
+        Ok(())
+    }
+
     fn try_set_winner_selection_start_epoch(&self, start_epoch: u64) -> SCResult<()> {
         let current_epoch = self.blockchain().get_block_epoch();
         require!(
@@ -125,7 +148,8 @@ pub trait SetupModule {
             "Confirmation period in epochs cannot be set to zero"
         );
 
-        self.confirmation_period_in_epochs().set(&confirmation_period);
+        self.confirmation_period_in_epochs()
+            .set(&confirmation_period);
 
         Ok(())
     }
@@ -160,6 +184,10 @@ pub trait SetupModule {
     #[view(getTicketPrice)]
     #[storage_mapper("ticketPrice")]
     fn ticket_price(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+
+    #[view(getNumberOfWinningTickets)]
+    #[storage_mapper("nrWinningTickers")]
+    fn nr_winning_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
 
     #[storage_mapper("blacklist")]
     fn blacklist(&self) -> SafeSetMapper<Self::Storage, Address>;

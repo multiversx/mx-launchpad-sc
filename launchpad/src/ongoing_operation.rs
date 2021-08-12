@@ -14,6 +14,9 @@ pub enum OngoingOperationType {
         seed_index: usize,
         ticket_position: usize,
     },
+    RestartConfirmationPeriod {
+        ticket_position: usize,
+    },
 }
 
 #[elrond_wasm::module]
