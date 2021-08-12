@@ -14,8 +14,6 @@ use random::Random;
 mod ticket_status;
 use ticket_status::TicketStatus;
 
-use crate::setup::SetupModule;
-
 const VEC_MAPPER_START_INDEX: usize = 1;
 const FIRST_GENERATION: u8 = 1;
 

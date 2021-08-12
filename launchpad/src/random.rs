@@ -12,6 +12,7 @@ pub struct Random<CA: CryptoApi> {
 }
 
 impl<CA: CryptoApi> Random<CA> {
+    #[allow(clippy::boxed_local)]
     pub fn from_seeds(
         api: CA,
         prev_block_seed: BlockRandomSeed,
@@ -64,7 +65,7 @@ impl<CA: CryptoApi> Random<CA> {
 
 impl<CA: CryptoApi> Random<CA> {
     fn hash_seed(&mut self) {
-        self.seed = self.api.sha256(&self.seed.as_bytes()[..]);
+        self.seed = self.api.sha256(self.seed.as_bytes());
         self.index = 0;
     }
 }
