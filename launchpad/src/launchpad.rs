@@ -22,7 +22,22 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     // endpoints - owner-only
 
     #[only_owner]
-    #[endpoint]
+    #[endpoint(claimTicketPayment)]
+    fn claim_ticket_payment(&self) -> SCResult<()> {
+        let ticket_payment_token = self.ticket_payment_token().get();
+        let sc_balance = self.blockchain().get_sc_balance(&ticket_payment_token, 0);
+        let owner = self.blockchain().get_caller();
+
+        if sc_balance > 0 {
+            self.send()
+                .direct(&owner, &ticket_payment_token, 0, &sc_balance, &[]);
+        }
+
+        Ok(())
+    }
+
+    #[only_owner]
+    #[endpoint(addTickets)]
     fn add_tickets(
         &self,
         #[var_args] address_number_pairs: VarArgs<MultiArg2<Address, usize>>,
@@ -260,7 +275,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         let (first_ticket_id, last_ticket_id) = self.try_get_ticket_range(&caller)?;
         let current_generation = self.current_generation().get();
-        let mut nr_redeemed_tickets = 0;
+        let mut nr_redeemed_tickets = 0u32;
 
         for ticket_id in first_ticket_id..=last_ticket_id {
             let ticket_status = self.ticket_status().get(ticket_id);
@@ -274,7 +289,12 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         require!(nr_redeemed_tickets > 0, "No tickets to redeem");
 
-        // TODO: send launchpad tokens
+        let launchpad_token_id = self.launchpad_token_id().get();
+        let tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
+        let amount_to_send = Self::BigUint::from(nr_redeemed_tickets) * tokens_per_winning_ticket;
+
+        self.send()
+            .direct(&caller, &launchpad_token_id, 0, &amount_to_send, &[]);
 
         Ok(())
     }
