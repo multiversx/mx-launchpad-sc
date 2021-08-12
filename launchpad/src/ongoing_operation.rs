@@ -11,7 +11,8 @@ pub enum OngoingOperationType {
     },
     SelectWinners {
         seed: H256,
-        index: usize
+        seed_index: usize,
+        ticket_index: usize,
     }
 }
 
@@ -25,6 +26,10 @@ pub trait OngoingOperationModule {
 
     fn save_progress(&self, operation: &OngoingOperationType) {
         self.current_ongoing_operation().set(operation);
+    }
+
+    fn clear_operation(&self) {
+        self.current_ongoing_operation().clear();
     }
 
     #[storage_mapper("operation")]
