@@ -8,15 +8,21 @@ pub trait SetupModule {
         launchpad_token_id: TokenIdentifier,
         ticket_payment_token: TokenIdentifier,
         ticket_price: Self::BigUint,
+        winner_selection_start_epoch: u64,
+        confirmation_period_in_epochs: u64,
+        claim_period_in_epochs: u64,
     ) -> SCResult<()> {
         require!(
             launchpad_token_id.is_valid_esdt_identifier(),
             "Invalid Launchpad token ID"
         );
+        self.launchpad_token_id().set(&launchpad_token_id);
 
         self.try_set_ticket_payment_token(&ticket_payment_token)?;
         self.try_set_ticket_price(&ticket_price)?;
-        self.launchpad_token_id().set(&launchpad_token_id);
+        self.try_set_winner_selection_start_epoch(winner_selection_start_epoch)?;
+        self.try_set_confirmation_period_in_epochs(confirmation_period_in_epochs)?;
+        self.try_set_claim_period_in_epochs(claim_period_in_epochs)?;
 
         Ok(())
     }
@@ -24,28 +30,19 @@ pub trait SetupModule {
     #[only_owner]
     #[endpoint(setWinnerSelectionStartEpoch)]
     fn set_winner_selection_start_epoch(&self, start_epoch: u64) -> SCResult<()> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        require!(
-            start_epoch > current_epoch,
-            "Start epoch cannot be in the past"
-        );
+        self.try_set_winner_selection_start_epoch(start_epoch)
+    }
 
-        self.winner_selection_start_epoch().set(&start_epoch);
-
-        Ok(())
+    #[only_owner]
+    #[endpoint]
+    fn set_confirmation_period_in_epochs(&self, confirmation_period: u64) -> SCResult<()> {
+        self.try_set_confirmation_period_in_epochs(confirmation_period)
     }
 
     #[only_owner]
     #[endpoint(setClaimPeriodInEpochs)]
     fn set_claim_period_in_epochs(&self, claim_period: u64) -> SCResult<()> {
-        require!(
-            claim_period > 0,
-            "Claim period in epochs cannot be set to zero"
-        );
-
-        self.claim_period_in_epochs().set(&claim_period);
-
-        Ok(())
+        self.try_set_claim_period_in_epochs(claim_period)
     }
 
     #[only_owner]
@@ -110,6 +107,40 @@ pub trait SetupModule {
         Ok(())
     }
 
+    fn try_set_winner_selection_start_epoch(&self, start_epoch: u64) -> SCResult<()> {
+        let current_epoch = self.blockchain().get_block_epoch();
+        require!(
+            start_epoch > current_epoch,
+            "Start epoch cannot be in the past"
+        );
+
+        self.winner_selection_start_epoch().set(&start_epoch);
+
+        Ok(())
+    }
+
+    fn try_set_confirmation_period_in_epochs(&self, confirmation_period: u64) -> SCResult<()> {
+        require!(
+            confirmation_period > 0,
+            "Confirmation period in epochs cannot be set to zero"
+        );
+
+        self.confirmation_period_in_epochs().set(&confirmation_period);
+
+        Ok(())
+    }
+
+    fn try_set_claim_period_in_epochs(&self, claim_period: u64) -> SCResult<()> {
+        require!(
+            claim_period > 0,
+            "Claim period in epochs cannot be set to zero"
+        );
+
+        self.claim_period_in_epochs().set(&claim_period);
+
+        Ok(())
+    }
+
     // storage
 
     #[view(getLaunchpadTokenId)]
@@ -130,18 +161,18 @@ pub trait SetupModule {
     #[storage_mapper("ticketPrice")]
     fn ticket_price(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
+    #[storage_mapper("blacklist")]
+    fn blacklist(&self) -> SafeSetMapper<Self::Storage, Address>;
+
     #[view(getWinnerSelectionStart)]
     #[storage_mapper("winnerSelectionStartEpoch")]
     fn winner_selection_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
 
-    #[view(getClaimPeriodStartEpoch)]
-    #[storage_mapper("claimPeriodStartEpoch")]
-    fn claim_period_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
+    #[view(getConfirmationPeriodInEpochs)]
+    #[storage_mapper("confirmationPeriodInEpochs")]
+    fn confirmation_period_in_epochs(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[view(getClaimPeriodInEpochs)]
     #[storage_mapper("claimPeriodInEpochs")]
     fn claim_period_in_epochs(&self) -> SingleValueMapper<Self::Storage, u64>;
-
-    #[storage_mapper("blacklist")]
-    fn blacklist(&self) -> SafeSetMapper<Self::Storage, Address>;
 }

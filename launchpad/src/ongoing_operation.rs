@@ -12,7 +12,7 @@ pub enum OngoingOperationType {
     SelectWinners {
         seed: H256,
         seed_index: usize,
-        ticket_index: usize,
+        ticket_position: usize,
     }
 }
 
