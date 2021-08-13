@@ -41,54 +41,23 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     fn add_tickets(
         &self,
         #[var_args] address_number_pairs: VarArgs<MultiArg2<Address, usize>>,
-    ) -> SCResult<OperationCompletionStatus> {
-        let ongoing_operation = self.current_ongoing_operation().get();
-        let mut index = match ongoing_operation {
-            OngoingOperationType::None => {
-                require!(
-                    self.shuffled_tickets().is_empty(),
-                    "Cannot add more tickets"
-                );
-                0
-            }
-            OngoingOperationType::AddTickets { index } => {
-                self.clear_operation();
-                index
-            }
-            _ => return sc_error!("Another ongoing operation is in progress"),
-        };
+    ) -> SCResult<()> {
+        self.require_no_ongoing_operation()?;
 
-        let address_number_pairs_vec = address_number_pairs.into_vec();
-        let nr_pairs = address_number_pairs_vec.len();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
+        require!(
+            current_epoch < winner_selection_start_epoch,
+            "Cannot add more tickets, winner selection has started"
+        );
 
-        let gas_before = self.blockchain().get_gas_left();
+        for multi_arg in address_number_pairs.into_vec() {
+            let (buyer, nr_tickets) = multi_arg.into_tuple();
 
-        let (first_buyer, first_nr_tickets) = address_number_pairs_vec[index].clone().into_tuple();
-        self.create_tickets(&first_buyer, first_nr_tickets);
-        index += 1;
-
-        let gas_after = self.blockchain().get_gas_left();
-        let gas_per_iteration = (gas_before - gas_after) / first_nr_tickets as u64;
-
-        while index < nr_pairs {
-            let (buyer, nr_tickets) = address_number_pairs_vec[index].clone().into_tuple();
-            let gas_cost = gas_per_iteration * nr_tickets as u64;
-
-            if self.can_continue_operation(gas_cost) {
-                self.create_tickets(&buyer, nr_tickets);
-                index += 1;
-            } else {
-                self.save_progress(&OngoingOperationType::AddTickets { index });
-
-                return Ok(OperationCompletionStatus::InterruptedBeforeOutOfGas);
-            }
+            self.try_create_tickets(&buyer, nr_tickets)?;
         }
 
-        // signal the start of claiming period
-        let current_epoch = self.blockchain().get_block_epoch();
-        self.claim_period_start_epoch().set(&current_epoch);
-
-        Ok(OperationCompletionStatus::Completed)
+        Ok(())
     }
 
     // endpoints
@@ -108,50 +77,42 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             "Cannot select winners yet"
         );
 
-        let ongoing_operation = self.current_ongoing_operation().get();
-        let (mut rng, mut ticket_position) = match ongoing_operation {
-            OngoingOperationType::None => (
-                Random::from_seeds(
-                    self.crypto(),
-                    self.blockchain().get_prev_block_random_seed(),
-                    self.blockchain().get_block_random_seed(),
-                ),
-                VEC_MAPPER_START_INDEX,
-            ),
-            OngoingOperationType::SelectWinners {
-                seed,
-                seed_index,
-                ticket_position,
-            } => {
-                self.clear_operation();
-
-                (
-                    Random::from_hash(self.crypto(), seed, seed_index),
-                    ticket_position,
-                )
-            }
-            _ => return sc_error!("Another ongoing operation is in progress"),
-        };
-
         let last_ticket_position = self.shuffled_tickets().len();
         let nr_winning_tickets = self.nr_winning_tickets().get();
+        let ongoing_operation = self.current_ongoing_operation().get();
 
-        let gas_before = self.blockchain().get_gas_left();
+        // dummy, will be overwritten in the Load part, 
+        // but the Rust compiler complains of possibly uninitialized variables otherwise
+        let mut rng = Random::from_hash(self.crypto(), H256::zero(), 0);
+        let mut ticket_position = 0;
 
-        let is_winning_ticket = ticket_position <= nr_winning_tickets;
-        self.shuffle_single_ticket(
-            &mut rng,
-            ticket_position,
-            last_ticket_position,
-            is_winning_ticket,
-        );
-        ticket_position += 1;
+        self.run_while_it_has_gas(ongoing_operation, |gas_op| match gas_op {
+            GasOp::Load(op) => match op {
+                OngoingOperationType::None => {
+                    rng = Random::from_seeds(
+                        self.crypto(),
+                        self.blockchain().get_prev_block_random_seed(),
+                        self.blockchain().get_block_random_seed(),
+                    );
+                    ticket_position = VEC_MAPPER_START_INDEX;
 
-        let gas_after = self.blockchain().get_gas_left();
-        let gas_per_iteration = gas_before - gas_after;
+                    LoopOp::Continue
+                }
+                OngoingOperationType::SelectWinners {
+                    seed,
+                    seed_index,
+                    ticket_position: ticket_pos,
+                } => {
+                    self.clear_operation();
 
-        while ticket_position < last_ticket_position - 1 {
-            if self.can_continue_operation(gas_per_iteration) {
+                    rng = Random::from_hash(self.crypto(), seed, seed_index);
+                    ticket_position = ticket_pos;
+
+                    LoopOp::Continue
+                }
+                _ => LoopOp::Break,
+            },
+            GasOp::Continue => {
                 let is_winning_ticket = ticket_position <= nr_winning_tickets;
                 self.shuffle_single_ticket(
                     &mut rng,
@@ -160,20 +121,24 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                     is_winning_ticket,
                 );
                 ticket_position += 1;
-            } else {
-                self.save_progress(&OngoingOperationType::SelectWinners {
-                    seed: rng.seed,
-                    seed_index: rng.index,
-                    ticket_position,
-                });
 
-                return Ok(OperationCompletionStatus::InterruptedBeforeOutOfGas);
+                if ticket_position == last_ticket_position - 1 {
+                    LoopOp::Break
+                } else {
+                    LoopOp::Continue
+                }
             }
-        }
+            GasOp::Save => LoopOp::Save(OngoingOperationType::SelectWinners {
+                seed: rng.seed.clone(),
+                seed_index: rng.index,
+                ticket_position,
+            }),
+            GasOp::Completed => {
+                self.start_confirmation_period(VEC_MAPPER_START_INDEX, nr_winning_tickets);
 
-        self.start_confirmation_period(VEC_MAPPER_START_INDEX, nr_winning_tickets);
-
-        Ok(OperationCompletionStatus::Completed)
+                LoopOp::Break
+            }
+        })
     }
 
     #[payable("*")]
@@ -337,15 +302,22 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     // private
 
-    fn create_tickets(&self, buyer: &Address, nr_tickets: usize) {
+    fn try_create_tickets(&self, buyer: &Address, nr_tickets: usize) -> SCResult<()> {
+        require!(
+            self.ticket_range_for_address(buyer).is_empty(),
+            "Duplicate entry for user"
+        );
+
         let first_ticket_id = self.shuffled_tickets().len() + 1;
         let last_ticket_id = first_ticket_id + nr_tickets - 1;
         self.ticket_range_for_address(buyer)
             .set(&(first_ticket_id, last_ticket_id));
 
-        for i in 0..nr_tickets {
-            self.shuffled_tickets().push(&(first_ticket_id + i));
+        for ticket_id in first_ticket_id..=last_ticket_id {
+            self.shuffled_tickets().push(&ticket_id);
         }
+
+        Ok(())
     }
 
     /// Fisher-Yates algorithm,
