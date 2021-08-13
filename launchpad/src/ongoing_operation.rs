@@ -24,7 +24,7 @@ pub trait OngoingOperationModule {
     fn can_continue_operation(&self, operation_cost: u64) -> bool {
         let gas_left = self.blockchain().get_gas_left();
 
-        gas_left - operation_cost > MIN_GAS_TO_SAVE_PROGRESS
+        gas_left > operation_cost && gas_left - operation_cost > MIN_GAS_TO_SAVE_PROGRESS
     }
 
     fn save_progress(&self, operation: &OngoingOperationType) {
@@ -37,7 +37,7 @@ pub trait OngoingOperationModule {
 
     fn require_no_ongoing_operation(&self) -> SCResult<()> {
         require!(
-            self.current_ongoing_operation().is_empty(),
+            matches!(self.current_ongoing_operation().get(), OngoingOperationType::None),
             "Another ongoing operation is in progress"
         );
         Ok(())

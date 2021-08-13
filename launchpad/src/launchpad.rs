@@ -45,7 +45,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let ongoing_operation = self.current_ongoing_operation().get();
         let mut index = match ongoing_operation {
             OngoingOperationType::None => {
-                require!(self.ticket_owners().is_empty(), "Cannot add more tickets");
+                require!(
+                    self.shuffled_tickets().is_empty(),
+                    "Cannot add more tickets"
+                );
                 0
             }
             OngoingOperationType::AddTickets { index } => {
@@ -130,7 +133,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             _ => return sc_error!("Another ongoing operation is in progress"),
         };
 
-        let last_ticket_position = self.ticket_owners().len();
+        let last_ticket_position = self.shuffled_tickets().len();
         let nr_winning_tickets = self.nr_winning_tickets().get();
 
         let gas_before = self.blockchain().get_gas_left();
@@ -335,14 +338,13 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     // private
 
     fn create_tickets(&self, buyer: &Address, nr_tickets: usize) {
-        let first_ticket_id = self.ticket_owners().len() + 1;
+        let first_ticket_id = self.shuffled_tickets().len() + 1;
         let last_ticket_id = first_ticket_id + nr_tickets - 1;
         self.ticket_range_for_address(buyer)
             .set(&(first_ticket_id, last_ticket_id));
 
-        for _ in 0..nr_tickets {
-            let ticket_id = self.ticket_owners().push(buyer);
-            self.shuffled_tickets().push(&ticket_id);
+        for i in 0..nr_tickets {
+            self.shuffled_tickets().push(&(first_ticket_id + i));
         }
     }
 
@@ -483,10 +485,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     // storage
-
-    // ticket ID -> address mapping
-    #[storage_mapper("ticketOwners")]
-    fn ticket_owners(&self) -> VecMapper<Self::Storage, Address>;
 
     #[storage_mapper("ticketStatus")]
     fn ticket_status(&self) -> VecMapper<Self::Storage, TicketStatus>;
