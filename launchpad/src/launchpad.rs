@@ -84,64 +84,38 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let last_ticket_position = self.shuffled_tickets().len();
         let nr_winning_tickets = self.nr_winning_tickets().get();
 
-        // dummy, will be overwritten in the Load part,
-        // but the Rust compiler complains of possibly uninitialized variables otherwise
-        let mut rng = Random::from_hash(self.crypto(), H256::zero(), 0);
-        let mut ticket_position = 0;
-
-        let run_result = self.run_while_it_has_gas(|gas_op| match gas_op {
-            GasOp::Load(op) => match op {
-                OngoingOperationType::None => {
-                    rng = Random::from_seeds(
-                        self.crypto(),
-                        self.blockchain().get_prev_block_random_seed(),
-                        self.blockchain().get_block_random_seed(),
-                    );
-                    ticket_position = VEC_MAPPER_START_INDEX;
-
-                    LoopOp::Continue
-                }
-                OngoingOperationType::SelectWinners {
-                    seed,
-                    seed_index,
-                    ticket_position: ticket_pos,
-                } => {
-                    rng = Random::from_hash(self.crypto(), seed, seed_index);
-                    ticket_position = ticket_pos;
-
-                    LoopOp::Continue
-                }
-                _ => LoopOp::Break,
-            },
-            GasOp::Continue => {
-                let is_winning_ticket = ticket_position <= nr_winning_tickets;
-                self.shuffle_single_ticket(
-                    &mut rng,
-                    ticket_position,
-                    last_ticket_position,
-                    is_winning_ticket,
-                );
-                ticket_position += 1;
-
-                if ticket_position == last_ticket_position - 1 {
-                    LoopOp::Break
-                } else {
-                    LoopOp::Continue
-                }
-            }
-            GasOp::Save => LoopOp::Save(OngoingOperationType::SelectWinners {
-                seed: rng.seed.clone(),
-                seed_index: rng.index,
+        let (mut rng, mut ticket_position) = self.load_select_winners_operation()?;
+        let run_result = self.run_while_it_has_gas(|| {
+            let is_winning_ticket = ticket_position <= nr_winning_tickets;
+            self.shuffle_single_ticket(
+                &mut rng,
                 ticket_position,
-            }),
-            GasOp::Completed => {
-                self.start_confirmation_period(VEC_MAPPER_START_INDEX, nr_winning_tickets);
+                last_ticket_position,
+                is_winning_ticket,
+            );
+            ticket_position += 1;
 
+            if ticket_position == last_ticket_position - 1 {
                 LoopOp::Break
+            } else {
+                LoopOp::Continue
             }
-        });
+        })?;
 
-        run_result
+        match run_result {
+            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
+                self.save_progress(&OngoingOperationType::SelectWinners {
+                    seed: rng.seed.clone(),
+                    seed_index: rng.index,
+                    ticket_position,
+                });
+            }
+            OperationCompletionStatus::Completed => {
+                self.start_confirmation_period(VEC_MAPPER_START_INDEX, nr_winning_tickets);
+            }
+        };
+
+        Ok(run_result)
     }
 
     #[payable("*")]
@@ -228,42 +202,33 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         );
 
         let next_generation = self.current_generation().get() + 1;
-        let mut current_ticket_position = 0;
+        let mut current_ticket_position =
+            self.load_select_new_winners_operation(new_first_winning_ticket_position)?;
 
-        let run_result = self.run_while_it_has_gas(|gas_op| match gas_op {
-            GasOp::Load(op) => match op {
-                OngoingOperationType::None => {
-                    current_ticket_position = new_first_winning_ticket_position;
+        let run_result = self.run_while_it_has_gas(|| {
+            let winning_ticket_id = self.shuffled_tickets().get(current_ticket_position);
+            self.set_ticket_status(
+                winning_ticket_id,
+                TicketStatus::Winning {
+                    generation: next_generation,
+                },
+            );
+            current_ticket_position += 1;
 
-                    LoopOp::Continue
-                }
-                OngoingOperationType::SelectNewWinners { ticket_position } => {
-                    current_ticket_position = ticket_position;
-
-                    LoopOp::Continue
-                }
-                _ => LoopOp::Break,
-            },
-            GasOp::Continue => {
-                let winning_ticket_id = self.shuffled_tickets().get(current_ticket_position);
-                self.set_ticket_status(
-                    winning_ticket_id,
-                    TicketStatus::Winning {
-                        generation: next_generation,
-                    },
-                );
-                current_ticket_position += 1;
-
-                if current_ticket_position == new_last_winning_ticket_position {
-                    LoopOp::Break
-                } else {
-                    LoopOp::Continue
-                }
+            if current_ticket_position == new_last_winning_ticket_position {
+                LoopOp::Break
+            } else {
+                LoopOp::Continue
             }
-            GasOp::Save => LoopOp::Save(OngoingOperationType::SelectNewWinners {
-                ticket_position: current_ticket_position,
-            }),
-            GasOp::Completed => {
+        })?;
+
+        match run_result {
+            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
+                self.save_progress(&OngoingOperationType::SelectNewWinners {
+                    ticket_position: current_ticket_position,
+                });
+            }
+            OperationCompletionStatus::Completed => {
                 self.winning_tickets_range().set(&(
                     new_first_winning_ticket_position,
                     new_last_winning_ticket_position,
@@ -273,12 +238,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                     new_first_winning_ticket_position,
                     new_last_winning_ticket_position,
                 );
-
-                LoopOp::Break
             }
-        });
+        };
 
-        run_result
+        Ok(run_result)
     }
 
     #[endpoint(claimLaunchpadTokens)]

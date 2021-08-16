@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use crate::{random::Random, VEC_MAPPER_START_INDEX};
+
 const MIN_GAS_TO_SAVE_PROGRESS: u64 = 100_000_000;
 
 #[derive(TopDecode, TopEncode, TypeAbi, PartialEq)]
@@ -14,13 +16,6 @@ pub enum OngoingOperationType {
     SelectNewWinners {
         ticket_position: usize,
     },
-}
-
-pub enum GasOp {
-    Load(OngoingOperationType),
-    Continue,
-    Save,
-    Completed,
 }
 
 pub enum LoopOp {
@@ -42,17 +37,11 @@ pub trait OngoingOperationModule {
         mut process: Process,
     ) -> SCResult<OperationCompletionStatus>
     where
-        Process: FnMut(GasOp) -> LoopOp,
+        Process: FnMut() -> LoopOp,
     {
-        let initial_op = self.current_ongoing_operation().get();
-
-        if process(GasOp::Load(initial_op)).is_break() {
-            return sc_error!("Another ongoing operation is in progress");
-        }
-
         let gas_before = self.blockchain().get_gas_left();
 
-        let mut loop_op = process(GasOp::Continue);
+        let mut loop_op = process();
 
         let gas_after = self.blockchain().get_gas_left();
         let gas_per_iteration = gas_before - gas_after;
@@ -63,19 +52,13 @@ pub trait OngoingOperationModule {
             }
 
             if !self.can_continue_operation(gas_per_iteration) {
-                match process(GasOp::Save) {
-                    LoopOp::Save(operation) => self.save_progress(&operation),
-                    _ => (),
-                }
-
                 return Ok(OperationCompletionStatus::InterruptedBeforeOutOfGas);
             }
 
-            loop_op = process(GasOp::Continue);
+            loop_op = process();
         }
 
         self.clear_operation();
-        process(GasOp::Completed);
 
         Ok(OperationCompletionStatus::Completed)
     }
@@ -103,6 +86,44 @@ pub trait OngoingOperationModule {
             "Another ongoing operation is in progress"
         );
         Ok(())
+    }
+
+    fn load_select_winners_operation(&self) -> SCResult<(Random<Self::CryptoApi>, usize)> {
+        let ongoing_operation = self.current_ongoing_operation().get();
+
+        match ongoing_operation {
+            OngoingOperationType::None => Ok((
+                Random::from_seeds(
+                    self.crypto(),
+                    self.blockchain().get_prev_block_random_seed(),
+                    self.blockchain().get_block_random_seed(),
+                ),
+                VEC_MAPPER_START_INDEX,
+            )),
+            OngoingOperationType::SelectWinners {
+                seed,
+                seed_index,
+                ticket_position: ticket_pos,
+            } => Ok((
+                Random::from_hash(self.crypto(), seed, seed_index),
+                ticket_pos,
+            )),
+            _ => sc_error!("Another ongoing operation is in progress"),
+        }
+    }
+
+    fn load_select_new_winners_operation(&self, new_first_winning_ticket_position: usize) -> SCResult<usize> {
+        let ongoing_operation = self.current_ongoing_operation().get();
+
+        match ongoing_operation {
+            OngoingOperationType::None => {
+                Ok(new_first_winning_ticket_position)
+            }
+            OngoingOperationType::SelectNewWinners { ticket_position } => {
+                Ok(ticket_position)
+            }
+            _ => sc_error!("Another ongoing operation is in progress"),
+        }
     }
 
     #[storage_mapper("operation")]
