@@ -359,15 +359,13 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             return LaunchStage::AddTickets;
         }
 
-        // confirmation period start is always set after the first SelectWinners
-        if self.confirmation_period_start_epoch().is_empty() {
-            return LaunchStage::SelectWinners;
-        }
-
         let confirmation_period_start_epoch = self.confirmation_period_start_epoch().get();
         let confirmation_period_in_epochs = self.confirmation_period_in_epochs().get();
         let confiration_period_end_epoch =
             confirmation_period_start_epoch + confirmation_period_in_epochs;
+        if current_epoch < confirmation_period_start_epoch {
+            return LaunchStage::WaitBeforeConfirmation;
+        }
         if current_epoch < confiration_period_end_epoch {
             return LaunchStage::ConfirmTickets;
         }
@@ -494,10 +492,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     #[storage_mapper("shuffledTickets")]
     fn shuffled_tickets(&self) -> VecMapper<Self::Storage, usize>;
-
-    #[view(getConfirmationPeriodStartEpoch)]
-    #[storage_mapper("confirmationPeriodStartEpoch")]
-    fn confirmation_period_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[storage_mapper("currentGeneration")]
     fn current_generation(&self) -> SingleValueMapper<Self::Storage, u8>;
