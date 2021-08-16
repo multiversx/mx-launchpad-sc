@@ -268,7 +268,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                     new_first_winning_ticket_position,
                     new_last_winning_ticket_position,
                 ));
-                self.nr_winning_tickets().set(&remaining_tickets);
 
                 self.start_confirmation_period(
                     new_first_winning_ticket_position,
