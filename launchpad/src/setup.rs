@@ -36,9 +36,16 @@ pub trait SetupModule {
     fn deposit_launchpad_tokens(
         &self,
         #[payment_token] payment_token: TokenIdentifier,
+        #[payment_amount] payment_amount: Self::BigUint,
     ) -> SCResult<()> {
         let launchpad_token_id = self.launchpad_token_id().get();
         require!(payment_token == launchpad_token_id, "Wrong token deposited");
+
+        let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
+        let total_winning_tickets = self.nr_winning_tickets().get();
+        let amount_needed = amount_per_ticket * Self::BigUint::from(total_winning_tickets);
+
+        require!(amount_needed == payment_amount, "Wrong amount deposited");
 
         Ok(())
     }
@@ -124,7 +131,10 @@ pub trait SetupModule {
     }
 
     fn try_set_nr_winning_tickets(&self, nr_winning_tickets: usize) -> SCResult<()> {
-        require!(nr_winning_tickets > 0, "Cannot set number of winning tickets to zero");
+        require!(
+            nr_winning_tickets > 0,
+            "Cannot set number of winning tickets to zero"
+        );
 
         self.nr_winning_tickets().set(&nr_winning_tickets);
 
