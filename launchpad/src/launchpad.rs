@@ -1,9 +1,14 @@
 #![no_std]
 
 elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
+
 use elrond_wasm::elrond_codec::TopEncode;
 
 mod setup;
+
+mod launch_stage;
+use launch_stage::*;
 
 mod ongoing_operation;
 use ongoing_operation::*;
@@ -37,12 +42,22 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     #[only_owner]
+    #[endpoint(forceClaimPeriodStart)]
+    fn force_claim_period_start(&self) -> SCResult<()> {
+        let total_tickets = self.get_total_tickets();
+        self.total_confirmed_tickets().set(&total_tickets);
+
+        Ok(())
+    }
+
+    #[only_owner]
     #[endpoint(addTickets)]
     fn add_tickets(
         &self,
         #[var_args] address_number_pairs: VarArgs<MultiArg2<Address, usize>>,
     ) -> SCResult<()> {
         self.require_no_ongoing_operation()?;
+        self.require_stage(LaunchStage::AddTickets)?;
 
         let current_epoch = self.blockchain().get_block_epoch();
         let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
@@ -64,29 +79,17 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     #[endpoint(selectWinners)]
     fn select_winners(&self) -> SCResult<OperationCompletionStatus> {
-        require!(
-            self.confirmation_period_start_epoch().is_empty(),
-            "Cannot select winners after confirmation period started"
-        );
-
-        let current_epoch = self.blockchain().get_block_epoch();
-        let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
-
-        require!(
-            winner_selection_start_epoch >= current_epoch,
-            "Cannot select winners yet"
-        );
+        self.require_stage(LaunchStage::SelectWinners)?;
 
         let last_ticket_position = self.shuffled_tickets().len();
         let nr_winning_tickets = self.nr_winning_tickets().get();
-        let ongoing_operation = self.current_ongoing_operation().get();
 
-        // dummy, will be overwritten in the Load part, 
+        // dummy, will be overwritten in the Load part,
         // but the Rust compiler complains of possibly uninitialized variables otherwise
         let mut rng = Random::from_hash(self.crypto(), H256::zero(), 0);
         let mut ticket_position = 0;
 
-        self.run_while_it_has_gas(ongoing_operation, |gas_op| match gas_op {
+        let run_result = self.run_while_it_has_gas(|gas_op| match gas_op {
             GasOp::Load(op) => match op {
                 OngoingOperationType::None => {
                     rng = Random::from_seeds(
@@ -103,8 +106,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                     seed_index,
                     ticket_position: ticket_pos,
                 } => {
-                    self.clear_operation();
-
                     rng = Random::from_hash(self.crypto(), seed, seed_index);
                     ticket_position = ticket_pos;
 
@@ -138,7 +139,9 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
                 LoopOp::Break
             }
-        })
+        });
+
+        run_result
     }
 
     #[payable("*")]
@@ -148,34 +151,13 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_amount] payment_amount: Self::BigUint,
         nr_tickets_to_confirm: usize,
-    ) -> SCResult<OperationCompletionStatus> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let claim_start_epoch = self.claim_period_start_epoch().get();
-        let claim_period_in_epochs = self.claim_period_in_epochs().get();
-        let claim_end_epoch = claim_start_epoch + claim_period_in_epochs;
-
-        if current_epoch > claim_end_epoch {
-            self.select_new_winners()?;
-            return Ok(OperationCompletionStatus::InterruptedBeforeOutOfGas);
-        }
+    ) -> SCResult<()> {
+        self.require_stage(LaunchStage::ConfirmTickets)?;
 
         let caller = self.blockchain().get_caller();
         require!(
             !self.blacklist().contains(&caller),
             "You have been put into the blacklist and may not confirm tickets"
-        );
-
-        let confirmation_start_epoch = self.confirmation_period_start_epoch().get();
-        let confirmation_period_in_epochs = self.confirmation_period_in_epochs().get();
-        let confirmation_end_epoch = confirmation_start_epoch + confirmation_period_in_epochs;
-
-        require!(
-            current_epoch > confirmation_start_epoch,
-            "Confirmation period has not started yet"
-        );
-        require!(
-            current_epoch <= confirmation_end_epoch,
-            "Confirmation period has ended"
         );
 
         let ticket_payment_token = self.ticket_payment_token().get();
@@ -205,12 +187,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                 continue;
             }
 
-            self.set_ticket_status(
-                ticket_id,
-                TicketStatus::Confirmed {
-                    generation: current_generation,
-                },
-            );
+            self.set_ticket_status(ticket_id, TicketStatus::Confirmed);
             actual_confirmed_tickets += 1;
 
             if actual_confirmed_tickets == nr_tickets_to_confirm {
@@ -223,39 +200,105 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             "Couldn't confirm all tickets"
         );
 
-        Ok(OperationCompletionStatus::Completed)
+        self.total_confirmed_tickets()
+            .update(|confirmed| *confirmed += actual_confirmed_tickets);
+
+        Ok(())
+    }
+
+    #[endpoint(selectNewWinners)]
+    fn select_new_winners(&self) -> SCResult<OperationCompletionStatus> {
+        self.require_stage(LaunchStage::SelectNewWinners)?;
+
+        let (prev_first_winning_ticket_position, prev_last_winning_ticket_position) =
+            self.winning_tickets_range().get();
+        let winning_tickets =
+            prev_last_winning_ticket_position - prev_first_winning_ticket_position + 1;
+        let confirmed_tickets = self.total_confirmed_tickets().get();
+        let remaining_tickets = winning_tickets - confirmed_tickets;
+
+        let new_first_winning_ticket_position = prev_first_winning_ticket_position + 1;
+        let new_last_winning_ticket_position =
+            new_first_winning_ticket_position + remaining_tickets - 1;
+        let last_valid_ticket_id = self.get_total_tickets();
+
+        require!(
+            new_last_winning_ticket_position <= last_valid_ticket_id,
+            "Cannot select new winners, reached end of range"
+        );
+
+        let next_generation = self.current_generation().get() + 1;
+        let mut current_ticket_position = 0;
+
+        let run_result = self.run_while_it_has_gas(|gas_op| match gas_op {
+            GasOp::Load(op) => match op {
+                OngoingOperationType::None => {
+                    current_ticket_position = new_first_winning_ticket_position;
+
+                    LoopOp::Continue
+                }
+                OngoingOperationType::SelectNewWinners { ticket_position } => {
+                    current_ticket_position = ticket_position;
+
+                    LoopOp::Continue
+                }
+                _ => LoopOp::Break,
+            },
+            GasOp::Continue => {
+                let winning_ticket_id = self.shuffled_tickets().get(current_ticket_position);
+                self.set_ticket_status(
+                    winning_ticket_id,
+                    TicketStatus::Winning {
+                        generation: next_generation,
+                    },
+                );
+                current_ticket_position += 1;
+
+                if current_ticket_position == new_last_winning_ticket_position {
+                    LoopOp::Break
+                } else {
+                    LoopOp::Continue
+                }
+            }
+            GasOp::Save => LoopOp::Save(OngoingOperationType::SelectNewWinners {
+                ticket_position: current_ticket_position,
+            }),
+            GasOp::Completed => {
+                self.winning_tickets_range().set(&(
+                    new_first_winning_ticket_position,
+                    new_last_winning_ticket_position,
+                ));
+                self.nr_winning_tickets().set(&remaining_tickets);
+                self.total_confirmed_tickets().clear();
+
+                self.start_confirmation_period(
+                    new_first_winning_ticket_position,
+                    new_last_winning_ticket_position,
+                );
+
+                LoopOp::Break
+            }
+        });
+
+        run_result
     }
 
     #[endpoint(claimLaunchpadTokens)]
-    fn claim_launchpad_tokens(&self) -> SCResult<OperationCompletionStatus> {
+    fn claim_launchpad_tokens(&self) -> SCResult<()> {
+        self.require_stage(LaunchStage::Claim)?;
+
         let caller = self.blockchain().get_caller();
         require!(
             !self.blacklist().contains(&caller),
             "You have been put into the blacklist and may not claim tokens"
         );
 
-        let current_epoch = self.blockchain().get_block_epoch();
-        let claim_start_epoch = self.claim_period_start_epoch().get();
-        let claim_period_in_epochs = self.claim_period_in_epochs().get();
-        let claim_end_epoch = claim_start_epoch + claim_period_in_epochs;
-
-        require!(
-            current_epoch > claim_start_epoch,
-            "Claim period has not started yet"
-        );
-
-        if current_epoch > claim_end_epoch {
-            self.select_new_winners()?;
-            return Ok(OperationCompletionStatus::InterruptedBeforeOutOfGas);
-        }
-
         let (first_ticket_id, last_ticket_id) = self.try_get_ticket_range(&caller)?;
-        let current_generation = self.current_generation().get();
-        let mut nr_redeemed_tickets = 0;
+        let mut nr_redeemed_tickets = 0u32;
 
         for ticket_id in first_ticket_id..=last_ticket_id {
             let ticket_status = self.ticket_status().get(ticket_id);
-            if !ticket_status.is_confirmed(current_generation) {
+            if !ticket_status.is_confirmed() {
                 continue;
             }
 
@@ -265,9 +308,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         require!(nr_redeemed_tickets > 0, "No tickets to redeem");
 
-        self.nr_redeemed_tickets()
-            .update(|redeemed| *redeemed += nr_redeemed_tickets);
-
         let launchpad_token_id = self.launchpad_token_id().get();
         let tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
         let amount_to_send = Self::BigUint::from(nr_redeemed_tickets) * tokens_per_winning_ticket;
@@ -275,7 +315,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         self.send()
             .direct(&caller, &launchpad_token_id, 0, &amount_to_send, &[]);
 
-        Ok(OperationCompletionStatus::Completed)
+        Ok(())
     }
 
     // views
@@ -298,6 +338,42 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         }
 
         nr_winning_tickets
+    }
+
+    #[view(getLaunchStage)]
+    fn get_launch_stage(&self) -> LaunchStage {
+        let current_epoch = self.blockchain().get_block_epoch();
+
+        let total_tickets = self.get_total_tickets();
+        let total_confirmed_tickets = self.get_total_confirmed_tickets();
+        if total_confirmed_tickets == total_tickets {
+            let claim_start_epoch = self.claim_start_epoch().get();
+            if current_epoch >= claim_start_epoch {
+                return LaunchStage::Claim;
+            } else {
+                return LaunchStage::WaitBeforeClaim;
+            }
+        }
+
+        let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
+        if current_epoch < winner_selection_start_epoch {
+            return LaunchStage::AddTickets;
+        }
+
+        // confirmation period start is always set after the first SelectWinners
+        if self.confirmation_period_start_epoch().is_empty() {
+            return LaunchStage::SelectWinners;
+        }
+
+        let confirmation_period_start_epoch = self.confirmation_period_start_epoch().get();
+        let confirmation_period_in_epochs = self.confirmation_period_in_epochs().get();
+        let confiration_period_end_epoch =
+            confirmation_period_start_epoch + confirmation_period_in_epochs;
+        if current_epoch < confiration_period_end_epoch {
+            return LaunchStage::ConfirmTickets;
+        }
+
+        LaunchStage::SelectNewWinners
     }
 
     // private
@@ -369,82 +445,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let current_epoch = self.blockchain().get_block_epoch();
         self.confirmation_period_start_epoch().set(&current_epoch);
 
-        let confirmation_period_in_epochs = self.confirmation_period_in_epochs().get();
-        let claim_period_start_epoch = current_epoch + confirmation_period_in_epochs + 1;
-        self.claim_period_start_epoch()
-            .set(&claim_period_start_epoch);
-
         self.winning_tickets_range()
             .set(&(first_winning_ticket_position, last_winning_ticket_position));
         self.current_generation()
             .update(|current_generation| *current_generation += 1);
-    }
-
-    fn select_new_winners(&self) -> SCResult<()> {
-        let (prev_first_winning_ticket_position, prev_last_winning_ticket_position) =
-            self.winning_tickets_range().get();
-        let winning_tickets =
-            prev_last_winning_ticket_position - prev_first_winning_ticket_position + 1;
-        let redeemed_tickets = self.nr_redeemed_tickets().get();
-        let remaining_tickets = winning_tickets - redeemed_tickets;
-
-        let new_first_winning_ticket_position = prev_first_winning_ticket_position + 1;
-        let new_last_winning_ticket_position =
-            new_first_winning_ticket_position + remaining_tickets - 1;
-
-        let next_generation = self.current_generation().get() + 1;
-
-        let ongoing_operation = self.current_ongoing_operation().get();
-        let mut current_ticket_position = match ongoing_operation {
-            OngoingOperationType::None => new_first_winning_ticket_position,
-            OngoingOperationType::RestartConfirmationPeriod { ticket_position } => ticket_position,
-            _ => return sc_error!("Another ongoing operation is in progress"),
-        };
-
-        let gas_before = self.blockchain().get_gas_left();
-
-        let mut winning_ticket_id = self.shuffled_tickets().get(current_ticket_position);
-        self.set_ticket_status(
-            winning_ticket_id,
-            TicketStatus::Winning {
-                generation: next_generation,
-            },
-        );
-        current_ticket_position += 1;
-
-        let gas_after = self.blockchain().get_gas_left();
-        let gas_per_iteration = gas_before - gas_after;
-
-        while current_ticket_position <= new_last_winning_ticket_position {
-            if self.can_continue_operation(gas_per_iteration) {
-                winning_ticket_id = self.shuffled_tickets().get(current_ticket_position);
-                self.set_ticket_status(
-                    winning_ticket_id,
-                    TicketStatus::Winning {
-                        generation: next_generation,
-                    },
-                );
-                current_ticket_position += 1;
-            } else {
-                self.save_progress(&OngoingOperationType::RestartConfirmationPeriod {
-                    ticket_position: current_ticket_position,
-                })
-            }
-        }
-
-        self.winning_tickets_range().set(&(
-            new_first_winning_ticket_position,
-            new_last_winning_ticket_position,
-        ));
-        self.nr_winning_tickets().set(&remaining_tickets);
-        self.nr_redeemed_tickets().clear();
-
-        self.start_confirmation_period(
-            new_first_winning_ticket_position,
-            new_last_winning_ticket_position,
-        );
-
-        Ok(())
     }
 
     fn try_get_ticket_range(&self, address: &Address) -> SCResult<(usize, usize)> {
@@ -454,6 +458,25 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         );
 
         Ok(self.ticket_range_for_address(address).get())
+    }
+
+    fn get_total_tickets(&self) -> usize {
+        self.shuffled_tickets().len()
+    }
+
+    fn get_total_confirmed_tickets(&self) -> usize {
+        self.total_confirmed_tickets().get()
+    }
+
+    fn require_stage(&self, expected_stage: LaunchStage) -> SCResult<()> {
+        let actual_stage = self.get_launch_stage();
+
+        require!(
+            actual_stage == expected_stage,
+            "Cannot call this endpoint, SC is in a different stage"
+        );
+
+        Ok(())
     }
 
     // storage
@@ -477,13 +500,9 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[storage_mapper("confirmationPeriodStartEpoch")]
     fn confirmation_period_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
 
-    #[view(getClaimPeriodStartEpoch)]
-    #[storage_mapper("claimPeriodStartEpoch")]
-    fn claim_period_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
-
     #[storage_mapper("currentGeneration")]
     fn current_generation(&self) -> SingleValueMapper<Self::Storage, u8>;
 
-    #[storage_mapper("nrRedeemedTickets")]
-    fn nr_redeemed_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
+    #[storage_mapper("totalConfirmedTickets")]
+    fn total_confirmed_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
 }

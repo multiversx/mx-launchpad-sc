@@ -11,7 +11,7 @@ pub enum OngoingOperationType {
         seed_index: usize,
         ticket_position: usize,
     },
-    RestartConfirmationPeriod {
+    SelectNewWinners {
         ticket_position: usize,
     },
 }
@@ -39,20 +39,16 @@ impl LoopOp {
 pub trait OngoingOperationModule {
     fn run_while_it_has_gas<Process>(
         &self,
-        initial_op: OngoingOperationType,
         mut process: Process,
     ) -> SCResult<OperationCompletionStatus>
     where
         Process: FnMut(GasOp) -> LoopOp,
     {
-        match initial_op {
-            OngoingOperationType::None => (),
-            other => {
-                if process(GasOp::Load(other)).is_break() {
-                    return sc_error!("Another ongoing operation is in progress");
-                }
-            }
-        };
+        let initial_op = self.current_ongoing_operation().get();
+
+        if process(GasOp::Load(initial_op)).is_break() {
+            return sc_error!("Another ongoing operation is in progress");
+        }
 
         let gas_before = self.blockchain().get_gas_left();
 
@@ -87,7 +83,7 @@ pub trait OngoingOperationModule {
     fn can_continue_operation(&self, operation_cost: u64) -> bool {
         let gas_left = self.blockchain().get_gas_left();
 
-        gas_left > operation_cost && gas_left - operation_cost > MIN_GAS_TO_SAVE_PROGRESS
+        gas_left > MIN_GAS_TO_SAVE_PROGRESS + operation_cost
     }
 
     fn save_progress(&self, operation: &OngoingOperationType) {
