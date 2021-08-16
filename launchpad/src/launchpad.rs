@@ -44,8 +44,8 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[only_owner]
     #[endpoint(forceClaimPeriodStart)]
     fn force_claim_period_start(&self) -> SCResult<()> {
-        let total_tickets = self.get_total_tickets();
-        self.total_confirmed_tickets().set(&total_tickets);
+        let total_winning_tickets = self.nr_winning_tickets().get();
+        self.total_confirmed_tickets().set(&total_winning_tickets);
 
         Ok(())
     }
