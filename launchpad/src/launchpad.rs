@@ -343,9 +343,9 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     fn get_launch_stage(&self) -> LaunchStage {
         let current_epoch = self.blockchain().get_block_epoch();
 
-        let total_tickets = self.get_total_tickets();
+        let total_winning_tickets = self.nr_winning_tickets().get();
         let total_confirmed_tickets = self.get_total_confirmed_tickets();
-        if total_confirmed_tickets == total_tickets {
+        if total_confirmed_tickets == total_winning_tickets {
             let claim_start_epoch = self.claim_start_epoch().get();
             if current_epoch >= claim_start_epoch {
                 return LaunchStage::Claim;
