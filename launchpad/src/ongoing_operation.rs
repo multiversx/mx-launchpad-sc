@@ -77,17 +77,6 @@ pub trait OngoingOperationModule {
         self.current_ongoing_operation().clear();
     }
 
-    fn require_no_ongoing_operation(&self) -> SCResult<()> {
-        require!(
-            matches!(
-                self.current_ongoing_operation().get(),
-                OngoingOperationType::None
-            ),
-            "Another ongoing operation is in progress"
-        );
-        Ok(())
-    }
-
     fn load_select_winners_operation(&self) -> SCResult<(Random<Self::CryptoApi>, usize)> {
         let ongoing_operation = self.current_ongoing_operation().get();
 

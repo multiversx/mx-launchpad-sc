@@ -56,15 +56,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         &self,
         #[var_args] address_number_pairs: VarArgs<MultiArg2<Address, usize>>,
     ) -> SCResult<()> {
-        self.require_no_ongoing_operation()?;
         self.require_stage(LaunchStage::AddTickets)?;
-
-        let current_epoch = self.blockchain().get_block_epoch();
-        let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
-        require!(
-            current_epoch < winner_selection_start_epoch,
-            "Cannot add more tickets, winner selection has started"
-        );
 
         for multi_arg in address_number_pairs.into_vec() {
             let (buyer, nr_tickets) = multi_arg.into_tuple();
@@ -83,6 +75,11 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         let last_ticket_position = self.shuffled_tickets().len();
         let nr_winning_tickets = self.nr_winning_tickets().get();
+
+        require!(
+            nr_winning_tickets <= last_ticket_position,
+            "Cannot select winners, number of winning tickets is higher than total amount of tickets"
+        );
 
         let (mut rng, mut ticket_position) = self.load_select_winners_operation()?;
         let run_result = self.run_while_it_has_gas(|| {
@@ -326,6 +323,11 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let confiration_period_end_epoch =
             confirmation_period_start_epoch + confirmation_period_in_epochs;
         if current_epoch < confirmation_period_start_epoch {
+            let current_generation = self.current_generation().get();
+            if current_generation < FIRST_GENERATION {
+                return LaunchStage::SelectWinners;
+            }
+
             return LaunchStage::WaitBeforeConfirmation;
         }
         if current_epoch < confiration_period_end_epoch {

@@ -7,12 +7,13 @@ pub trait SetupModule {
     fn init(
         &self,
         launchpad_token_id: TokenIdentifier,
+        launchpad_tokens_per_winning_ticket: Self::BigUint,
         ticket_payment_token: TokenIdentifier,
         ticket_price: Self::BigUint,
         nr_winning_tickets: usize,
         winner_selection_start_epoch: u64,
         confirmation_period_start_epoch: u64,
-        confirmation_period_in_epochs: u64, // start
+        confirmation_period_in_epochs: u64,
         claim_start_epoch: u64,
     ) -> SCResult<()> {
         require!(
@@ -21,6 +22,7 @@ pub trait SetupModule {
         );
         self.launchpad_token_id().set(&launchpad_token_id);
 
+        self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket)?;
         self.try_set_ticket_payment_token(&ticket_payment_token)?;
         self.try_set_ticket_price(&ticket_price)?;
         self.try_set_nr_winning_tickets(nr_winning_tickets)?;
@@ -54,7 +56,11 @@ pub trait SetupModule {
         let total_winning_tickets = self.nr_winning_tickets().get();
         let amount_needed = amount_per_ticket * Self::BigUint::from(total_winning_tickets);
 
-        require!(amount_needed == payment_amount, "Wrong amount deposited");
+        let sc_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
+        require!(
+            amount_needed == sc_balance + payment_amount,
+            "Wrong amount deposited"
+        );
 
         Ok(())
     }
@@ -104,14 +110,7 @@ pub trait SetupModule {
     #[only_owner]
     #[endpoint]
     fn set_launchpad_tokens_per_winning_ticket(&self, amount: Self::BigUint) -> SCResult<()> {
-        require!(
-            amount > 0,
-            "Launchpad tokens per winning ticket cannot be set to zero"
-        );
-
-        self.launchpad_tokens_per_winning_ticket().set(&amount);
-
-        Ok(())
+        self.try_set_launchpad_tokens_per_winning_ticket(&amount)
     }
 
     #[only_owner]
@@ -147,6 +146,17 @@ pub trait SetupModule {
         require!(ticket_price > &0, "Ticket price must be higher than 0");
 
         self.ticket_price().set(ticket_price);
+
+        Ok(())
+    }
+
+    fn try_set_launchpad_tokens_per_winning_ticket(&self, amount: &Self::BigUint) -> SCResult<()> {
+        require!(
+            amount > &0,
+            "Launchpad tokens per winning ticket cannot be set to zero"
+        );
+
+        self.launchpad_tokens_per_winning_ticket().set(amount);
 
         Ok(())
     }
