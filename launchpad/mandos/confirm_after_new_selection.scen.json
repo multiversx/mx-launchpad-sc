@@ -1,0 +1,121 @@
+{
+    "name": "confirm after select new winners",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "select_new_winners_one_call.scen.json"
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "70"
+            }
+        },
+        {
+            "step": "scQuery",
+            "txId": "Query stage",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getLaunchStage",
+                "arguments": []
+            },
+            "expect": {
+                "out": [
+                    "str:Confirm Tickets"
+                ]
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user1-confirm-no-winning-tickets",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:launchpad",
+                "value": "100",
+                "function": "confirmTickets",
+                "arguments": [
+                    "1"
+                ],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:Couldn't confirm all tickets",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user2-confirm-last-two-tickets",
+            "tx": {
+                "from": "address:user2",
+                "to": "sc:launchpad",
+                "value": "200",
+                "function": "confirmTickets",
+                "arguments": [
+                    "2"
+                ],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user2": {
+                    "nonce": "*",
+                    "balance": "999,600",
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "500",
+                    "esdt": {
+                        "str:LAUNCH-123456": "500,000"
+                    },
+                    "storage": {
+                        "str:ticketStatus|u32:5": "2",
+                        "str:ticketStatus|u32:30": "u8:1|u8:1",
+                        "str:ticketStatus|u32:16": "2",
+                        "str:ticketStatus|u32:24": "u8:1|u8:1",
+                        "str:ticketStatus|u32:18": "2",
+
+                        "str:ticketStatus|u32:22": "2",
+                        "str:ticketStatus|u32:23": "2",
+
+                        "str:totalConfirmedTickets": "5",
+                        "str:nrWinningTickets": "5",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scQuery",
+            "txId": "Query stage",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getLaunchStage",
+                "arguments": []
+            },
+            "expect": {
+                "out": [
+                    "str:Wait Period Before Claim"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,216 @@
+{
+    "name": "add tickets",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "init.scen.json"
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "10"
+            }
+        },
+        {
+            "step": "scQuery",
+            "txId": "query-stage-1",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getLaunchStage",
+                "arguments": []
+            },
+            "expect": {
+                "out": [
+                    "str:Add Tickets"
+                ]
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-add-tickets-1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "addTickets",
+                "arguments": [
+                    "address:user1", "10",
+                    "address:user2", "20"
+                ],
+                "gasLimit": "40,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "20"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-add-tickets-2",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "addTickets",
+                "arguments": [
+                    "address:user3", "1"
+                ],
+                "gasLimit": "40,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "try-add-duplicate-entry",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "addTickets",
+                "arguments": [
+                    "address:user1", "5"
+                ],
+                "gasLimit": "40,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:Duplicate entry for user",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "try-select-winners-too-early",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "selectWinners",
+                "arguments": [],
+                "gasLimit": "40,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:Cannot call this endpoint, SC is in a different stage",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "25"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-try-add-too-late",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "addTickets",
+                "arguments": [
+                    "address:user4", "1"
+                ],
+                "gasLimit": "40,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:Cannot call this endpoint, SC is in a different stage",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scQuery",
+            "txId": "Query stage",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getLaunchStage",
+                "arguments": []
+            },
+            "expect": {
+                "out": [
+                    "str:Select Winners"
+                ]
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:ticketRangeForAddress|address:user1": "u32:1|u32:10",
+                        "str:ticketRangeForAddress|address:user2": "u32:11|u32:30",
+                        "str:ticketRangeForAddress|address:user3": "u32:31|u32:31",
+
+                        "str:shuffledTickets.len": "31",
+
+                        "str:shuffledTickets.item|u32:1": "1",
+                        "str:shuffledTickets.item|u32:2": "2",
+                        "str:shuffledTickets.item|u32:3": "3",
+                        "str:shuffledTickets.item|u32:4": "4",
+                        "str:shuffledTickets.item|u32:5": "5",
+                        "str:shuffledTickets.item|u32:6": "6",
+                        "str:shuffledTickets.item|u32:7": "7",
+                        "str:shuffledTickets.item|u32:8": "8",
+                        "str:shuffledTickets.item|u32:9": "9",
+                        "str:shuffledTickets.item|u32:10": "10",
+                        "str:shuffledTickets.item|u32:11": "11",
+                        "str:shuffledTickets.item|u32:12": "12",
+                        "str:shuffledTickets.item|u32:13": "13",
+                        "str:shuffledTickets.item|u32:14": "14",
+                        "str:shuffledTickets.item|u32:15": "15",
+                        "str:shuffledTickets.item|u32:16": "16",
+                        "str:shuffledTickets.item|u32:17": "17",
+                        "str:shuffledTickets.item|u32:18": "18",
+                        "str:shuffledTickets.item|u32:19": "19",
+                        "str:shuffledTickets.item|u32:20": "20",
+                        "str:shuffledTickets.item|u32:21": "21",
+                        "str:shuffledTickets.item|u32:22": "22",
+                        "str:shuffledTickets.item|u32:23": "23",
+                        "str:shuffledTickets.item|u32:24": "24",
+                        "str:shuffledTickets.item|u32:25": "25",
+                        "str:shuffledTickets.item|u32:26": "26",
+                        "str:shuffledTickets.item|u32:27": "27",
+                        "str:shuffledTickets.item|u32:28": "28",
+                        "str:shuffledTickets.item|u32:29": "29",
+                        "str:shuffledTickets.item|u32:30": "30",
+                        "str:shuffledTickets.item|u32:31": "31",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        }
+    ]
+}

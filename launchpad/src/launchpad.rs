@@ -51,20 +51,63 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     #[only_owner]
+    #[endpoint(addAddressToBlacklist)]
+    fn add_address_to_blacklist(&self, address: Address) -> SCResult<()> {
+        self.blacklist().insert(address);
+
+        Ok(())
+    }
+
+    #[only_owner]
+    #[endpoint(removeAddressFromBlacklist)]
+    fn remove_address_from_blacklist(&self, address: Address) -> SCResult<()> {
+        self.blacklist().remove(&address);
+
+        Ok(())
+    }
+
+    #[only_owner]
+    #[endpoint(refundConfirmedTickets)]
+    fn refund_confirmed_tickets(&self, address: Address) -> SCResult<()> {
+        require!(
+            self.blacklist().contains(&address),
+            "Can only refund for users that have been put in blacklist"
+        );
+
+        let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(&address).get();
+        let mut nr_refunded_tickets = 0;
+
+        for ticket_id in first_ticket_id..=last_ticket_id {
+            let ticket_status = self.ticket_status(ticket_id).get();
+            if !ticket_status.is_confirmed() {
+                continue;
+            }
+
+            self.ticket_status(ticket_id).set(&TicketStatus::None);
+
+            nr_refunded_tickets += 1;
+        }
+
+        self.total_confirmed_tickets()
+            .update(|confirmed| *confirmed -= nr_refunded_tickets);
+
+        let ticket_paymemt_token = self.ticket_payment_token().get();
+        let ticket_price = self.ticket_price().get();
+        let amount_to_refund = ticket_price * nr_refunded_tickets.into();
+
+        self.send()
+            .direct(&address, &ticket_paymemt_token, 0, &amount_to_refund, &[]);
+
+        Ok(())
+    }
+
+    #[only_owner]
     #[endpoint(addTickets)]
     fn add_tickets(
         &self,
         #[var_args] address_number_pairs: VarArgs<MultiArg2<Address, usize>>,
     ) -> SCResult<()> {
-        self.require_no_ongoing_operation()?;
         self.require_stage(LaunchStage::AddTickets)?;
-
-        let current_epoch = self.blockchain().get_block_epoch();
-        let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
-        require!(
-            current_epoch < winner_selection_start_epoch,
-            "Cannot add more tickets, winner selection has started"
-        );
 
         for multi_arg in address_number_pairs.into_vec() {
             let (buyer, nr_tickets) = multi_arg.into_tuple();
@@ -82,9 +125,14 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         self.require_stage(LaunchStage::SelectWinners)?;
 
         let last_ticket_position = self.shuffled_tickets().len();
-        let nr_winning_tickets = self.nr_winning_tickets().get();
+        let (mut rng, mut ticket_position, nr_winning_tickets) =
+            self.load_select_winners_operation()?;
 
-        let (mut rng, mut ticket_position) = self.load_select_winners_operation()?;
+        require!(
+            nr_winning_tickets <= last_ticket_position,
+            "Cannot select winners, number of winning tickets is higher than total amount of tickets"
+        );
+
         let run_result = self.run_while_it_has_gas(|| {
             let is_winning_ticket = ticket_position <= nr_winning_tickets;
             self.shuffle_single_ticket(
@@ -105,9 +153,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         match run_result {
             OperationCompletionStatus::InterruptedBeforeOutOfGas => {
                 self.save_progress(&OngoingOperationType::SelectWinners {
-                    seed: rng.seed.clone(),
+                    seed: rng.seed,
                     seed_index: rng.index,
                     ticket_position,
+                    nr_winning_tickets,
                 });
             }
             OperationCompletionStatus::Completed => {
@@ -156,14 +205,14 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let mut actual_confirmed_tickets = 0;
 
         for ticket_id in first_ticket_id..=last_ticket_id {
-            let ticket_status = self.ticket_status().get(ticket_id);
+            let ticket_status = self.ticket_status(ticket_id).get();
             if !ticket_status.is_winning(current_generation) {
                 continue;
             }
 
-            self.set_ticket_status(ticket_id, TicketStatus::Confirmed);
-            actual_confirmed_tickets += 1;
+            self.ticket_status(ticket_id).set(&TicketStatus::Confirmed);
 
+            actual_confirmed_tickets += 1;
             if actual_confirmed_tickets == nr_tickets_to_confirm {
                 break;
             }
@@ -184,14 +233,14 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     fn select_new_winners(&self) -> SCResult<OperationCompletionStatus> {
         self.require_stage(LaunchStage::SelectNewWinners)?;
 
-        let (prev_first_winning_ticket_position, prev_last_winning_ticket_position) =
-            self.winning_tickets_range().get();
-        let winning_tickets =
-            prev_last_winning_ticket_position - prev_first_winning_ticket_position + 1;
+        let (_, prev_last_winning_ticket_position) = self.winning_tickets_range().get();
+        let new_first_winning_ticket_position = prev_last_winning_ticket_position + 1;
+
+        let (mut current_ticket_position, winning_tickets) =
+            self.load_select_new_winners_operation(new_first_winning_ticket_position)?;
         let confirmed_tickets = self.total_confirmed_tickets().get();
         let remaining_tickets = winning_tickets - confirmed_tickets;
 
-        let new_first_winning_ticket_position = prev_first_winning_ticket_position + 1;
         let new_last_winning_ticket_position =
             new_first_winning_ticket_position + remaining_tickets - 1;
         let last_valid_ticket_id = self.get_total_tickets();
@@ -202,23 +251,20 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         );
 
         let next_generation = self.current_generation().get() + 1;
-        let mut current_ticket_position =
-            self.load_select_new_winners_operation(new_first_winning_ticket_position)?;
 
         let run_result = self.run_while_it_has_gas(|| {
             let winning_ticket_id = self.shuffled_tickets().get(current_ticket_position);
-            self.set_ticket_status(
-                winning_ticket_id,
-                TicketStatus::Winning {
-                    generation: next_generation,
-                },
-            );
-            current_ticket_position += 1;
 
-            if current_ticket_position == new_last_winning_ticket_position {
-                LoopOp::Break
-            } else {
+            self.ticket_status(winning_ticket_id)
+                .set(&TicketStatus::Winning {
+                    generation: next_generation,
+                });
+
+            current_ticket_position += 1;
+            if current_ticket_position <= new_last_winning_ticket_position {
                 LoopOp::Continue
+            } else {
+                LoopOp::Break
             }
         })?;
 
@@ -226,6 +272,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             OperationCompletionStatus::InterruptedBeforeOutOfGas => {
                 self.save_progress(&OngoingOperationType::SelectNewWinners {
                     ticket_position: current_ticket_position,
+                    nr_winning_tickets: winning_tickets,
                 });
             }
             OperationCompletionStatus::Completed => {
@@ -258,12 +305,13 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let mut nr_redeemed_tickets = 0u32;
 
         for ticket_id in first_ticket_id..=last_ticket_id {
-            let ticket_status = self.ticket_status().get(ticket_id);
+            let ticket_status = self.ticket_status(ticket_id).get();
             if !ticket_status.is_confirmed() {
                 continue;
             }
 
-            self.set_ticket_status(ticket_id, TicketStatus::Redeemed);
+            self.ticket_status(ticket_id).set(&TicketStatus::Redeemed);
+
             nr_redeemed_tickets += 1;
         }
 
@@ -292,7 +340,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let current_generation = self.current_generation().get();
 
         for ticket_id in first_ticket_id..=last_ticket_id {
-            let ticket_status = self.ticket_status().get(ticket_id);
+            let ticket_status = self.ticket_status(ticket_id).get();
             if ticket_status.is_winning(current_generation) {
                 nr_winning_tickets += 1;
             }
@@ -307,7 +355,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         let total_winning_tickets = self.nr_winning_tickets().get();
         let total_confirmed_tickets = self.get_total_confirmed_tickets();
-        if total_confirmed_tickets == total_winning_tickets {
+        if total_confirmed_tickets >= total_winning_tickets {
             let claim_start_epoch = self.claim_start_epoch().get();
             if current_epoch >= claim_start_epoch {
                 return LaunchStage::Claim;
@@ -319,6 +367,11 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
         if current_epoch < winner_selection_start_epoch {
             return LaunchStage::AddTickets;
+        }
+
+        let current_generation = self.current_generation().get();
+        if current_generation < FIRST_GENERATION {
+            return LaunchStage::SelectWinners;
         }
 
         let confirmation_period_start_epoch = self.confirmation_period_start_epoch().get();
@@ -370,12 +423,11 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         if is_winning_ticket {
             let winning_ticket_id = self.shuffled_tickets().get(current_ticket_position);
-            self.set_ticket_status(
-                winning_ticket_id,
-                TicketStatus::Winning {
+
+            self.ticket_status(winning_ticket_id)
+                .set(&TicketStatus::Winning {
                     generation: FIRST_GENERATION,
-                },
-            );
+                });
         }
     }
 
@@ -392,17 +444,19 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         mapper.set(second_index, &first_element);
     }
 
-    fn set_ticket_status(&self, ticket_id: usize, status: TicketStatus) {
-        self.ticket_status().set(ticket_id, &status);
-    }
-
     fn start_confirmation_period(
         &self,
         first_winning_ticket_position: usize,
         last_winning_ticket_position: usize,
     ) {
         let current_epoch = self.blockchain().get_block_epoch();
-        self.confirmation_period_start_epoch().set(&current_epoch);
+        let confirmation_start = self.confirmation_period_start_epoch().get();
+
+        // done for the cases where the owner intentionally delays confirmation period
+        // in which case we don't overwrite
+        if current_epoch > confirmation_start {
+            self.confirmation_period_start_epoch().set(&current_epoch);
+        }
 
         self.winning_tickets_range()
             .set(&(first_winning_ticket_position, last_winning_ticket_position));
@@ -441,7 +495,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     // storage
 
     #[storage_mapper("ticketStatus")]
-    fn ticket_status(&self) -> VecMapper<Self::Storage, TicketStatus>;
+    fn ticket_status(&self, ticket_id: usize) -> SingleValueMapper<Self::Storage, TicketStatus>;
 
     #[storage_mapper("ticketRangeForAddress")]
     fn ticket_range_for_address(
@@ -460,4 +514,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     #[storage_mapper("totalConfirmedTickets")]
     fn total_confirmed_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
+
+    #[storage_mapper("blacklist")]
+    fn blacklist(&self) -> SafeSetMapper<Self::Storage, Address>;
 }

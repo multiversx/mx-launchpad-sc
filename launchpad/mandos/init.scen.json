@@ -1,0 +1,93 @@
+{
+    "name": "init",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "2,000,000"
+                    },
+                    "storage": {}
+                },
+                "address:user1": {
+                    "nonce": "0",
+                    "balance": "1,000,000",
+                    "storage": {}
+                },
+                "address:user2": {
+                    "nonce": "0",
+                    "balance": "1,000,000",
+                    "storage": {}
+                }
+            },
+            "newAddresses": [
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "0",
+                    "newAddress": "sc:launchpad"
+                }
+            ]
+        },
+        {
+            "step": "scDeploy",
+            "txId": "deploy",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "file:../output/launchpad.wasm",
+                "value": "0",
+                "arguments": [
+                    "str:LAUNCH-123456",
+                    "100,000",
+                    "str:EGLD",
+                    "100",
+                    "5",
+                    "25",
+                    "50",
+                    "10",
+                    "100"
+                ],
+                "gasLimit": "20,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "1",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "2,000,000"
+                    },
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:launchpadTokenId": "str:LAUNCH-123456",
+                        "str:launchpadTokensPerWinningTicket": "100,000",
+                        "str:ticketPaymentToken": "str:EGLD",
+                        "str:ticketPrice": "100",
+                        "str:nrWinningTickets": "5",
+                        "str:winnerSelectionStartEpoch": "25",
+                        "str:confirmationPeriodStartEpoch": "50",
+                        "str:confirmationPeriodInEpochs": "10",
+                        "str:claimStartEpoch": "100"
+                    },
+                    "code": "file:../output/launchpad.wasm"
+                },
+                "+": {}
+            }
+        }
+    ]
+}

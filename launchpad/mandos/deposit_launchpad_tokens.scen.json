@@ -1,0 +1,82 @@
+{
+    "name": "deposit launchpad tokens",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "add_tickets.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-deposit-wrong-amount",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "esdt": {
+                    "tokenIdentifier": "str:LAUNCH-123456",
+                    "value": "1,000,000"
+                },
+                "function": "depositLaunchpadTokens",
+                "arguments": [],
+                "gasLimit": "40,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:Wrong amount deposited",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-deposit",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "esdt": {
+                    "tokenIdentifier": "str:LAUNCH-123456",
+                    "value": "500,000"
+                },
+                "function": "depositLaunchpadTokens",
+                "arguments": [],
+                "gasLimit": "40,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "1,500,000"
+                    },
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "500,000"
+                    },
+                    "storage": {
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        }
+    ]
+}

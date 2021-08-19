@@ -12,9 +12,11 @@ pub enum OngoingOperationType {
         seed: H256,
         seed_index: usize,
         ticket_position: usize,
+        nr_winning_tickets: usize,
     },
     SelectNewWinners {
         ticket_position: usize,
+        nr_winning_tickets: usize,
     },
 }
 
@@ -31,7 +33,7 @@ impl LoopOp {
 }
 
 #[elrond_wasm::module]
-pub trait OngoingOperationModule {
+pub trait OngoingOperationModule: crate::setup::SetupModule {
     fn run_while_it_has_gas<Process>(
         &self,
         mut process: Process,
@@ -77,18 +79,7 @@ pub trait OngoingOperationModule {
         self.current_ongoing_operation().clear();
     }
 
-    fn require_no_ongoing_operation(&self) -> SCResult<()> {
-        require!(
-            matches!(
-                self.current_ongoing_operation().get(),
-                OngoingOperationType::None
-            ),
-            "Another ongoing operation is in progress"
-        );
-        Ok(())
-    }
-
-    fn load_select_winners_operation(&self) -> SCResult<(Random<Self::CryptoApi>, usize)> {
+    fn load_select_winners_operation(&self) -> SCResult<(Random<Self::CryptoApi>, usize, usize)> {
         let ongoing_operation = self.current_ongoing_operation().get();
 
         match ongoing_operation {
@@ -99,29 +90,37 @@ pub trait OngoingOperationModule {
                     self.blockchain().get_block_random_seed(),
                 ),
                 VEC_MAPPER_START_INDEX,
+                self.nr_winning_tickets().get(),
             )),
             OngoingOperationType::SelectWinners {
                 seed,
                 seed_index,
-                ticket_position: ticket_pos,
+                ticket_position,
+                nr_winning_tickets,
             } => Ok((
                 Random::from_hash(self.crypto(), seed, seed_index),
-                ticket_pos,
+                ticket_position,
+                nr_winning_tickets,
             )),
             _ => sc_error!("Another ongoing operation is in progress"),
         }
     }
 
-    fn load_select_new_winners_operation(&self, new_first_winning_ticket_position: usize) -> SCResult<usize> {
+    fn load_select_new_winners_operation(
+        &self,
+        new_first_winning_ticket_position: usize,
+    ) -> SCResult<(usize, usize)> {
         let ongoing_operation = self.current_ongoing_operation().get();
 
         match ongoing_operation {
-            OngoingOperationType::None => {
-                Ok(new_first_winning_ticket_position)
-            }
-            OngoingOperationType::SelectNewWinners { ticket_position } => {
-                Ok(ticket_position)
-            }
+            OngoingOperationType::None => Ok((
+                new_first_winning_ticket_position,
+                self.nr_winning_tickets().get(),
+            )),
+            OngoingOperationType::SelectNewWinners {
+                ticket_position,
+                nr_winning_tickets,
+            } => Ok((ticket_position, nr_winning_tickets)),
             _ => sc_error!("Another ongoing operation is in progress"),
         }
     }
