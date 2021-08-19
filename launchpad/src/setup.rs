@@ -111,22 +111,6 @@ pub trait SetupModule {
         self.try_set_launchpad_tokens_per_winning_ticket(&amount)
     }
 
-    #[only_owner]
-    #[endpoint(addAddressToBlacklist)]
-    fn add_address_to_blacklist(&self, address: Address) -> SCResult<()> {
-        self.blacklist().insert(address);
-
-        Ok(())
-    }
-
-    #[only_owner]
-    #[endpoint(removeAddressFromBlacklist)]
-    fn remove_address_from_blacklist(&self, address: Address) -> SCResult<()> {
-        self.blacklist().remove(&address);
-
-        Ok(())
-    }
-
     // private
 
     fn try_set_ticket_payment_token(&self, ticket_payment_token: &TokenIdentifier) -> SCResult<()> {
@@ -268,9 +252,6 @@ pub trait SetupModule {
     #[view(getNumberOfWinningTickets)]
     #[storage_mapper("nrWinningTickets")]
     fn nr_winning_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
-
-    #[storage_mapper("blacklist")]
-    fn blacklist(&self) -> SafeSetMapper<Self::Storage, Address>;
 
     #[view(getWinnerSelectionStart)]
     #[storage_mapper("winnerSelectionStartEpoch")]

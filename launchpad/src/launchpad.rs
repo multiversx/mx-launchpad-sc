@@ -51,7 +51,23 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     #[only_owner]
-    #[endpoint(refundConfirmedTicket)]
+    #[endpoint(addAddressToBlacklist)]
+    fn add_address_to_blacklist(&self, address: Address) -> SCResult<()> {
+        self.blacklist().insert(address);
+
+        Ok(())
+    }
+
+    #[only_owner]
+    #[endpoint(removeAddressFromBlacklist)]
+    fn remove_address_from_blacklist(&self, address: Address) -> SCResult<()> {
+        self.blacklist().remove(&address);
+
+        Ok(())
+    }
+
+    #[only_owner]
+    #[endpoint(refundConfirmedTickets)]
     fn refund_confirmed_tickets(&self, address: Address) -> SCResult<()> {
         require!(
             self.blacklist().contains(&address),
@@ -498,4 +514,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     #[storage_mapper("totalConfirmedTickets")]
     fn total_confirmed_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
+
+    #[storage_mapper("blacklist")]
+    fn blacklist(&self) -> SafeSetMapper<Self::Storage, Address>;
 }
