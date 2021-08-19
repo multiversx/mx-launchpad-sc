@@ -51,6 +51,41 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     #[only_owner]
+    #[endpoint(refundConfirmedTicket)]
+    fn refund_confirmed_tickets(&self, address: Address) -> SCResult<()> {
+        require!(
+            self.blacklist().contains(&address),
+            "Can only refund for users that have been put in blacklist"
+        );
+
+        let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(&address).get();
+        let mut nr_refunded_tickets = 0;
+
+        for ticket_id in first_ticket_id..=last_ticket_id {
+            let ticket_status = self.ticket_status(ticket_id).get();
+            if !ticket_status.is_confirmed() {
+                continue;
+            }
+
+            self.ticket_status(ticket_id).set(&TicketStatus::None);
+
+            nr_refunded_tickets += 1;
+        }
+
+        self.total_confirmed_tickets()
+            .update(|confirmed| *confirmed -= nr_refunded_tickets);
+
+        let ticket_paymemt_token = self.ticket_payment_token().get();
+        let ticket_price = self.ticket_price().get();
+        let amount_to_refund = ticket_price * nr_refunded_tickets.into();
+
+        self.send()
+            .direct(&address, &ticket_paymemt_token, 0, &amount_to_refund, &[]);
+
+        Ok(())
+    }
+
+    #[only_owner]
     #[endpoint(addTickets)]
     fn add_tickets(
         &self,
@@ -400,7 +435,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     ) {
         let current_epoch = self.blockchain().get_block_epoch();
         let confirmation_start = self.confirmation_period_start_epoch().get();
-        
+
         // done for the cases where the owner intentionally delays confirmation period
         // in which case we don't overwrite
         if current_epoch > confirmation_start {

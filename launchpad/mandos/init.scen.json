@@ -19,10 +19,7 @@
                 },
                 "address:user2": {
                     "nonce": "0",
-                    "balance": "0",
-                    "esdt": {
-                        "str:BRIDGE-123456": "1,000,000"
-                    },
+                    "balance": "1,000,000",
                     "storage": {}
                 }
             },

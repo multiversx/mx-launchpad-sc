@@ -1,0 +1,247 @@
+{
+    "name": "confirm tickets",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "select_winners_one_call.scen.json"
+        },
+        {
+            "step": "scQuery",
+            "txId": "Query stage",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getLaunchStage",
+                "arguments": []
+            },
+            "expect": {
+                "out": [
+                    "str:Wait Period Before Confirmation"
+                ]
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "55"
+            }
+        },
+        {
+            "step": "scQuery",
+            "txId": "Query stage",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getLaunchStage",
+                "arguments": []
+            },
+            "expect": {
+                "out": [
+                    "str:Confirm Tickets"
+                ]
+            }
+        },
+        {
+            "step": "scQuery",
+            "txId": "Winning tickets for user 1",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getNumberOfWinningTicketsForAddress",
+                "arguments": [
+                    "address:user1"
+                ]
+            },
+            "expect": {
+                "out": [
+                    "1"
+                ]
+            }
+        },
+        {
+            "step": "scQuery",
+            "txId": "Winning tickets for user 2",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getNumberOfWinningTicketsForAddress",
+                "arguments": [
+                    "address:user2"
+                ]
+            },
+            "expect": {
+                "out": [
+                    "4"
+                ]
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user1-confirm-wrong-payment-amount",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:launchpad",
+                "value": "200",
+                "function": "confirmTickets",
+                "arguments": [
+                    "1"
+                ],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:Wrong amount sent",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user1-confirm-too-many",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:launchpad",
+                "value": "1100",
+                "function": "confirmTickets",
+                "arguments": [
+                    "11"
+                ],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:Trying to confirm too many tickets",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user1-confirm-not-enough-winning-tickets",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:launchpad",
+                "value": "200",
+                "function": "confirmTickets",
+                "arguments": [
+                    "2"
+                ],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:Couldn't confirm all tickets",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user1-confirm",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:launchpad",
+                "value": "100",
+                "function": "confirmTickets",
+                "arguments": [
+                    "1"
+                ],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "*",
+                    "balance": "999,900",
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "100",
+                    "esdt": {
+                        "str:LAUNCH-123456": "500,000"
+                    },
+                    "storage": {
+                        "str:ticketStatus|u32:5": "u8:2",
+                        "str:ticketStatus|u32:30": "u8:1|u8:1",
+                        "str:ticketStatus|u32:16": "u8:1|u8:1",
+                        "str:ticketStatus|u32:24": "u8:1|u8:1",
+                        "str:ticketStatus|u32:18": "u8:1|u8:1",
+
+                        "str:totalConfirmedTickets": "1",
+                        "str:nrWinningTickets": "5",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user2-confirm-two-tickets",
+            "tx": {
+                "from": "address:user2",
+                "to": "sc:launchpad",
+                "value": "200",
+                "function": "confirmTickets",
+                "arguments": [
+                    "2"
+                ],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user2": {
+                    "nonce": "*",
+                    "balance": "999,800",
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "300",
+                    "esdt": {
+                        "str:LAUNCH-123456": "500,000"
+                    },
+                    "storage": {
+                        "str:ticketStatus|u32:5": "u8:2",
+                        "str:ticketStatus|u32:30": "u8:1|u8:1",
+                        "str:ticketStatus|u32:16": "u8:2",
+                        "str:ticketStatus|u32:24": "u8:1|u8:1",
+                        "str:ticketStatus|u32:18": "u8:2",
+
+                        "str:totalConfirmedTickets": "3",
+                        "str:nrWinningTickets": "5",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        }
+    ]
+}
