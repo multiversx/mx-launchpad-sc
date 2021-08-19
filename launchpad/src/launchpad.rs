@@ -245,10 +245,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                 });
 
             current_ticket_position += 1;
-            if current_ticket_position == new_last_winning_ticket_position {
-                LoopOp::Break
-            } else {
+            if current_ticket_position <= new_last_winning_ticket_position {
                 LoopOp::Continue
+            } else {
+                LoopOp::Break
             }
         })?;
 

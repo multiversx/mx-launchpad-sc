@@ -1,0 +1,161 @@
+{
+    "name": "select new winners in a single call (no ongoing operation)",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "confirm_tickets.scen.json"
+        },
+        {
+            "step": "scQuery",
+            "txId": "Query stage",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getLaunchStage",
+                "arguments": []
+            },
+            "expect": {
+                "out": [
+                    "str:Confirm Tickets"
+                ]
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "65"
+            }
+        },
+        {
+            "step": "scQuery",
+            "txId": "Query stage",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getLaunchStage",
+                "arguments": []
+            },
+            "expect": {
+                "out": [
+                    "str:Select New Winners"
+                ]
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "select-new-winners-first-call",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "selectNewWinners",
+                "arguments": [],
+                "gasLimit": "110,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [
+                    "str:interrupted"
+                ],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "300",
+                    "esdt": {
+                        "str:LAUNCH-123456": "500,000"
+                    },
+                    "storage": {
+                        "str:operation": {
+                            "1-enum_identifier": "u8:2",
+                            "2-ticket_position": "u32:7",
+                            "3-nr_winning_tickets": "u32:5"
+                        },
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "select-new-winners-second-call",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "selectNewWinners",
+                "arguments": [],
+                "gasLimit": "110,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [
+                    "str:completed"
+                ],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "300",
+                    "esdt": {
+                        "str:LAUNCH-123456": "500,000"
+                    },
+                    "storage": {
+                        "str:ticketRangeForAddress|address:user1": "u32:1|u32:10",
+                        "str:ticketRangeForAddress|address:user2": "u32:11|u32:30",
+                        "str:ticketRangeForAddress|address:user3": "u32:31|u32:31",
+
+                        "str:confirmationPeriodStartEpoch": "65",
+                        "str:winningTicketsRange": "u32:6|u32:7",
+                        "str:currentGeneration": "2",
+
+                        "str:ticketStatus|u32:5": "u8:2",
+                        "str:ticketStatus|u32:30": "u8:1|u8:1",
+                        "str:ticketStatus|u32:16": "u8:2",
+                        "str:ticketStatus|u32:24": "u8:1|u8:1",
+                        "str:ticketStatus|u32:18": "u8:2",
+
+                        "str:ticketStatus|u32:22": "u8:1|u8:2",
+                        "str:ticketStatus|u32:23": "u8:1|u8:2",
+
+                        "str:totalConfirmedTickets": "3",
+                        "str:nrWinningTickets": "5",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scQuery",
+            "txId": "Query stage",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getLaunchStage",
+                "arguments": []
+            },
+            "expect": {
+                "out": [
+                    "str:Confirm Tickets"
+                ]
+            }
+        }
+    ]
+}
