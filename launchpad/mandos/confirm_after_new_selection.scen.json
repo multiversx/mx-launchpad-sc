@@ -1,9 +1,15 @@
 {
-    "name": "select new winners in a single call (no ongoing operation)",
+    "name": "confirm after select new winners",
     "steps": [
         {
             "step": "externalSteps",
-            "path": "confirm_tickets.scen.json"
+            "path": "select_new_winners_one_call.scen.json"
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "70"
+            }
         },
         {
             "step": "scQuery",
@@ -20,43 +26,45 @@
             }
         },
         {
-            "step": "setState",
-            "currentBlockInfo": {
-                "blockEpoch": "65"
-            }
-        },
-        {
-            "step": "scQuery",
-            "txId": "Query stage",
+            "step": "scCall",
+            "txId": "user1-confirm-no-winning-tickets",
             "tx": {
+                "from": "address:user1",
                 "to": "sc:launchpad",
-                "function": "getLaunchStage",
-                "arguments": []
+                "value": "100",
+                "function": "confirmTickets",
+                "arguments": [
+                    "1"
+                ],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
             },
             "expect": {
-                "out": [
-                    "str:Select New Winners"
-                ]
+                "status": "4",
+                "message": "str:Couldn't confirm all tickets",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
             }
         },
         {
             "step": "scCall",
-            "txId": "select-new-winners-one-call",
+            "txId": "user2-confirm-last-two-tickets",
             "tx": {
-                "from": "address:owner",
+                "from": "address:user2",
                 "to": "sc:launchpad",
-                "value": "0",
-                "function": "selectNewWinners",
-                "arguments": [],
-                "gasLimit": "200,000,000",
+                "value": "200",
+                "function": "confirmTickets",
+                "arguments": [
+                    "2"
+                ],
+                "gasLimit": "50,000,000",
                 "gasPrice": "0"
             },
             "expect": {
                 "status": "0",
                 "message": "",
-                "out": [
-                    "str:completed"
-                ],
+                "out": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -64,31 +72,28 @@
         {
             "step": "checkState",
             "accounts": {
+                "address:user2": {
+                    "nonce": "*",
+                    "balance": "999,600",
+                    "storage": {}
+                },
                 "sc:launchpad": {
                     "nonce": "0",
-                    "balance": "300",
+                    "balance": "500",
                     "esdt": {
                         "str:LAUNCH-123456": "500,000"
                     },
                     "storage": {
-                        "str:ticketRangeForAddress|address:user1": "u32:1|u32:10",
-                        "str:ticketRangeForAddress|address:user2": "u32:11|u32:30",
-                        "str:ticketRangeForAddress|address:user3": "u32:31|u32:31",
-
-                        "str:confirmationPeriodStartEpoch": "65",
-                        "str:winningTicketsRange": "u32:6|u32:7",
-                        "str:currentGeneration": "2",
-
                         "str:ticketStatus|u32:5": "2",
                         "str:ticketStatus|u32:30": "u8:1|u8:1",
                         "str:ticketStatus|u32:16": "2",
                         "str:ticketStatus|u32:24": "u8:1|u8:1",
                         "str:ticketStatus|u32:18": "2",
 
-                        "str:ticketStatus|u32:22": "u8:1|u8:2",
-                        "str:ticketStatus|u32:23": "u8:1|u8:2",
+                        "str:ticketStatus|u32:22": "2",
+                        "str:ticketStatus|u32:23": "2",
 
-                        "str:totalConfirmedTickets": "3",
+                        "str:totalConfirmedTickets": "5",
                         "str:nrWinningTickets": "5",
 
                         "+": ""
@@ -108,7 +113,7 @@
             },
             "expect": {
                 "out": [
-                    "str:Confirm Tickets"
+                    "str:Wait Period Before Claim"
                 ]
             }
         }
