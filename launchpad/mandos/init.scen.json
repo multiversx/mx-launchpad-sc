@@ -81,7 +81,7 @@
                         "str:launchpadTokensPerWinningTicket": "100,000",
                         "str:ticketPaymentToken": "str:EGLD",
                         "str:ticketPrice": "100",
-                        "str:nrWinningTickers": "5",
+                        "str:nrWinningTickets": "5",
                         "str:winnerSelectionStartEpoch": "25",
                         "str:confirmationPeriodStartEpoch": "50",
                         "str:confirmationPeriodInEpochs": "10",

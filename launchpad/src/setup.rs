@@ -47,7 +47,6 @@ pub trait SetupModule {
     fn deposit_launchpad_tokens(
         &self,
         #[payment_token] payment_token: TokenIdentifier,
-        #[payment_amount] payment_amount: Self::BigUint,
     ) -> SCResult<()> {
         let launchpad_token_id = self.launchpad_token_id().get();
         require!(payment_token == launchpad_token_id, "Wrong token deposited");
@@ -57,10 +56,7 @@ pub trait SetupModule {
         let amount_needed = amount_per_ticket * Self::BigUint::from(total_winning_tickets);
 
         let sc_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
-        require!(
-            amount_needed == sc_balance + payment_amount,
-            "Wrong amount deposited"
-        );
+        require!(amount_needed == sc_balance, "Wrong amount deposited");
 
         Ok(())
     }
@@ -68,6 +64,8 @@ pub trait SetupModule {
     #[only_owner]
     #[endpoint(setWinnerSelectionStartEpoch)]
     fn set_winner_selection_start_epoch(&self, start_epoch: u64) -> SCResult<()> {
+        self.require_valid_time_periods(Some(start_epoch), None, None, None)?;
+
         self.try_set_winner_selection_start_epoch(start_epoch)
     }
 
@@ -268,7 +266,7 @@ pub trait SetupModule {
     fn ticket_price(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
     #[view(getNumberOfWinningTickets)]
-    #[storage_mapper("nrWinningTickers")]
+    #[storage_mapper("nrWinningTickets")]
     fn nr_winning_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
 
     #[storage_mapper("blacklist")]

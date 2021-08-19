@@ -99,6 +99,26 @@
             }
         },
         {
+            "step": "scCall",
+            "txId": "try-select-winners-too-early",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "selectWinners",
+                "arguments": [],
+                "gasLimit": "40,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:Cannot call this endpoint, SC is in a different stage",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
             "step": "setState",
             "currentBlockInfo": {
                 "blockEpoch": "25"

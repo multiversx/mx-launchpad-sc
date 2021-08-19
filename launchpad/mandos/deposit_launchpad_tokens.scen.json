@@ -62,6 +62,14 @@
                     "esdt": {
                         "str:LAUNCH-123456": "1,500,000"
                     },
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "500,000"
+                    },
                     "storage": {
                         "+": ""
                     },
