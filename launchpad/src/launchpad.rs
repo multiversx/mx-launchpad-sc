@@ -399,7 +399,13 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         last_winning_ticket_position: usize,
     ) {
         let current_epoch = self.blockchain().get_block_epoch();
-        self.confirmation_period_start_epoch().set(&current_epoch);
+        let confirmation_start = self.confirmation_period_start_epoch().get();
+        
+        // done for the cases where the owner intentionally delays confirmation period
+        // in which case we don't overwrite
+        if current_epoch > confirmation_start {
+            self.confirmation_period_start_epoch().set(&current_epoch);
+        }
 
         self.winning_tickets_range()
             .set(&(first_winning_ticket_position, last_winning_ticket_position));
