@@ -242,6 +242,23 @@
                 },
                 "+": {}
             }
+        },
+        {
+            "step": "scQuery",
+            "txId": "get confirmed ticket IDs",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getConfirmedTicketIdsForAddress",
+                "arguments": [
+                    "address:user2"
+                ]
+            },
+            "expect": {
+                "out": [
+                    "16",
+                    "18"
+                ]
+            }
         }
     ]
 }

@@ -119,6 +119,41 @@
                     "str:Wait Period Before Confirmation"
                 ]
             }
+        },
+        {
+            "step": "scQuery",
+            "txId": "get ticket range",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getTicketRangeForAddress",
+                "arguments": [
+                    "address:user2"
+                ]
+            },
+            "expect": {
+                "out": [
+                    "11", "30"
+                ]
+            }
+        },
+        {
+            "step": "scQuery",
+            "txId": "get winning ticket IDs",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getWinningTicketIdsForAddress",
+                "arguments": [
+                    "address:user2"
+                ]
+            },
+            "expect": {
+                "out": [
+                    "16",
+                    "18",
+                    "24",
+                    "30"
+                ]
+            }
         }
     ]
 }

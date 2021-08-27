@@ -327,6 +327,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     // views
 
+    // range is [min, max], both inclusive
     #[view(getTicketRangeForAddress)]
     fn get_ticket_range_for_address(
         &self,
