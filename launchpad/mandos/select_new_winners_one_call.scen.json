@@ -79,11 +79,11 @@
                         "str:winningTicketsRange": "u32:6|u32:7",
                         "str:currentGeneration": "2",
 
-                        "str:ticketStatus|u32:5": "2",
+                        "str:ticketStatus|u32:5": "u8:2|u8:1",
                         "str:ticketStatus|u32:30": "u8:1|u8:1",
-                        "str:ticketStatus|u32:16": "2",
+                        "str:ticketStatus|u32:16": "u8:2|u8:1",
                         "str:ticketStatus|u32:24": "u8:1|u8:1",
-                        "str:ticketStatus|u32:18": "2",
+                        "str:ticketStatus|u32:18": "u8:2|u8:1",
 
                         "str:ticketStatus|u32:22": "u8:1|u8:2",
                         "str:ticketStatus|u32:23": "u8:1|u8:2",

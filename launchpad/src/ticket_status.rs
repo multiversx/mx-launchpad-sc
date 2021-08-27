@@ -4,7 +4,7 @@ elrond_wasm::derive_imports!();
 pub enum TicketStatus {
     None,
     Winning { generation: u8 },
-    Confirmed,
+    Confirmed { generation: u8 },
     Redeemed,
 }
 
@@ -19,7 +19,17 @@ impl TicketStatus {
         false
     }
 
-    pub fn is_confirmed(&self) -> bool {
-        matches!(*self, TicketStatus::Confirmed)
+    // Pass Option::None to ignore generation
+    pub fn is_confirmed(&self, opt_current_generation: Option<u8>) -> bool {
+        match *self {
+            TicketStatus::Confirmed { generation } => {
+                if let Some(current_generation) = opt_current_generation {
+                    generation == current_generation
+                } else {
+                    true
+                }
+            }
+            _ => false,
+        }
     }
 }
