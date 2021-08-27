@@ -79,7 +79,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         for ticket_id in first_ticket_id..=last_ticket_id {
             let ticket_status = self.ticket_status(ticket_id).get();
-            if !ticket_status.is_confirmed() {
+            if !ticket_status.is_confirmed(None) {
                 continue;
             }
 
@@ -202,29 +202,27 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         );
 
         let current_generation = self.current_generation().get();
-        let mut actual_confirmed_tickets = 0;
-
-        for ticket_id in first_ticket_id..=last_ticket_id {
-            let ticket_status = self.ticket_status(ticket_id).get();
-            if !ticket_status.is_winning(current_generation) {
-                continue;
-            }
-
-            self.ticket_status(ticket_id).set(&TicketStatus::Confirmed);
-
-            actual_confirmed_tickets += 1;
-            if actual_confirmed_tickets == nr_tickets_to_confirm {
-                break;
-            }
-        }
-
-        require!(
-            actual_confirmed_tickets == nr_tickets_to_confirm,
-            "Couldn't confirm all tickets"
+        let winning_tickets = self.get_tickets_with_status(
+            &caller,
+            TicketStatus::Winning {
+                generation: current_generation,
+            },
         );
 
+        require!(
+            nr_tickets_to_confirm <= winning_tickets.len(),
+            "Trying to confirm too many tickets"
+        );
+
+        for winning_ticket_id in &winning_tickets[..nr_tickets_to_confirm] {
+            self.ticket_status(*winning_ticket_id)
+                .set(&TicketStatus::Confirmed {
+                    generation: current_generation,
+                });
+        }
+
         self.total_confirmed_tickets()
-            .update(|confirmed| *confirmed += actual_confirmed_tickets);
+            .update(|confirmed| *confirmed += nr_tickets_to_confirm);
 
         Ok(())
     }
@@ -306,7 +304,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         for ticket_id in first_ticket_id..=last_ticket_id {
             let ticket_status = self.ticket_status(ticket_id).get();
-            if !ticket_status.is_confirmed() {
+            if !ticket_status.is_confirmed(None) {
                 continue;
             }
 
@@ -329,24 +327,52 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     // views
 
+    #[view(getTicketRangeForAddress)]
+    fn get_ticket_range_for_address(
+        &self,
+        address: Address,
+    ) -> OptionalResult<MultiResult2<usize, usize>> {
+        if self.ticket_range_for_address(&address).is_empty() {
+            return OptionalResult::None;
+        }
+
+        OptionalArg::Some(self.ticket_range_for_address(&address).get().into())
+    }
+
+    #[view(getWinningTicketIdsForAddress)]
+    fn get_winning_ticket_ids_for_address(&self, address: Address) -> MultiResultVec<usize> {
+        let current_generation = self.current_generation().get();
+        let winning_ticket_ids = self.get_tickets_with_status(
+            &address,
+            TicketStatus::Winning {
+                generation: current_generation,
+            },
+        );
+
+        winning_ticket_ids.into()
+    }
+
+    #[view(getConfirmedTicketIdsForAddress)]
+    fn get_confirmed_ticket_ids_for_address(&self, address: Address) -> MultiResultVec<usize> {
+        let current_generation = self.current_generation().get();
+        let confirmed_ticket_ids = self.get_tickets_with_status(
+            &address,
+            TicketStatus::Confirmed {
+                generation: current_generation,
+            },
+        );
+
+        confirmed_ticket_ids.into()
+    }
+
     #[view(getNumberOfWinningTicketsForAddress)]
     fn get_number_of_winning_tickets_for_address(&self, address: Address) -> usize {
-        if self.ticket_range_for_address(&address).is_empty() {
-            return 0;
-        }
+        self.get_winning_ticket_ids_for_address(address).len()
+    }
 
-        let mut nr_winning_tickets = 0;
-        let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(&address).get();
-        let current_generation = self.current_generation().get();
-
-        for ticket_id in first_ticket_id..=last_ticket_id {
-            let ticket_status = self.ticket_status(ticket_id).get();
-            if ticket_status.is_winning(current_generation) {
-                nr_winning_tickets += 1;
-            }
-        }
-
-        nr_winning_tickets
+    #[view(getNumberOfConfirmedTicketsForAddress)]
+    fn get_number_of_confirmed_tickets_for_address(&self, address: Address) -> usize {
+        self.get_confirmed_ticket_ids_for_address(address).len()
     }
 
     #[view(getLaunchStage)]
@@ -490,6 +516,28 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         );
 
         Ok(())
+    }
+
+    fn get_tickets_with_status(
+        &self,
+        address: &Address,
+        expected_ticket_status: TicketStatus,
+    ) -> Vec<usize> {
+        if self.ticket_range_for_address(address).is_empty() {
+            return Vec::new();
+        }
+
+        let mut ticket_ids = Vec::new();
+        let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(address).get();
+
+        for ticket_id in first_ticket_id..=last_ticket_id {
+            let actual_ticket_status = self.ticket_status(ticket_id).get();
+            if actual_ticket_status == expected_ticket_status {
+                ticket_ids.push(ticket_id);
+            }
+        }
+
+        ticket_ids
     }
 
     // storage
