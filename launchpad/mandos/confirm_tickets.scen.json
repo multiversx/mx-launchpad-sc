@@ -131,7 +131,7 @@
             },
             "expect": {
                 "status": "4",
-                "message": "str:Couldn't confirm all tickets",
+                "message": "str:Trying to confirm too many tickets",
                 "out": [],
                 "gas": "*",
                 "refund": "*"
@@ -174,7 +174,7 @@
                         "str:LAUNCH-123456": "500,000"
                     },
                     "storage": {
-                        "str:ticketStatus|u32:5": "2",
+                        "str:ticketStatus|u32:5": "u8:2|u8:1",
                         "str:ticketStatus|u32:30": "u8:1|u8:1",
                         "str:ticketStatus|u32:16": "u8:1|u8:1",
                         "str:ticketStatus|u32:24": "u8:1|u8:1",
@@ -227,11 +227,11 @@
                         "str:LAUNCH-123456": "500,000"
                     },
                     "storage": {
-                        "str:ticketStatus|u32:5": "2",
+                        "str:ticketStatus|u32:5": "u8:2|u8:1",
                         "str:ticketStatus|u32:30": "u8:1|u8:1",
-                        "str:ticketStatus|u32:16": "2",
+                        "str:ticketStatus|u32:16": "u8:2|u8:1",
                         "str:ticketStatus|u32:24": "u8:1|u8:1",
-                        "str:ticketStatus|u32:18": "2",
+                        "str:ticketStatus|u32:18": "u8:2|u8:1",
 
                         "str:totalConfirmedTickets": "3",
                         "str:nrWinningTickets": "5",
