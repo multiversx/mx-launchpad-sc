@@ -22,7 +22,7 @@ use ticket_status::TicketStatus;
 const VEC_MAPPER_START_INDEX: usize = 1;
 const FIRST_GENERATION: u8 = 1;
 
-#[elrond_wasm::derive::contract]
+#[elrond_wasm::contract]
 pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationModule {
     // endpoints - owner-only
 
@@ -52,7 +52,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     #[only_owner]
     #[endpoint(addAddressToBlacklist)]
-    fn add_address_to_blacklist(&self, address: Address) -> SCResult<()> {
+    fn add_address_to_blacklist(&self, address: ManagedAddress) -> SCResult<()> {
         self.blacklist().insert(address);
 
         Ok(())
@@ -60,7 +60,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     #[only_owner]
     #[endpoint(removeAddressFromBlacklist)]
-    fn remove_address_from_blacklist(&self, address: Address) -> SCResult<()> {
+    fn remove_address_from_blacklist(&self, address: ManagedAddress) -> SCResult<()> {
         self.blacklist().remove(&address);
 
         Ok(())
@@ -68,14 +68,14 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     #[only_owner]
     #[endpoint(refundConfirmedTickets)]
-    fn refund_confirmed_tickets(&self, address: Address) -> SCResult<()> {
+    fn refund_confirmed_tickets(&self, address: ManagedAddress) -> SCResult<()> {
         require!(
             self.blacklist().contains(&address),
             "Can only refund for users that have been put in blacklist"
         );
 
         let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(&address).get();
-        let mut nr_refunded_tickets = 0;
+        let mut nr_refunded_tickets = 0u32;
 
         for ticket_id in first_ticket_id..=last_ticket_id {
             let ticket_status = self.ticket_status(ticket_id).get();
@@ -89,11 +89,11 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         }
 
         self.total_confirmed_tickets()
-            .update(|confirmed| *confirmed -= nr_refunded_tickets);
+            .update(|confirmed| *confirmed -= nr_refunded_tickets as usize);
 
         let ticket_paymemt_token = self.ticket_payment_token().get();
         let ticket_price = self.ticket_price().get();
-        let amount_to_refund = ticket_price * nr_refunded_tickets.into();
+        let amount_to_refund = ticket_price * nr_refunded_tickets;
 
         self.send()
             .direct(&address, &ticket_paymemt_token, 0, &amount_to_refund, &[]);
@@ -105,7 +105,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[endpoint(addTickets)]
     fn add_tickets(
         &self,
-        #[var_args] address_number_pairs: VarArgs<MultiArg2<Address, usize>>,
+        #[var_args] address_number_pairs: VarArgs<MultiArg2<ManagedAddress, usize>>,
     ) -> SCResult<()> {
         self.require_stage(LaunchStage::AddTickets)?;
 
@@ -172,7 +172,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     fn confirm_tickets(
         &self,
         #[payment_token] payment_token: TokenIdentifier,
-        #[payment_amount] payment_amount: Self::BigUint,
+        #[payment_amount] payment_amount: BigUint,
         nr_tickets_to_confirm: usize,
     ) -> SCResult<()> {
         self.require_stage(LaunchStage::ConfirmTickets)?;
@@ -185,7 +185,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         let ticket_payment_token = self.ticket_payment_token().get();
         let ticket_price = self.ticket_price().get();
-        let total_ticket_price = Self::BigUint::from(nr_tickets_to_confirm) * ticket_price;
+        let total_ticket_price = ticket_price * (nr_tickets_to_confirm as u32);
 
         require!(
             payment_token == ticket_payment_token,
@@ -317,7 +317,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         let launchpad_token_id = self.launchpad_token_id().get();
         let tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
-        let amount_to_send = Self::BigUint::from(nr_redeemed_tickets) * tokens_per_winning_ticket;
+        let amount_to_send = BigUint::from(nr_redeemed_tickets) * tokens_per_winning_ticket;
 
         self.send()
             .direct(&caller, &launchpad_token_id, 0, &amount_to_send, &[]);
@@ -331,7 +331,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[view(getTicketRangeForAddress)]
     fn get_ticket_range_for_address(
         &self,
-        address: Address,
+        address: ManagedAddress,
     ) -> OptionalResult<MultiResult2<usize, usize>> {
         if self.ticket_range_for_address(&address).is_empty() {
             return OptionalResult::None;
@@ -341,7 +341,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     #[view(getWinningTicketIdsForAddress)]
-    fn get_winning_ticket_ids_for_address(&self, address: Address) -> MultiResultVec<usize> {
+    fn get_winning_ticket_ids_for_address(&self, address: ManagedAddress) -> MultiResultVec<usize> {
         let current_generation = self.current_generation().get();
         let winning_ticket_ids = self.get_tickets_with_status(
             &address,
@@ -354,7 +354,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     #[view(getConfirmedTicketIdsForAddress)]
-    fn get_confirmed_ticket_ids_for_address(&self, address: Address) -> MultiResultVec<usize> {
+    fn get_confirmed_ticket_ids_for_address(
+        &self,
+        address: ManagedAddress,
+    ) -> MultiResultVec<usize> {
         let current_generation = self.current_generation().get();
         let confirmed_ticket_ids = self.get_tickets_with_status(
             &address,
@@ -367,12 +370,12 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     #[view(getNumberOfWinningTicketsForAddress)]
-    fn get_number_of_winning_tickets_for_address(&self, address: Address) -> usize {
+    fn get_number_of_winning_tickets_for_address(&self, address: ManagedAddress) -> usize {
         self.get_winning_ticket_ids_for_address(address).len()
     }
 
     #[view(getNumberOfConfirmedTicketsForAddress)]
-    fn get_number_of_confirmed_tickets_for_address(&self, address: Address) -> usize {
+    fn get_number_of_confirmed_tickets_for_address(&self, address: ManagedAddress) -> usize {
         self.get_confirmed_ticket_ids_for_address(address).len()
     }
 
@@ -417,7 +420,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     // private
 
-    fn try_create_tickets(&self, buyer: &Address, nr_tickets: usize) -> SCResult<()> {
+    fn try_create_tickets(&self, buyer: &ManagedAddress, nr_tickets: usize) -> SCResult<()> {
         require!(
             self.ticket_range_for_address(buyer).is_empty(),
             "Duplicate entry for user"
@@ -439,7 +442,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     /// each position is swapped with a random one that's after it.
     fn shuffle_single_ticket(
         &self,
-        rng: &mut Random<Self::CryptoApi>,
+        rng: &mut Random<Self::Api>,
         current_ticket_position: usize,
         last_ticket_position: usize,
         is_winning_ticket: bool,
@@ -460,7 +463,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     fn swap<T: TopEncode + TopDecode>(
         &self,
-        mapper: VecMapper<Self::Storage, T>,
+        mapper: VecMapper<T>,
         first_index: usize,
         second_index: usize,
     ) {
@@ -491,7 +494,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             .update(|current_generation| *current_generation += 1);
     }
 
-    fn try_get_ticket_range(&self, address: &Address) -> SCResult<(usize, usize)> {
+    fn try_get_ticket_range(&self, address: &ManagedAddress) -> SCResult<(usize, usize)> {
         require!(
             !self.ticket_range_for_address(address).is_empty(),
             "You have no tickets"
@@ -521,7 +524,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     fn get_tickets_with_status(
         &self,
-        address: &Address,
+        address: &ManagedAddress,
         expected_ticket_status: TicketStatus,
     ) -> Vec<usize> {
         if self.ticket_range_for_address(address).is_empty() {
@@ -544,26 +547,26 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     // storage
 
     #[storage_mapper("ticketStatus")]
-    fn ticket_status(&self, ticket_id: usize) -> SingleValueMapper<Self::Storage, TicketStatus>;
+    fn ticket_status(&self, ticket_id: usize) -> SingleValueMapper<TicketStatus>;
 
     #[storage_mapper("ticketRangeForAddress")]
     fn ticket_range_for_address(
         &self,
-        address: &Address,
-    ) -> SingleValueMapper<Self::Storage, (usize, usize)>;
+        address: &ManagedAddress,
+    ) -> SingleValueMapper<(usize, usize)>;
 
     #[storage_mapper("winningTicketsRange")]
-    fn winning_tickets_range(&self) -> SingleValueMapper<Self::Storage, (usize, usize)>;
+    fn winning_tickets_range(&self) -> SingleValueMapper<(usize, usize)>;
 
     #[storage_mapper("shuffledTickets")]
-    fn shuffled_tickets(&self) -> VecMapper<Self::Storage, usize>;
+    fn shuffled_tickets(&self) -> VecMapper<usize>;
 
     #[storage_mapper("currentGeneration")]
-    fn current_generation(&self) -> SingleValueMapper<Self::Storage, u8>;
+    fn current_generation(&self) -> SingleValueMapper<u8>;
 
     #[storage_mapper("totalConfirmedTickets")]
-    fn total_confirmed_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
+    fn total_confirmed_tickets(&self) -> SingleValueMapper<usize>;
 
     #[storage_mapper("blacklist")]
-    fn blacklist(&self) -> SafeSetMapper<Self::Storage, Address>;
+    fn blacklist(&self) -> SetMapper<ManagedAddress>;
 }

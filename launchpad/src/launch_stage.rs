@@ -36,7 +36,7 @@ impl EndpointResult for LaunchStage {
     #[inline]
     fn finish<FA>(&self, api: FA)
     where
-        FA: EndpointFinishApi + Clone + 'static,
+        FA: ManagedTypeApi + EndpointFinishApi + Clone + 'static,
     {
         self.output_bytes().finish(api);
     }

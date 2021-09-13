@@ -79,13 +79,13 @@ pub trait OngoingOperationModule: crate::setup::SetupModule {
         self.current_ongoing_operation().clear();
     }
 
-    fn load_select_winners_operation(&self) -> SCResult<(Random<Self::CryptoApi>, usize, usize)> {
+    fn load_select_winners_operation(&self) -> SCResult<(Random<Self::Api>, usize, usize)> {
         let ongoing_operation = self.current_ongoing_operation().get();
 
         match ongoing_operation {
             OngoingOperationType::None => Ok((
                 Random::from_seeds(
-                    self.crypto(),
+                    self.raw_vm_api(),
                     self.blockchain().get_prev_block_random_seed(),
                     self.blockchain().get_block_random_seed(),
                 ),
@@ -98,7 +98,7 @@ pub trait OngoingOperationModule: crate::setup::SetupModule {
                 ticket_position,
                 nr_winning_tickets,
             } => Ok((
-                Random::from_hash(self.crypto(), seed, seed_index),
+                Random::from_hash(self.raw_vm_api(), seed, seed_index),
                 ticket_position,
                 nr_winning_tickets,
             )),
@@ -126,5 +126,5 @@ pub trait OngoingOperationModule: crate::setup::SetupModule {
     }
 
     #[storage_mapper("operation")]
-    fn current_ongoing_operation(&self) -> SingleValueMapper<Self::Storage, OngoingOperationType>;
+    fn current_ongoing_operation(&self) -> SingleValueMapper<OngoingOperationType>;
 }

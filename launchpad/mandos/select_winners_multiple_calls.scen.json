@@ -53,9 +53,9 @@
                     "storage": {
                         "str:operation": {
                             "1-enum_identifier": "u8:1",
-                            "2-seed": "0x6130f9fc2c434215daf648b7b48fe3350b4c5553eaf9e9df3190c3f59356d87c",
-                            "3-seed_index": "u32:12",
-                            "4-ticket_position": "u32:28",
+                            "2-seed": "0xd388f27b3d5c070fde9aa9f2067d747a1f00d097955a1a4fd67e008982cc8334",
+                            "3-seed_index": "u32:8",
+                            "4-ticket_position": "u32:19",
                             "5-nr_winning_tickets": "u32:5"
                         },
 

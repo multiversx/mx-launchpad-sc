@@ -7,9 +7,9 @@ pub trait SetupModule {
     fn init(
         &self,
         launchpad_token_id: TokenIdentifier,
-        launchpad_tokens_per_winning_ticket: Self::BigUint,
+        launchpad_tokens_per_winning_ticket: BigUint,
         ticket_payment_token: TokenIdentifier,
-        ticket_price: Self::BigUint,
+        ticket_price: BigUint,
         nr_winning_tickets: usize,
         winner_selection_start_epoch: u64,
         confirmation_period_start_epoch: u64,
@@ -53,7 +53,7 @@ pub trait SetupModule {
 
         let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
         let total_winning_tickets = self.nr_winning_tickets().get();
-        let amount_needed = amount_per_ticket * Self::BigUint::from(total_winning_tickets);
+        let amount_needed = amount_per_ticket * total_winning_tickets as u32;
 
         let sc_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
         require!(amount_needed == sc_balance, "Wrong amount deposited");
@@ -101,13 +101,13 @@ pub trait SetupModule {
 
     #[only_owner]
     #[endpoint]
-    fn set_ticket_price(&self, ticket_price: Self::BigUint) -> SCResult<()> {
+    fn set_ticket_price(&self, ticket_price: BigUint) -> SCResult<()> {
         self.try_set_ticket_price(&ticket_price)
     }
 
     #[only_owner]
     #[endpoint]
-    fn set_launchpad_tokens_per_winning_ticket(&self, amount: Self::BigUint) -> SCResult<()> {
+    fn set_launchpad_tokens_per_winning_ticket(&self, amount: BigUint) -> SCResult<()> {
         self.try_set_launchpad_tokens_per_winning_ticket(&amount)
     }
 
@@ -124,7 +124,7 @@ pub trait SetupModule {
         Ok(())
     }
 
-    fn try_set_ticket_price(&self, ticket_price: &Self::BigUint) -> SCResult<()> {
+    fn try_set_ticket_price(&self, ticket_price: &BigUint) -> SCResult<()> {
         require!(ticket_price > &0, "Ticket price must be higher than 0");
 
         self.ticket_price().set(ticket_price);
@@ -132,7 +132,7 @@ pub trait SetupModule {
         Ok(())
     }
 
-    fn try_set_launchpad_tokens_per_winning_ticket(&self, amount: &Self::BigUint) -> SCResult<()> {
+    fn try_set_launchpad_tokens_per_winning_ticket(&self, amount: &BigUint) -> SCResult<()> {
         require!(
             amount > &0,
             "Launchpad tokens per winning ticket cannot be set to zero"
@@ -233,39 +233,37 @@ pub trait SetupModule {
 
     #[view(getLaunchpadTokenId)]
     #[storage_mapper("launchpadTokenId")]
-    fn launchpad_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn launchpad_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[view(getLaunchpadTokensPerWinningTicket)]
     #[storage_mapper("launchpadTokensPerWinningTicket")]
-    fn launchpad_tokens_per_winning_ticket(
-        &self,
-    ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn launchpad_tokens_per_winning_ticket(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getTicketPaymentToken)]
     #[storage_mapper("ticketPaymentToken")]
-    fn ticket_payment_token(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn ticket_payment_token(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[view(getTicketPrice)]
     #[storage_mapper("ticketPrice")]
-    fn ticket_price(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn ticket_price(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getNumberOfWinningTickets)]
     #[storage_mapper("nrWinningTickets")]
-    fn nr_winning_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
+    fn nr_winning_tickets(&self) -> SingleValueMapper<usize>;
 
     #[view(getWinnerSelectionStart)]
     #[storage_mapper("winnerSelectionStartEpoch")]
-    fn winner_selection_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn winner_selection_start_epoch(&self) -> SingleValueMapper<u64>;
 
     #[view(getConfirmationPeriodStartEpoch)]
     #[storage_mapper("confirmationPeriodStartEpoch")]
-    fn confirmation_period_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn confirmation_period_start_epoch(&self) -> SingleValueMapper<u64>;
 
     #[view(getConfirmationPeriodInEpochs)]
     #[storage_mapper("confirmationPeriodInEpochs")]
-    fn confirmation_period_in_epochs(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn confirmation_period_in_epochs(&self) -> SingleValueMapper<u64>;
 
     #[view(getClaimStartEpoch)]
     #[storage_mapper("claimStartEpoch")]
-    fn claim_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn claim_start_epoch(&self) -> SingleValueMapper<u64>;
 }
