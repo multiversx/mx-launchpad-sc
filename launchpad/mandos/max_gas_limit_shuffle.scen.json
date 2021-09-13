@@ -1,0 +1,291 @@
+{
+    "name": "test how many tickets can be shuffled with max gas limit",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "2,000,000"
+                    },
+                    "storage": {}
+                },
+                "address:user1": {
+                    "nonce": "0",
+                    "balance": "1,000,000",
+                    "storage": {}
+                },
+                "address:user2": {
+                    "nonce": "0",
+                    "balance": "1,000,000",
+                    "storage": {}
+                },
+                "address:user3": {
+                    "nonce": "0",
+                    "balance": "1,000,000",
+                    "storage": {}
+                },
+                "address:user4": {
+                    "nonce": "0",
+                    "balance": "1,000,000",
+                    "storage": {}
+                }
+            },
+            "newAddresses": [
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "0",
+                    "newAddress": "sc:launchpad"
+                }
+            ]
+        },
+        {
+            "step": "scDeploy",
+            "txId": "deploy",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "file:../output/launchpad.wasm",
+                "value": "0",
+                "arguments": [
+                    "str:LAUNCH-123456",
+                    "1",
+                    "str:EGLD",
+                    "100",
+                    "1000",
+                    "25",
+                    "50",
+                    "10",
+                    "100"
+                ],
+                "gasLimit": "20,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "1",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "2,000,000"
+                    },
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:launchpadTokenId": "str:LAUNCH-123456",
+                        "str:launchpadTokensPerWinningTicket": "1",
+                        "str:ticketPaymentToken": "str:EGLD",
+                        "str:ticketPrice": "100",
+                        "str:nrWinningTickets": "1000",
+                        "str:winnerSelectionStartEpoch": "25",
+                        "str:confirmationPeriodStartEpoch": "50",
+                        "str:confirmationPeriodInEpochs": "10",
+                        "str:claimStartEpoch": "100"
+                    },
+                    "code": "file:../output/launchpad.wasm"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "10"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-add-tickets-1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "addTickets",
+                "arguments": [
+                    "address:user1", "1500"
+                ],
+                "gasLimit": "1,499,999,999",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-add-tickets-2",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "addTickets",
+                "arguments": [
+                    "address:user2", "1500"
+                ],
+                "gasLimit": "1,499,999,999",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-add-tickets-3",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "addTickets",
+                "arguments": [
+                    "address:user3", "1500"
+                ],
+                "gasLimit": "1,499,999,999",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-add-tickets-4",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "addTickets",
+                "arguments": [
+                    "address:user4", "1500"
+                ],
+                "gasLimit": "1,499,999,999",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "65"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "select-winners-1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "selectWinners",
+                "arguments": [],
+                "gasLimit": "1,499,999,999",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [
+                    "str:interrupted"
+                ],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:operation": {
+                            "1-enum_identifier": "u8:1",
+                            "2-seed": "0x2797a7679bcee5a0815515eea01bad1b0bcbffce92916fe368b6c19d0a4a40dd",
+                            "3-seed_index": "u32:12",
+                            "4-ticket_position": "u32:524",
+                            "5-nr_winning_tickets": "u32:1000"
+                        },
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "select-winners-2",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "selectWinners",
+                "arguments": [],
+                "gasLimit": "1,499,999,999",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [
+                    "str:interrupted"
+                ],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:operation": {
+                            "1-enum_identifier": "u8:1",
+                            "2-seed": "0x988fea41b1580b213db4f9b314172abca908048bc2fbb152409dc58e1d41be71",
+                            "3-seed_index": "u32:4",
+                            "4-ticket_position": "u32:1074",
+                            "5-nr_winning_tickets": "u32:1000"
+                        },
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        }
+    ]
+}
