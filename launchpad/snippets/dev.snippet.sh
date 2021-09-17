@@ -1,6 +1,6 @@
 PEM="$HOME/pems/dev.pem"
-ROOT="$HOME/Elrond/sc-launchpad-rs"
-SCRIPT_PATH="$HOME/Elrond/sc-launchpad-sc/launchpad/snippets"
+ROOT="$HOME/Elrond/scs/sc-launchpad-rs"
+SCRIPT_PATH="$HOME/Elrond/scs/sc-launchpad-sc/launchpad/snippets"
 
 ADDRESS=$(erdpy data load --key=address-devnet)
 DEV_PROXY=https://devnet-gateway.elrond.com
@@ -36,7 +36,35 @@ deploy() {
 }
 
 deposit_tokens() {
-  erdpy contract call ${ADDRESS} --pem=${PEM} --proxy=${DEV_PROXY} --gas-limit=${GAS} --chain=D --function=ESDTTransfer --arguments ${MPAD_TICK} ${AMOUNT} ${DEP_ENDPOINT} --send
+  erdpy contract call ${ADDRESS} --pem=${PEM} --proxy=${DEV_PROXY} --gas-limit=${GAS} --chain=D --function=ESDTTransfer --arguments ${MPAD_TICK} ${AMOUNT} ${DEP_ENDPOINT} --recall-nonce --send
+}
+
+addtickets_stage() {
+  erdpy contract call ${ADDRESS} --pem=${PEM} --proxy=${DEV_PROXY} --gas-limit=${GAS} --chain=D --function=setStage --arguments 1  --recall-nonce --send
+}
+
+selectWinners_stage() {
+  erdpy contract call ${ADDRESS} --pem=${PEM} --proxy=${DEV_PROXY} --gas-limit=${GAS} --chain=D --function=setStage --arguments 2  --recall-nonce --send
+}
+
+waitConfirmation_stage() {
+  erdpy contract call ${ADDRESS} --pem=${PEM} --proxy=${DEV_PROXY} --gas-limit=${GAS} --chain=D --function=setStage --arguments 3  --recall-nonce --send
+}
+
+confirmTickets_stage() {
+  erdpy contract call ${ADDRESS} --pem=${PEM} --proxy=${DEV_PROXY} --gas-limit=${GAS} --chain=D --function=setStage --arguments 4  --recall-nonce --send
+}
+
+selectNewWinners_stage() {
+  erdpy contract call ${ADDRESS} --pem=${PEM} --proxy=${DEV_PROXY} --gas-limit=${GAS} --chain=D --function=setStage --arguments 5  --recall-nonce --send
+}
+
+waitBeforeClaim_stage() {
+  erdpy contract call ${ADDRESS} --pem=${PEM} --proxy=${DEV_PROXY} --gas-limit=${GAS} --chain=D --function=setStage --arguments 6  --recall-nonce --send
+}
+
+claim_stage() {
+  erdpy contract call ${ADDRESS} --pem=${PEM} --proxy=${DEV_PROXY} --gas-limit=${GAS} --chain=D --function=setStage --arguments 7  --recall-nonce --send
 }
 
 get_ticketEntries() {
@@ -50,32 +78,3 @@ get_winningTickets() {
 get_confirmedTickets() {
   erdpy contract query ${ADDRESS} --proxy=${DEV_PROXY} --function=getConfirmedTicketIdsForAddress --arguments ${USER_ADDR}
 }
-
-addtickets_stage() {
-  erdpy contract call ${ADDRESS} --proxy=${DEV_PROXY} --function=setStage --arguments 1
-}
-
-selectWinners_stage() {
-  erdpy contract call ${ADDRESS} --proxy=${DEV_PROXY} --function=setStage --arguments 2
-}
-
-waitConfirmation_stage() {
-  erdpy contract call ${ADDRESS} --proxy=${DEV_PROXY} --function=setStage --arguments 3
-}
-
-confirmTickets_stage() {
-  erdpy contract call ${ADDRESS} --proxy=${DEV_PROXY} --function=setStage --arguments 4
-}
-
-selectNewWinners_stage() {
-  erdpy contract call ${ADDRESS} --proxy=${DEV_PROXY} --function=setStage --arguments 5
-}
-
-waitBeforeClaim_stage() {
-  erdpy contract call ${ADDRESS} --proxy=${DEV_PROXY} --function=setStage --arguments 6
-}
-
-claim_stage() {
-  erdpy contract call ${ADDRESS} --proxy=${DEV_PROXY} --function=setStage --arguments 7
-}
-
