@@ -89,7 +89,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         }
 
         require!(
-            self.select_winners()? == OperationCompletionStatus::Completed,
+            self.select_winners()? == OperationCompletionStatus::Completed.output_bytes().into(),
             "Out of gas"
         );
 
@@ -111,7 +111,8 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         }
 
         require!(
-            self.select_new_winners()? == OperationCompletionStatus::Completed,
+            self.select_new_winners()?
+                == OperationCompletionStatus::Completed.output_bytes().into(),
             "Out of gas"
         );
 
