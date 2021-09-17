@@ -71,10 +71,15 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             return Ok(());
         }
 
+        self.try_create_tickets(&first_address, 5)?;
+        self.try_create_tickets(&second_address, 5)?;
+
+        /*
         let mut tickets = Vec::new();
         tickets.push((first_address.clone(), 5).into());
         tickets.push((second_address.clone(), 5).into());
         self.add_tickets(tickets.into())?;
+        */
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.winner_selection_start_epoch().set(&current_epoch);
