@@ -121,7 +121,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     // endpoints
 
     #[endpoint(selectWinners)]
-    fn select_winners(&self) -> SCResult<OperationCompletionStatus> {
+    fn select_winners(&self) -> SCResult<BoxedBytes> {
         self.require_stage(LaunchStage::SelectWinners)?;
 
         let last_ticket_position = self.shuffled_tickets().len();
@@ -164,7 +164,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             }
         };
 
-        Ok(run_result)
+        Ok(run_result.output_bytes().into())
     }
 
     #[payable("*")]
@@ -228,7 +228,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     #[endpoint(selectNewWinners)]
-    fn select_new_winners(&self) -> SCResult<OperationCompletionStatus> {
+    fn select_new_winners(&self) -> SCResult<BoxedBytes> {
         self.require_stage(LaunchStage::SelectNewWinners)?;
 
         let (_, prev_last_winning_ticket_position) = self.winning_tickets_range().get();
@@ -286,7 +286,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             }
         };
 
-        Ok(run_result)
+        Ok(run_result.output_bytes().into())
     }
 
     #[endpoint(claimLaunchpadTokens)]
