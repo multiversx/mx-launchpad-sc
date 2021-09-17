@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use crate::{random::Random, VEC_MAPPER_START_INDEX};
 
-const MIN_GAS_TO_SAVE_PROGRESS: u64 = 100_000_000;
+const MIN_GAS_TO_SAVE_PROGRESS: u64 = 10_000_000;
 
 #[derive(TopDecode, TopEncode, TypeAbi, PartialEq)]
 pub enum OngoingOperationType {
