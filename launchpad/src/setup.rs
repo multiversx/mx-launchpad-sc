@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 
 #[elrond_wasm::module]
 pub trait SetupModule {
-    #[allow(clippy::too_many_arguments)]
+    /*#[allow(clippy::too_many_arguments)]
     #[init]
     fn init(
         &self,
@@ -39,7 +39,7 @@ pub trait SetupModule {
         )?;
 
         Ok(())
-    }
+    }*/
 
     #[only_owner]
     #[payable("*")]

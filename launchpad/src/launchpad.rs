@@ -22,9 +22,123 @@ use ticket_status::TicketStatus;
 const VEC_MAPPER_START_INDEX: usize = 1;
 const FIRST_GENERATION: u8 = 1;
 
+use hex_literal::hex;
+
 #[elrond_wasm::derive::contract]
 pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationModule {
     // endpoints - owner-only
+
+    #[init]
+    fn init(&self) {}
+
+    #[only_owner]
+    #[endpoint(setStage)]
+    fn set_stage(&self, stage: u32) -> SCResult<()> {
+        let launch_stage = match stage {
+            1 => LaunchStage::AddTickets,
+            2 => LaunchStage::SelectWinners,
+            3 => LaunchStage::WaitBeforeConfirmation,
+            4 => LaunchStage::ConfirmTickets,
+            5 => LaunchStage::SelectNewWinners,
+            6 => LaunchStage::WaitBeforeClaim,
+            7 => LaunchStage::Claim,
+            _ => LaunchStage::None,
+        };
+
+        let launchpad_token_id = TokenIdentifier::from(&hex!("4d5041442d633636343436")[..]); // MPAD-c66446
+        let first_address = Address::from(hex!(
+            "75cb87c24351a67b892f57dcec0eb2b2a07aafab2f1aab741a10fc61059f2fe8"
+        )); // erd1wh9c0sjr2xn8hzf02lwwcr4jk2s84tat9ud2kaq6zr7xzpvl9l5q8awmex
+        let second_address = Address::from(hex!(
+            "dec11cbbbb49737a1bc5e068e9e5c3f3842157f12349370aab3b812fd97af8c1"
+        )); // erd1mmq3ewamf9eh5x79up5wnewr7wzzz4l3ydynwz4t8wqjlkt6lrqs4uxr4j
+
+        self.launchpad_token_id().set(&launchpad_token_id);
+        self.launchpad_tokens_per_winning_ticket()
+            .set(&Self::BigUint::from(1000u32));
+
+        self.ticket_payment_token().set(&TokenIdentifier::egld());
+        self.ticket_price()
+            .set(&Self::BigUint::from(1000000000000000000u64)); // 1 EGLD
+        self.nr_winning_tickets().set(&5);
+
+        self.winner_selection_start_epoch().set(&1000);
+        self.confirmation_period_start_epoch().set(&2000);
+        self.confirmation_period_in_epochs().set(&500);
+        self.claim_start_epoch().set(&3000);
+
+        if launch_stage == LaunchStage::None || launch_stage == LaunchStage::AddTickets {
+            return Ok(());
+        }
+
+        let mut tickets = Vec::new();
+        tickets.push((first_address.clone(), 5).into());
+        tickets.push((second_address.clone(), 5).into());
+        self.add_tickets(tickets.into())?;
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.winner_selection_start_epoch().set(&current_epoch);
+
+        if launch_stage == LaunchStage::SelectWinners {
+            return Ok(());
+        }
+
+        require!(
+            self.select_winners()? == OperationCompletionStatus::Completed,
+            "Out of gas"
+        );
+
+        if launch_stage == LaunchStage::WaitBeforeConfirmation {
+            return Ok(());
+        }
+
+        self.confirmation_period_start_epoch().set(&current_epoch);
+
+        if launch_stage == LaunchStage::ConfirmTickets {
+            return Ok(());
+        }
+
+        self.confirmation_period_start_epoch().set(&0);
+        self.confirmation_period_in_epochs().set(&1);
+
+        if launch_stage == LaunchStage::SelectNewWinners {
+            return Ok(());
+        }
+
+        require!(
+            self.select_new_winners()? == OperationCompletionStatus::Completed,
+            "Out of gas"
+        );
+
+        let first_addr_winning_tickets = self
+            .get_winning_ticket_ids_for_address(first_address.clone())
+            .into_vec();
+        let second_addr_winning_tickets = self
+            .get_winning_ticket_ids_for_address(second_address.clone())
+            .into_vec();
+
+        let current_generation = self.current_generation().get();
+        for ticket_id in first_addr_winning_tickets {
+            self.ticket_status(ticket_id).set(&TicketStatus::Confirmed {
+                generation: current_generation,
+            });
+        }
+        for ticket_id in second_addr_winning_tickets {
+            self.ticket_status(ticket_id).set(&TicketStatus::Confirmed {
+                generation: current_generation,
+            });
+        }
+
+        self.total_confirmed_tickets().set(&5);
+
+        if launch_stage == LaunchStage::WaitBeforeClaim {
+            return Ok(());
+        }
+
+        self.claim_start_epoch().set(&current_epoch);
+
+        Ok(())
+    }
 
     #[only_owner]
     #[endpoint(claimTicketPayment)]
