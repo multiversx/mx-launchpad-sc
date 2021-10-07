@@ -75,9 +75,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     #[only_owner]
     #[endpoint(addAddressToBlacklist)]
-    fn add_address_to_blacklist(&self, address: Address) -> SCResult<()> {
-        self.require_before_stage(LaunchStage::WaitBeforeClaim)?;
-
+    fn add_address_to_blacklist(&self, address: Address) {
         let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(&address).get();
         let mut nr_refunded_tickets = 0;
 
@@ -93,8 +91,12 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         }
 
         if nr_refunded_tickets > 0 {
-            self.total_confirmed_tickets()
-                .update(|confirmed| *confirmed -= nr_refunded_tickets);
+            // only done so the SC doesn't reset to SelectNewWinners stage if we're already in Claim stage
+            let stage = self.get_launch_stage();
+            if stage < LaunchStage::WaitBeforeClaim {
+                self.total_confirmed_tickets()
+                    .update(|confirmed| *confirmed -= nr_refunded_tickets);
+            }
 
             let ticket_paymemt_token = self.ticket_payment_token().get();
             let ticket_price = self.ticket_price().get();
@@ -105,8 +107,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         }
 
         let _ = self.blacklist().insert(address);
-
-        Ok(())
     }
 
     #[only_owner]
