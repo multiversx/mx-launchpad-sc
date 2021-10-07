@@ -29,11 +29,12 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[only_owner]
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment(&self) -> SCResult<()> {
+        self.require_stage(LaunchStage::Claim)?;
+
         let ticket_payment_token = self.ticket_payment_token().get();
         let sc_balance = self.blockchain().get_sc_balance(&ticket_payment_token, 0);
-        let owner = self.blockchain().get_caller();
-
         if sc_balance > 0 {
+            let owner = self.blockchain().get_caller();
             self.send()
                 .direct(&owner, &ticket_payment_token, 0, &sc_balance, &[]);
         }
@@ -43,36 +44,39 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     #[only_owner]
     #[endpoint(forceClaimPeriodStart)]
-    fn force_claim_period_start(&self) -> SCResult<()> {
+    fn force_claim_period_start(&self) {
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.claim_start_epoch().set(&current_epoch);
+
         let total_winning_tickets = self.nr_winning_tickets().get();
         self.total_confirmed_tickets().set(&total_winning_tickets);
+    }
 
-        Ok(())
+    #[only_owner]
+    #[endpoint(setTicketPaymentToken)]
+    fn set_ticket_payment_token(&self, ticket_payment_token: TokenIdentifier) -> SCResult<()> {
+        self.require_before_stage(LaunchStage::ConfirmTickets)?;
+        self.try_set_ticket_payment_token(&ticket_payment_token)
+    }
+
+    #[only_owner]
+    #[endpoint(setTicketPrice)]
+    fn set_ticket_price(&self, ticket_price: Self::BigUint) -> SCResult<()> {
+        self.require_before_stage(LaunchStage::ConfirmTickets)?;
+        self.try_set_ticket_price(&ticket_price)
+    }
+
+    #[only_owner]
+    #[endpoint(setLaunchpadTokensPerWinningTicket)]
+    fn set_launchpad_tokens_per_winning_ticket(&self, amount: Self::BigUint) -> SCResult<()> {
+        self.require_before_stage(LaunchStage::ConfirmTickets)?;
+        self.try_set_launchpad_tokens_per_winning_ticket(&amount)
     }
 
     #[only_owner]
     #[endpoint(addAddressToBlacklist)]
     fn add_address_to_blacklist(&self, address: Address) -> SCResult<()> {
-        self.blacklist().insert(address);
-
-        Ok(())
-    }
-
-    #[only_owner]
-    #[endpoint(removeAddressFromBlacklist)]
-    fn remove_address_from_blacklist(&self, address: Address) -> SCResult<()> {
-        self.blacklist().remove(&address);
-
-        Ok(())
-    }
-
-    #[only_owner]
-    #[endpoint(refundConfirmedTickets)]
-    fn refund_confirmed_tickets(&self, address: Address) -> SCResult<()> {
-        require!(
-            self.blacklist().contains(&address),
-            "Can only refund for users that have been put in blacklist"
-        );
+        self.require_before_stage(LaunchStage::WaitBeforeClaim)?;
 
         let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(&address).get();
         let mut nr_refunded_tickets = 0;
@@ -88,17 +92,27 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             nr_refunded_tickets += 1;
         }
 
-        self.total_confirmed_tickets()
-            .update(|confirmed| *confirmed -= nr_refunded_tickets);
+        if nr_refunded_tickets > 0 {
+            self.total_confirmed_tickets()
+                .update(|confirmed| *confirmed -= nr_refunded_tickets);
 
-        let ticket_paymemt_token = self.ticket_payment_token().get();
-        let ticket_price = self.ticket_price().get();
-        let amount_to_refund = ticket_price * nr_refunded_tickets.into();
+            let ticket_paymemt_token = self.ticket_payment_token().get();
+            let ticket_price = self.ticket_price().get();
+            let amount_to_refund = ticket_price * nr_refunded_tickets.into();
 
-        self.send()
-            .direct(&address, &ticket_paymemt_token, 0, &amount_to_refund, &[]);
+            self.send()
+                .direct(&address, &ticket_paymemt_token, 0, &amount_to_refund, &[]);
+        }
+
+        let _ = self.blacklist().insert(address);
 
         Ok(())
+    }
+
+    #[only_owner]
+    #[endpoint(removeAddressFromBlacklist)]
+    fn remove_address_from_blacklist(&self, address: Address) {
+        let _ = self.blacklist().remove(&address);
     }
 
     #[only_owner]
@@ -176,6 +190,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         nr_tickets_to_confirm: usize,
     ) -> SCResult<()> {
         self.require_stage(LaunchStage::ConfirmTickets)?;
+        self.require_launchpad_tokens_deposited()?;
 
         let caller = self.blockchain().get_caller();
         require!(
@@ -231,22 +246,26 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     fn select_new_winners(&self) -> SCResult<BoxedBytes> {
         self.require_stage(LaunchStage::SelectNewWinners)?;
 
+        let last_valid_ticket_id = self.get_total_tickets();
+
         let (_, prev_last_winning_ticket_position) = self.winning_tickets_range().get();
         let new_first_winning_ticket_position = prev_last_winning_ticket_position + 1;
+        require!(
+            new_first_winning_ticket_position <= last_valid_ticket_id,
+            "Cannot select new winners, reached end of range"
+        );
 
         let (mut current_ticket_position, winning_tickets) =
             self.load_select_new_winners_operation(new_first_winning_ticket_position)?;
         let confirmed_tickets = self.total_confirmed_tickets().get();
         let remaining_tickets = winning_tickets - confirmed_tickets;
 
-        let new_last_winning_ticket_position =
+        let mut new_last_winning_ticket_position =
             new_first_winning_ticket_position + remaining_tickets - 1;
-        let last_valid_ticket_id = self.get_total_tickets();
 
-        require!(
-            new_last_winning_ticket_position <= last_valid_ticket_id,
-            "Cannot select new winners, reached end of range"
-        );
+        if new_last_winning_ticket_position > last_valid_ticket_id {
+            new_last_winning_ticket_position = last_valid_ticket_id;
+        }
 
         let next_generation = self.current_generation().get() + 1;
 
@@ -381,7 +400,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let current_epoch = self.blockchain().get_block_epoch();
 
         let total_winning_tickets = self.nr_winning_tickets().get();
-        let total_confirmed_tickets = self.get_total_confirmed_tickets();
+        let total_confirmed_tickets = self.total_confirmed_tickets().get();
         if total_confirmed_tickets >= total_winning_tickets {
             let claim_start_epoch = self.claim_start_epoch().get();
             if current_epoch >= claim_start_epoch {
@@ -504,10 +523,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         self.shuffled_tickets().len()
     }
 
-    fn get_total_confirmed_tickets(&self) -> usize {
-        self.total_confirmed_tickets().get()
-    }
-
     fn require_stage(&self, expected_stage: LaunchStage) -> SCResult<()> {
         let actual_stage = self.get_launch_stage();
 
@@ -515,6 +530,13 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             actual_stage == expected_stage,
             "Cannot call this endpoint, SC is in a different stage"
         );
+
+        Ok(())
+    }
+
+    fn require_before_stage(&self, before: LaunchStage) -> SCResult<()> {
+        let launch_stage = self.get_launch_stage();
+        require!(launch_stage < before, "Too late to change");
 
         Ok(())
     }

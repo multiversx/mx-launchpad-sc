@@ -3,7 +3,7 @@ use elrond_wasm::api::EndpointFinishApi;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-#[derive(TypeAbi, PartialEq)]
+#[derive(TypeAbi, PartialEq, PartialOrd)]
 pub enum LaunchStage {
     None,
     AddTickets,

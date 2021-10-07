@@ -44,19 +44,8 @@ pub trait SetupModule {
     #[only_owner]
     #[payable("*")]
     #[endpoint(depositLaunchpadTokens)]
-    fn deposit_launchpad_tokens(
-        &self,
-        #[payment_token] payment_token: TokenIdentifier,
-    ) -> SCResult<()> {
-        let launchpad_token_id = self.launchpad_token_id().get();
-        require!(payment_token == launchpad_token_id, "Wrong token deposited");
-
-        let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
-        let total_winning_tickets = self.nr_winning_tickets().get();
-        let amount_needed = amount_per_ticket * Self::BigUint::from(total_winning_tickets);
-
-        let sc_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
-        require!(amount_needed == sc_balance, "Wrong amount deposited");
+    fn deposit_launchpad_tokens(&self) -> SCResult<()> {
+        self.require_launchpad_tokens_deposited()?;
 
         Ok(())
     }
@@ -91,24 +80,6 @@ pub trait SetupModule {
         self.require_valid_time_periods(None, None, None, Some(claim_start_epoch))?;
 
         self.try_set_claim_start_epoch(claim_start_epoch)
-    }
-
-    #[only_owner]
-    #[endpoint(setTicketPaymentToken)]
-    fn set_ticket_payment_token(&self, ticket_payment_token: TokenIdentifier) -> SCResult<()> {
-        self.try_set_ticket_payment_token(&ticket_payment_token)
-    }
-
-    #[only_owner]
-    #[endpoint]
-    fn set_ticket_price(&self, ticket_price: Self::BigUint) -> SCResult<()> {
-        self.try_set_ticket_price(&ticket_price)
-    }
-
-    #[only_owner]
-    #[endpoint]
-    fn set_launchpad_tokens_per_winning_ticket(&self, amount: Self::BigUint) -> SCResult<()> {
-        self.try_set_launchpad_tokens_per_winning_ticket(&amount)
     }
 
     // private
@@ -224,6 +195,21 @@ pub trait SetupModule {
         require!(
             confirm_start_epoch + confirm_period < claim_start,
             "Confirm period cannot last over claim period"
+        );
+
+        Ok(())
+    }
+
+    fn require_launchpad_tokens_deposited(&self) -> SCResult<()> {
+        let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
+        let total_winning_tickets = self.nr_winning_tickets().get();
+        let amount_needed = amount_per_ticket * Self::BigUint::from(total_winning_tickets);
+
+        let launchpad_token_id = self.launchpad_token_id().get();
+        let sc_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
+        require!(
+            amount_needed == sc_balance,
+            "Wrong launchpad tokens amount deposit by owner or not deposited yet"
         );
 
         Ok(())
