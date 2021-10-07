@@ -124,7 +124,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     fn select_winners(&self) -> SCResult<BoxedBytes> {
         self.require_stage(LaunchStage::SelectWinners)?;
 
-        let last_ticket_position = self.shuffled_tickets().len();
+        let last_ticket_position = self.get_total_tickets();
         let (mut rng, mut ticket_position, nr_winning_tickets) =
             self.load_select_winners_operation()?;
 
@@ -423,7 +423,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             "Duplicate entry for user"
         );
 
-        let first_ticket_id = self.shuffled_tickets().len() + 1;
+        let first_ticket_id = self.get_total_tickets() + 1;
         let last_ticket_id = first_ticket_id + nr_tickets - 1;
         self.ticket_range_for_address(buyer)
             .set(&(first_ticket_id, last_ticket_id));
