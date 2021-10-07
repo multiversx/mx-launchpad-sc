@@ -45,9 +45,7 @@ pub trait SetupModule {
     #[payable("*")]
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens(&self) -> SCResult<()> {
-        self.require_launchpad_tokens_deposited()?;
-
-        Ok(())
+        self.require_launchpad_tokens_deposited()
     }
 
     #[only_owner]
