@@ -44,7 +44,7 @@ deploy() {
 }
 
 depositLaunchpadTokens() {
-    local AMOUNT= # Amount should be equal to NR_WINNING_TICKETS * LAUNCHPAD_TOKENS_PER_WINNING_TICKET
+    local AMOUNT= $(($NR_WINNING_TICKETS * $LAUNCHPAD_TOKENS_PER_WINNING_TICKET)) # Amount should be equal to NR_WINNING_TICKETS * LAUNCHPAD_TOKENS_PER_WINNING_TICKET
     local ENDPOINT_NAME=0x6465706f7369744c61756e6368706164546f6b656e73 # depositLaunchpadTokens - do not change
 
     erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
