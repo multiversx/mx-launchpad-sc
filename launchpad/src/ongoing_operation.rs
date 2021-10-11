@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use crate::{random::Random, VEC_MAPPER_START_INDEX};
 
-const MIN_GAS_TO_SAVE_PROGRESS: u64 = 100_000_000;
+const MIN_GAS_TO_SAVE_PROGRESS: u64 = 10_000_000;
 
 #[derive(TopDecode, TopEncode, TypeAbi, PartialEq)]
 pub enum OngoingOperationType {
@@ -86,8 +86,8 @@ pub trait OngoingOperationModule: crate::setup::SetupModule {
             OngoingOperationType::None => Ok((
                 Random::from_seeds(
                     self.raw_vm_api(),
-                    self.blockchain().get_prev_block_random_seed(),
-                    self.blockchain().get_block_random_seed(),
+                    self.blockchain().get_prev_block_random_seed_legacy(),
+                    self.blockchain().get_block_random_seed_legacy(),
                 ),
                 VEC_MAPPER_START_INDEX,
                 self.nr_winning_tickets().get(),

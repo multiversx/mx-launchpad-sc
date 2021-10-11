@@ -1,5 +1,7 @@
 {
     "name": "test how many tickets can be shuffled with max gas limit",
+    "traceGas" : true,
+    "gasSchedule": "v4",
     "steps": [
         {
             "step": "setState",
@@ -116,7 +118,7 @@
                 "arguments": [
                     "address:user1", "1500"
                 ],
-                "gasLimit": "1,499,999,999",
+                "gasLimit": "600,000,000",
                 "gasPrice": "0"
             },
             "expect": {
@@ -138,7 +140,7 @@
                 "arguments": [
                     "address:user2", "1500"
                 ],
-                "gasLimit": "1,499,999,999",
+                "gasLimit": "600,000,000",
                 "gasPrice": "0"
             },
             "expect": {
@@ -160,7 +162,7 @@
                 "arguments": [
                     "address:user3", "1500"
                 ],
-                "gasLimit": "1,499,999,999",
+                "gasLimit": "600,000,000",
                 "gasPrice": "0"
             },
             "expect": {
@@ -182,7 +184,7 @@
                 "arguments": [
                     "address:user4", "1500"
                 ],
-                "gasLimit": "1,499,999,999",
+                "gasLimit": "600,000,000",
                 "gasPrice": "0"
             },
             "expect": {
@@ -208,7 +210,7 @@
                 "value": "0",
                 "function": "selectWinners",
                 "arguments": [],
-                "gasLimit": "1,499,999,999",
+                "gasLimit": "600,000,000",
                 "gasPrice": "0"
             },
             "expect": {
@@ -230,9 +232,9 @@
                     "storage": {
                         "str:operation": {
                             "1-enum_identifier": "u8:1",
-                            "2-seed": "0x2797a7679bcee5a0815515eea01bad1b0bcbffce92916fe368b6c19d0a4a40dd",
-                            "3-seed_index": "u32:12",
-                            "4-ticket_position": "u32:524",
+                            "2-seed": "0x7c96a05d151200153c262297575798b9c3165e76100567ad6885de8291c82f9f",
+                            "3-seed_index": "u32:16",
+                            "4-ticket_position": "u32:589",
                             "5-nr_winning_tickets": "u32:1000"
                         },
 
@@ -252,7 +254,7 @@
                 "value": "0",
                 "function": "selectWinners",
                 "arguments": [],
-                "gasLimit": "1,499,999,999",
+                "gasLimit": "600,000,000",
                 "gasPrice": "0"
             },
             "expect": {
@@ -274,9 +276,9 @@
                     "storage": {
                         "str:operation": {
                             "1-enum_identifier": "u8:1",
-                            "2-seed": "0x988fea41b1580b213db4f9b314172abca908048bc2fbb152409dc58e1d41be71",
+                            "2-seed": "0xe098e173d6fe50f4b5874a79a74af335e0bad2b57538edc1a1c5a96b8070d834",
                             "3-seed_index": "u32:4",
-                            "4-ticket_position": "u32:1074",
+                            "4-ticket_position": "u32:1242",
                             "5-nr_winning_tickets": "u32:1000"
                         },
 
