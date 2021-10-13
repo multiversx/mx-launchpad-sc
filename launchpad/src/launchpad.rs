@@ -253,6 +253,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         &self,
         #[var_args] opt_nr_tickets_to_redeem: OptionalArg<usize>,
     ) -> SCResult<()> {
+        require!(self.winners_selected().get(), "Winners not selected yet");
         self.require_claim_period()?;
 
         let caller = self.blockchain().get_caller();
