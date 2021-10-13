@@ -241,6 +241,22 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                 });
             }
             OperationCompletionStatus::Completed => {
+                // this only happens when a lot of tickets have been eliminated,
+                // and we end up with less total tickets than winning
+                let expected_nr_winning_tickets = self.nr_winning_tickets().get();
+                if nr_winning_tickets < expected_nr_winning_tickets {
+                    let nr_leftover_tickets = expected_nr_winning_tickets - nr_winning_tickets;
+                    let launchpad_tokens_per_winning_ticket =
+                        self.launchpad_tokens_per_winning_ticket().get();
+                    let leftover_amount = Self::BigUint::from(nr_leftover_tickets)
+                        * launchpad_tokens_per_winning_ticket;
+
+                    self.leftover_launchpad_tokens()
+                        .update(|leftover| *leftover += leftover_amount);
+                }
+
+                // leftover_launchpad_tokens
+
                 self.winners_selected().set(&true);
             }
         };
