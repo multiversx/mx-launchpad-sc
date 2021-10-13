@@ -28,6 +28,8 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let ticket_payment_claimable_amount = self.claimable_ticket_payment().get();
         if ticket_payment_claimable_amount > 0 {
             let ticket_payment_token = self.ticket_payment_token().get();
+
+            self.claimable_ticket_payment().clear();
             self.send().direct(
                 &owner,
                 &ticket_payment_token,
@@ -40,6 +42,8 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let leftover_launchpad_tokens = self.leftover_launchpad_tokens().get();
         if leftover_launchpad_tokens > 0 {
             let launchpad_token_id = self.launchpad_token_id().get();
+
+            self.leftover_launchpad_tokens().clear();
             self.send().direct(
                 &owner,
                 &launchpad_token_id,
