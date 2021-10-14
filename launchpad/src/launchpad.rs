@@ -84,10 +84,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
         require!(
             current_epoch < winner_selection_start_epoch,
-            "May only add to blacklist before winning selection"
+            "May only add to blacklist before winner selection"
         );
 
-        if self.confirmed_all_tickets(&address).get() {
+        if self.has_user_confirmed_all_tickets(&address) {
             let nr_tickets = self.get_total_number_of_tickets_for_address(&address);
             self.refund_ticket_payment(&address, nr_tickets);
 
@@ -134,11 +134,11 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         let caller = self.blockchain().get_caller();
         require!(
-            !self.blacklisted(&caller).get(),
+            !self.is_user_blacklisted(&caller),
             "You have been put into the blacklist and may not confirm tickets"
         );
         require!(
-            !self.confirmed_all_tickets(&caller).get(),
+            !self.has_user_confirmed_all_tickets(&caller),
             "You already confirmed all tickets"
         );
 
@@ -330,6 +330,8 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                 .update(|leftover| *leftover += leftover_amount);
         }
 
+        self.claimed_tokens(&caller).set(&true);
+
         let nr_tickets_to_refund = total_tickets - nr_tickets_to_redeem;
         self.refund_ticket_payment(&caller, nr_tickets_to_refund);
         self.send_launchpad_tokens(&caller, nr_tickets_to_redeem);
@@ -406,7 +408,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     /// Fisher-Yates algorithm,
-    /// each position is swapped with a random one that's after it.
+    /// each position i is swapped with a random one in range [i, n]
     fn shuffle_single_ticket(
         &self,
         rng: &mut Random<Self::CryptoApi>,
@@ -440,12 +442,24 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         ticket_id
     }
 
+    #[inline(always)]
     fn get_total_tickets(&self) -> usize {
         self.last_ticket_id().get()
     }
 
+    #[inline(always)]
+    fn has_user_confirmed_all_tickets(&self, address: &Address) -> bool {
+        self.confirmed_all_tickets(address).get()
+    }
+
+    #[inline(always)]
+    fn is_user_blacklisted(&self, address: &Address) -> bool {
+        self.blacklisted(address).get()
+    }
+
+    #[inline(always)]
     fn is_user_eligible(&self, address: &Address) -> bool {
-        self.confirmed_all_tickets(address).get() && !self.blacklisted(address).get()
+        self.has_user_confirmed_all_tickets(address) && !self.is_user_blacklisted(address)
     }
 
     fn require_add_tickets_period(&self) -> SCResult<()> {
@@ -529,6 +543,9 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         );
     }
 
+    // - user claimed flag
+    // view for confirmed tickets
+
     // storage
 
     #[storage_mapper("ticketStatus")]
@@ -571,6 +588,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[view(hasUserConfirmedAllTickets)]
     #[storage_mapper("confirmedAllTickets")]
     fn confirmed_all_tickets(&self, address: &Address) -> SingleValueMapper<Self::Storage, bool>;
+
+    #[view(hasUserClaimedTokens)]
+    #[storage_mapper("claimedTokens")]
+    fn claimed_tokens(&self, address: &Address) -> SingleValueMapper<Self::Storage, bool>;
 
     #[view(isUserBlacklisted)]
     #[storage_mapper("blacklisted")]
