@@ -553,11 +553,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[storage_mapper("claimableTicketPayment")]
     fn claimable_ticket_payment(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
-    /*
-    #[storage_mapper("leftoverLaunchpadTokens")]
-    fn leftover_launchpad_tokens(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
-    */
-
     // flags
 
     #[storage_mapper("ticketsFiltered")]
