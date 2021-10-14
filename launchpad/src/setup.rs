@@ -180,7 +180,7 @@ pub trait SetupModule {
         let launchpad_token_id = self.launchpad_token_id().get();
         let sc_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
         require!(
-            amount_needed == sc_balance,
+            sc_balance >= amount_needed,
             "Wrong launchpad tokens amount deposit by owner or not deposited yet"
         );
 
