@@ -282,6 +282,8 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         self.require_claim_period()?;
 
         let caller = self.blockchain().get_caller();
+        require!(self.has_user_claimed(&caller), "Already claimed");
+
         let (first_ticket_id, last_ticket_id) = self.try_get_ticket_range(&caller)?;
         let total_tickets = last_ticket_id - first_ticket_id + 1;
         let mut nr_redeemable_tickets = 0;
@@ -450,6 +452,11 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[inline(always)]
     fn has_user_confirmed_all_tickets(&self, address: &Address) -> bool {
         self.confirmed_all_tickets(address).get()
+    }
+
+    #[inline(always)]
+    fn has_user_claimed(&self, address: &Address) -> bool {
+        self.claimed_tokens(address).get()
     }
 
     #[inline(always)]
