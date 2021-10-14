@@ -39,11 +39,16 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             );
         }
 
-        let leftover_launchpad_tokens = self.leftover_launchpad_tokens().get();
-        if leftover_launchpad_tokens > 0 {
-            let launchpad_token_id = self.launchpad_token_id().get();
+        // this only happens when too many users are blacklisted/don't confirm enough tickets
+        let launchpad_token_id = self.launchpad_token_id().get();
+        let nr_winning_tickets = self.nr_winning_tickets().get();
+        let launchpad_tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
+        let total_lauchpad_tokens_needed =
+            Self::BigUint::from(nr_winning_tickets) * launchpad_tokens_per_winning_ticket;
+        let sc_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
 
-            self.leftover_launchpad_tokens().clear();
+        if sc_balance > total_lauchpad_tokens_needed {
+            let leftover_launchpad_tokens = sc_balance - total_lauchpad_tokens_needed;
             self.send().direct(
                 &owner,
                 &launchpad_token_id,
@@ -87,11 +92,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             "May only add to blacklist before winner selection"
         );
 
-        if self.has_user_confirmed_all_tickets(&address) {
-            let nr_tickets = self.get_total_number_of_tickets_for_address(&address);
-            self.refund_ticket_payment(&address, nr_tickets);
-
-            self.confirmed_all_tickets(&address).clear();
+        let nr_confirmed_tickets = self.nr_confirmed_tickets(&address).get();
+        if nr_confirmed_tickets > 0 {
+            self.refund_ticket_payment(&address, nr_confirmed_tickets);
+            self.nr_confirmed_tickets(&address).clear();
         }
 
         self.blacklisted(&address).set(&true);
@@ -128,6 +132,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         &self,
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_amount] payment_amount: Self::BigUint,
+        nr_tickets_to_confirm: usize,
     ) -> SCResult<()> {
         self.require_confirmation_period()?;
         self.require_launchpad_tokens_deposited()?;
@@ -137,27 +142,25 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             !self.is_user_blacklisted(&caller),
             "You have been put into the blacklist and may not confirm tickets"
         );
+
+        let total_tickets = self.get_total_number_of_tickets_for_address(&caller);
+        let nr_confirmed = self.nr_confirmed_tickets(&caller).get();
+        let total_confirmed = nr_confirmed + nr_tickets_to_confirm;
         require!(
-            !self.has_user_confirmed_all_tickets(&caller),
-            "You already confirmed all tickets"
+            total_confirmed <= total_tickets,
+            "Trying to confirm too many tickets"
         );
 
         let ticket_payment_token = self.ticket_payment_token().get();
         let ticket_price = self.ticket_price().get();
-
-        let nr_tickets = self.get_total_number_of_tickets_for_address(&caller);
-        let total_ticket_price = Self::BigUint::from(nr_tickets) * ticket_price;
-
+        let total_ticket_price = Self::BigUint::from(nr_tickets_to_confirm) * ticket_price;
         require!(
             payment_token == ticket_payment_token,
             "Wrong payment token used"
         );
-        require!(
-            payment_amount == total_ticket_price,
-            "Wrong amount sent, must confirm all tickets"
-        );
+        require!(payment_amount == total_ticket_price, "Wrong amount sent");
 
-        self.confirmed_all_tickets(&caller).set(&true);
+        self.nr_confirmed_tickets(&caller).set(&total_confirmed);
 
         Ok(())
     }
@@ -166,7 +169,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[endpoint(filterTickets)]
     fn filter_tickets(&self) -> SCResult<BoxedBytes> {
         self.require_winner_selection_period()?;
-        require!(!self.tickets_filtered().get(), "Tickets already filtered");
+        require!(!self.were_tickets_filtered(), "Tickets already filtered");
 
         let last_ticket_id = self.last_ticket_id().get();
         let (mut first_ticket_id_in_batch, mut nr_removed) =
@@ -175,22 +178,24 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let run_result = self.run_while_it_has_gas(|| {
             let (address, nr_tickets_in_batch) = self.ticket_batch(first_ticket_id_in_batch).get();
 
-            if !self.is_user_eligible(&address) {
+            let nr_confirmed_tickets = self.nr_confirmed_tickets(&address).get();
+            if self.is_user_blacklisted(&address) || nr_confirmed_tickets == 0 {
                 nr_removed += nr_tickets_in_batch;
 
                 self.ticket_range_for_address(&address).clear();
                 self.ticket_batch(first_ticket_id_in_batch).clear();
-            } else if nr_removed > 0 {
+            } else if nr_removed > 0 || nr_confirmed_tickets < nr_tickets_in_batch {
                 let new_first_id = first_ticket_id_in_batch - nr_removed;
-                let new_last_id = new_first_id + nr_tickets_in_batch - 1;
+                let new_last_id = new_first_id + nr_confirmed_tickets - 1;
 
                 self.ticket_range_for_address(&address)
                     .set(&(new_first_id, new_last_id));
                 self.ticket_batch(new_first_id)
-                    .set(&(address, nr_tickets_in_batch));
+                    .set(&(address, nr_confirmed_tickets));
                 self.ticket_batch(first_ticket_id_in_batch).clear();
             }
 
+            nr_removed += nr_tickets_in_batch - nr_confirmed_tickets;
             first_ticket_id_in_batch += nr_tickets_in_batch;
 
             if first_ticket_id_in_batch == last_ticket_id + 1 {
@@ -208,9 +213,16 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                 });
             }
             OperationCompletionStatus::Completed => {
+                // this only happens when a lot of tickets have been eliminated,
+                // and we end up with less total tickets than winning
+                let new_last_ticket_id = last_ticket_id - nr_removed;
+                let nr_winning_tickets = self.nr_winning_tickets().get();
+                if nr_winning_tickets > new_last_ticket_id {
+                    self.nr_winning_tickets().set(&new_last_ticket_id);
+                }
+
+                self.last_ticket_id().set(&new_last_ticket_id);
                 self.tickets_filtered().set(&true);
-                self.last_ticket_id()
-                    .update(|last_id| *last_id -= nr_removed);
             }
         };
 
@@ -221,14 +233,11 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[endpoint(selectWinners)]
     fn select_winners(&self) -> SCResult<BoxedBytes> {
         self.require_winner_selection_period()?;
-        require!(self.tickets_filtered().get(), "Must filter tickets first");
-        require!(!self.winners_selected().get(), "Winners already selected");
+        require!(self.were_tickets_filtered(), "Must filter tickets first");
+        require!(!self.were_winners_selected(), "Winners already selected");
 
-        let mut nr_winning_tickets = self.nr_winning_tickets().get();
+        let nr_winning_tickets = self.nr_winning_tickets().get();
         let last_ticket_position = self.get_total_tickets();
-        if nr_winning_tickets > last_ticket_position {
-            nr_winning_tickets = last_ticket_position;
-        }
 
         let (mut rng, mut ticket_position) = self.load_select_winners_operation()?;
         let run_result = self.run_while_it_has_gas(|| {
@@ -252,20 +261,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                 });
             }
             OperationCompletionStatus::Completed => {
-                // this only happens when a lot of tickets have been eliminated,
-                // and we end up with less total tickets than winning
-                let expected_nr_winning_tickets = self.nr_winning_tickets().get();
-                if nr_winning_tickets < expected_nr_winning_tickets {
-                    let nr_leftover_tickets = expected_nr_winning_tickets - nr_winning_tickets;
-                    let launchpad_tokens_per_winning_ticket =
-                        self.launchpad_tokens_per_winning_ticket().get();
-                    let leftover_amount = Self::BigUint::from(nr_leftover_tickets)
-                        * launchpad_tokens_per_winning_ticket;
-
-                    self.leftover_launchpad_tokens()
-                        .update(|leftover| *leftover += leftover_amount);
-                }
-
                 self.winners_selected().set(&true);
             }
         };
@@ -274,15 +269,12 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     #[endpoint(claimLaunchpadTokens)]
-    fn claim_launchpad_tokens(
-        &self,
-        #[var_args] opt_nr_tickets_to_redeem: OptionalArg<usize>,
-    ) -> SCResult<()> {
+    fn claim_launchpad_tokens(&self) -> SCResult<()> {
         require!(self.winners_selected().get(), "Winners not selected yet");
         self.require_claim_period()?;
 
         let caller = self.blockchain().get_caller();
-        require!(self.has_user_claimed(&caller), "Already claimed");
+        require!(!self.has_user_claimed(&caller), "Already claimed");
 
         let (first_ticket_id, last_ticket_id) = self.try_get_ticket_range(&caller)?;
         let total_tickets = last_ticket_id - first_ticket_id + 1;
@@ -299,44 +291,24 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             self.ticket_pos_to_id(ticket_id).clear();
         }
 
-        let nr_tickets_to_redeem = opt_nr_tickets_to_redeem
-            .into_option()
-            .unwrap_or(nr_redeemable_tickets);
-
-        require!(
-            nr_tickets_to_redeem <= nr_redeemable_tickets,
-            "Trying to redeem too many tickets"
-        );
-
-        self.confirmed_all_tickets(&caller).clear();
+        self.nr_confirmed_tickets(&caller).clear();
         self.ticket_range_for_address(&caller).clear();
         self.ticket_batch(first_ticket_id).clear();
 
-        if nr_tickets_to_redeem > 0 {
+        if nr_redeemable_tickets > 0 {
             let ticket_price = self.ticket_price().get();
-            let redeemed_ticket_cost = &Self::BigUint::from(nr_tickets_to_redeem) * &ticket_price;
+            let redeemed_ticket_cost = &Self::BigUint::from(nr_redeemable_tickets) * &ticket_price;
             self.claimable_ticket_payment()
                 .update(|claimable_ticket_payment| {
                     *claimable_ticket_payment += redeemed_ticket_cost
                 });
         }
 
-        let nr_leftover_tickets = nr_redeemable_tickets - nr_tickets_to_redeem;
-        if nr_leftover_tickets > 0 {
-            let launchpad_tokens_per_winning_ticket =
-                self.launchpad_tokens_per_winning_ticket().get();
-            let leftover_amount =
-                Self::BigUint::from(nr_leftover_tickets) * launchpad_tokens_per_winning_ticket;
-
-            self.leftover_launchpad_tokens()
-                .update(|leftover| *leftover += leftover_amount);
-        }
-
         self.claimed_tokens(&caller).set(&true);
 
-        let nr_tickets_to_refund = total_tickets - nr_tickets_to_redeem;
+        let nr_tickets_to_refund = total_tickets - nr_redeemable_tickets;
         self.refund_ticket_payment(&caller, nr_tickets_to_refund);
-        self.send_launchpad_tokens(&caller, nr_tickets_to_redeem);
+        self.send_launchpad_tokens(&caller, nr_redeemable_tickets);
 
         Ok(())
     }
@@ -450,11 +422,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     #[inline(always)]
-    fn has_user_confirmed_all_tickets(&self, address: &Address) -> bool {
-        self.confirmed_all_tickets(address).get()
-    }
-
-    #[inline(always)]
     fn has_user_claimed(&self, address: &Address) -> bool {
         self.claimed_tokens(address).get()
     }
@@ -465,8 +432,13 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     #[inline(always)]
-    fn is_user_eligible(&self, address: &Address) -> bool {
-        self.has_user_confirmed_all_tickets(address) && !self.is_user_blacklisted(address)
+    fn were_tickets_filtered(&self) -> bool {
+        self.tickets_filtered().get()
+    }
+
+    #[inline(always)]
+    fn were_winners_selected(&self) -> bool {
+        self.winners_selected().get()
     }
 
     fn require_add_tickets_period(&self) -> SCResult<()> {
@@ -550,9 +522,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         );
     }
 
-    // - user claimed flag
-    // view for confirmed tickets
-
     // storage
 
     #[storage_mapper("ticketStatus")]
@@ -573,6 +542,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         address: &Address,
     ) -> SingleValueMapper<Self::Storage, (usize, usize)>;
 
+    #[view(getNumberOfConfirmedTicketsForAddress)]
+    #[storage_mapper("nrConfirmedTickets")]
+    fn nr_confirmed_tickets(&self, address: &Address) -> SingleValueMapper<Self::Storage, usize>;
+
     // only used during shuffling. Default (0) means ticket pos = ticket ID.
     #[storage_mapper("ticketPosToId")]
     fn ticket_pos_to_id(&self, ticket_pos: usize) -> SingleValueMapper<Self::Storage, usize>;
@@ -580,8 +553,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[storage_mapper("claimableTicketPayment")]
     fn claimable_ticket_payment(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
+    /*
     #[storage_mapper("leftoverLaunchpadTokens")]
     fn leftover_launchpad_tokens(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    */
 
     // flags
 
@@ -591,10 +566,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[view(wereWinnersSelected)]
     #[storage_mapper("winnersSelected")]
     fn winners_selected(&self) -> SingleValueMapper<Self::Storage, bool>;
-
-    #[view(hasUserConfirmedAllTickets)]
-    #[storage_mapper("confirmedAllTickets")]
-    fn confirmed_all_tickets(&self, address: &Address) -> SingleValueMapper<Self::Storage, bool>;
 
     #[view(hasUserClaimedTokens)]
     #[storage_mapper("claimedTokens")]
