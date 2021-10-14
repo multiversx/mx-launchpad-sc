@@ -259,8 +259,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                         .update(|leftover| *leftover += leftover_amount);
                 }
 
-                // leftover_launchpad_tokens
-
                 self.winners_selected().set(&true);
             }
         };
@@ -296,7 +294,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             .into_option()
             .unwrap_or(nr_redeemable_tickets);
 
-        require!(nr_redeemable_tickets > 0, "No tickets to redeem");
         require!(
             nr_tickets_to_redeem <= nr_redeemable_tickets,
             "Trying to redeem to many tickets"
@@ -305,10 +302,14 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         self.ticket_range_for_address(&caller).clear();
         self.ticket_batch(first_ticket_id).clear();
 
-        let ticket_price = self.ticket_price().get();
-        let redeemed_ticket_cost = &Self::BigUint::from(nr_tickets_to_redeem) * &ticket_price;
-        self.claimable_ticket_payment()
-            .update(|claimable_ticket_payment| *claimable_ticket_payment += redeemed_ticket_cost);
+        if nr_tickets_to_redeem > 0 {
+            let ticket_price = self.ticket_price().get();
+            let redeemed_ticket_cost = &Self::BigUint::from(nr_tickets_to_redeem) * &ticket_price;
+            self.claimable_ticket_payment()
+                .update(|claimable_ticket_payment| {
+                    *claimable_ticket_payment += redeemed_ticket_cost
+                });
+        }
 
         let nr_leftover_tickets = nr_redeemable_tickets - nr_tickets_to_redeem;
         if nr_leftover_tickets > 0 {
@@ -484,23 +485,28 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     }
 
     fn refund_ticket_payment(&self, address: &Address, nr_tickets_to_refund: usize) {
-        let ticket_price = self.ticket_price().get();
-        if nr_tickets_to_refund > 0 {
-            let ticket_payment_token = self.ticket_payment_token().get();
-            let ticket_payment_refund_amount =
-                Self::BigUint::from(nr_tickets_to_refund) * ticket_price;
-
-            self.send().direct(
-                address,
-                &ticket_payment_token,
-                0,
-                &ticket_payment_refund_amount,
-                &[],
-            );
+        if nr_tickets_to_refund == 0 {
+            return;
         }
+
+        let ticket_price = self.ticket_price().get();
+        let ticket_payment_token = self.ticket_payment_token().get();
+        let ticket_payment_refund_amount = Self::BigUint::from(nr_tickets_to_refund) * ticket_price;
+
+        self.send().direct(
+            address,
+            &ticket_payment_token,
+            0,
+            &ticket_payment_refund_amount,
+            &[],
+        );
     }
 
     fn send_launchpad_tokens(&self, address: &Address, nr_claimed_tickets: usize) {
+        if nr_claimed_tickets == 0 {
+            return;
+        }
+
         let launchpad_token_id = self.launchpad_token_id().get();
         let tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
         let launchpad_tokens_amount_to_send =
