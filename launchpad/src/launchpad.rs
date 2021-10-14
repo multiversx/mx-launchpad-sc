@@ -87,6 +87,13 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             "May only add to blacklist before winning selection"
         );
 
+        if self.confirmed_all_tickets(&address).get() {
+            let nr_tickets = self.get_total_number_of_tickets_for_address(&address);
+            self.refund_ticket_payment(&address, nr_tickets);
+
+            self.confirmed_all_tickets(&address).clear();
+        }
+
         self.blacklisted(&address).set(&true);
 
         Ok(())
@@ -296,9 +303,10 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         require!(
             nr_tickets_to_redeem <= nr_redeemable_tickets,
-            "Trying to redeem to many tickets"
+            "Trying to redeem too many tickets"
         );
 
+        self.confirmed_all_tickets(&caller).clear();
         self.ticket_range_for_address(&caller).clear();
         self.ticket_batch(first_ticket_id).clear();
 
