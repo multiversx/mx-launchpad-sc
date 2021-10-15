@@ -1,20 +1,23 @@
 {
     "name": "add user to blacklist + refund",
+    "gasSchedule": "v3",
+    "traceGas": true,
     "steps": [
         {
+            "traceGas": false,
             "step": "externalSteps",
             "path": "confirm_tickets.scen.json"
         },
         {
             "step": "scCall",
-            "txId": "owner-add-user2-to-blacklist",
+            "txId": "owner-add-user1-to-blacklist",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:launchpad",
                 "value": "0",
                 "function": "addAddressToBlacklist",
                 "arguments": [
-                    "address:user2"
+                    "address:user1"
                 ],
                 "gasLimit": "50,000,000",
                 "gasPrice": "0"
@@ -30,6 +33,11 @@
         {
             "step": "checkState",
             "accounts": {
+                "address:user1": {
+                    "nonce": "*",
+                    "balance": "1,000,000",
+                    "storage": {}
+                },
                 "sc:launchpad": {
                     "nonce": "0",
                     "balance": "100",
@@ -37,16 +45,8 @@
                         "str:LAUNCH-123456": "500,000"
                     },
                     "storage": {
-                        "str:blacklist.value|u32:1": "address:user2",
-
-                        "str:ticketStatus|u32:5": "u8:2|u8:1",
-                        "str:ticketStatus|u32:30": "u8:1|u8:1",
-                        "str:ticketStatus|u32:16": "",
-                        "str:ticketStatus|u32:24": "u8:1|u8:1",
-                        "str:ticketStatus|u32:18": "",
-
-                        "str:totalConfirmedTickets": "1",
-                        "str:nrWinningTickets": "5",
+                        "str:nrConfirmedTickets|address:user1": "",
+                        "str:blacklisted|address:user1": "1",
 
                         "+": ""
                     },
@@ -57,9 +57,9 @@
         },
         {
             "step": "scCall",
-            "txId": "user2-try-confirm",
+            "txId": "user1-try-confirm",
             "tx": {
-                "from": "address:user2",
+                "from": "address:user1",
                 "to": "sc:launchpad",
                 "value": "0",
                 "function": "confirmTickets",
@@ -75,39 +75,6 @@
                 "out": [],
                 "gas": "*",
                 "refund": "*"
-            }
-        },
-        {
-            "step": "checkState",
-            "accounts": {
-                "address:user2": {
-                    "nonce": "*",
-                    "balance": "1,000,000",
-                    "storage": {}
-                },
-                "sc:launchpad": {
-                    "nonce": "0",
-                    "balance": "100",
-                    "esdt": {
-                        "str:LAUNCH-123456": "500,000"
-                    },
-                    "storage": {
-                        "str:launchpadTokensPerWinningTicket": "100,000",
-
-                        "str:ticketStatus|u32:5": "u8:2|u8:1",
-                        "str:ticketStatus|u32:30": "u8:1|u8:1",
-                        "str:ticketStatus|u32:16": "",
-                        "str:ticketStatus|u32:24": "u8:1|u8:1",
-                        "str:ticketStatus|u32:18": "",
-
-                        "str:totalConfirmedTickets": "1",
-                        "str:nrWinningTickets": "5",
-
-                        "+": ""
-                    },
-                    "code": "*"
-                },
-                "+": {}
             }
         }
     ]
