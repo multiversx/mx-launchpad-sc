@@ -177,9 +177,6 @@
             }
         },
         {
-            "step": "dumpState"
-        },
-        {
             "step": "scCall",
             "txId": "owner-claim-ticket-payment",
             "tx": {

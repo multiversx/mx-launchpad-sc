@@ -5,6 +5,9 @@
     "steps": [
         {
             "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "55"
+            },
             "accounts": {
                 "address:owner": {
                     "nonce": "0",
@@ -22,10 +25,84 @@
                         "str:nrWinningTickets": "5",
                         "str:confirmationPeriodStartEpoch": "25",
                         "str:winnerSelectionStartEpoch": "50",
-                        "str:claimStartEpoch": "100"
+                        "str:claimStartEpoch": "100",
+
+                        "str:ticketRangeForAddress|address:user1": "u32:1|u32:5",
+                        "str:ticketRangeForAddress|address:user2": "u32:6|u32:6",
+                        "str:ticketRangeForAddress|address:user3": "u32:7|u32:20",
+                        "str:ticketRangeForAddress|address:user4": "u32:21|u32:25",
+                        "str:ticketRangeForAddress|address:user5": "u32:26|u32:27",
+
+                        "str:ticketBatch|u32:1": "address:user1|u32:5",
+                        "str:ticketBatch|u32:6": "address:user2|u32:1",
+                        "str:ticketBatch|u32:7": "address:user3|u32:14",
+                        "str:ticketBatch|u32:21": "address:user4|u32:5",
+                        "str:ticketBatch|u32:26": "address:user5|u32:2",
+
+                        "str:nrConfirmedTickets|address:user1": "4",
+                        "str:nrConfirmedTickets|address:user3": "1",
+                        "str:nrConfirmedTickets|address:user4": "5",
+                        "str:nrConfirmedTickets|address:user5": "1",
+
+                        "str:blacklisted|address:user2": "1",
+
+                        "str:lastTicketId": "27"
                     },
-                    "code": "file:../output/launchpad.wasm"
+                    "code": "file:../output/launchpad.wasm",
+                    "owner": "address:owner"
                 }
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "filter-tickets",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "filterTickets",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [
+                    "str:completed"
+                ],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:ticketRangeForAddress|address:user1": "u32:1|u32:4",
+                        "str:ticketRangeForAddress|address:user2": "",
+                        "str:ticketRangeForAddress|address:user3": "u32:5|u32:5",
+                        "str:ticketRangeForAddress|address:user4": "u32:6|u32:10",
+                        "str:ticketRangeForAddress|address:user5": "u32:11|u32:11",
+
+                        "str:ticketBatch|u32:1": "address:user1|u32:4",
+                        "str:ticketBatch|u32:5": "address:user3|u32:1",
+                        "str:ticketBatch|u32:6": "address:user4|u32:5",
+                        "str:ticketBatch|u32:11": "address:user5|u32:1",
+
+                        "str:lastTicketId": "11",
+
+                        "str:ticketsFiltered": "1",
+                        
+                        "+": ""
+                    },
+                    "code": "file:../output/launchpad.wasm",
+                    "owner": "address:owner"
+                },
+                "+": {}
             }
         }
     ]

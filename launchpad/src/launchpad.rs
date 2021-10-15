@@ -189,11 +189,12 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                 let new_first_id = first_ticket_id_in_batch - nr_removed;
                 let new_last_id = new_first_id + nr_confirmed_tickets - 1;
 
+                self.ticket_batch(first_ticket_id_in_batch).clear();
+
                 self.ticket_range_for_address(&address)
                     .set(&(new_first_id, new_last_id));
                 self.ticket_batch(new_first_id)
                     .set(&(address, nr_confirmed_tickets));
-                self.ticket_batch(first_ticket_id_in_batch).clear();
             }
 
             nr_removed += nr_tickets_in_batch - nr_confirmed_tickets;
