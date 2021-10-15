@@ -100,12 +100,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[only_owner]
     #[endpoint(addAddressToBlacklist)]
     fn add_address_to_blacklist(&self, address: Address) -> SCResult<()> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
-        require!(
-            current_epoch < winner_selection_start_epoch,
-            "May only add to blacklist before winner selection"
-        );
+        self.require_before_winner_selection()?;
 
         let nr_confirmed_tickets = self.nr_confirmed_tickets(&address).get();
         if nr_confirmed_tickets > 0 {
@@ -120,8 +115,12 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
     #[only_owner]
     #[endpoint(removeAddressFromBlacklist)]
-    fn remove_address_from_blacklist(&self, address: Address) {
+    fn remove_address_from_blacklist(&self, address: Address) -> SCResult<()> {
+        self.require_before_winner_selection()?;
+
         self.blacklisted(&address).clear();
+
+        Ok(())
     }
 
     #[only_owner]
@@ -489,6 +488,17 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             current_epoch >= confirmation_period_start_epoch
                 && current_epoch < winner_selection_start_epoch,
             "Not in confirmation period"
+        );
+        Ok(())
+    }
+
+    fn require_before_winner_selection(&self) -> SCResult<()> {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
+
+        require!(
+            current_epoch < winner_selection_start_epoch,
+            "May only modify blacklist before winner selection"
         );
         Ok(())
     }
