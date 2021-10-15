@@ -3,20 +3,34 @@
     "steps": [
         {
             "step": "externalSteps",
-            "path": "deposit_launchpad_tokens.scen.json"
+            "path": "confirm_tickets.scen.json"
         },
         {
-            "step": "scQuery",
-            "txId": "Query stage",
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "55"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "filter-tickets",
             "tx": {
+                "from": "address:owner",
                 "to": "sc:launchpad",
-                "function": "getLaunchStage",
-                "arguments": []
+                "value": "0",
+                "function": "filterTickets",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
             },
             "expect": {
+                "status": "0",
+                "message": "",
                 "out": [
-                    "str:Select Winners"
-                ]
+                    "str:completed"
+                ],
+                "gas": "*",
+                "refund": "*"
             }
         },
         {
@@ -28,7 +42,7 @@
                 "value": "0",
                 "function": "selectWinners",
                 "arguments": [],
-                "gasLimit": "150,000,000",
+                "gasLimit": "20,000,000",
                 "gasPrice": "0"
             },
             "expect": {
