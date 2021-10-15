@@ -165,7 +165,7 @@ pub trait SetupModule {
             "Winner selection start epoch must be after confirm start epoch"
         );
         require!(
-            winner_selection_start_epoch < claim_start,
+            winner_selection_start_epoch <= claim_start,
             "Claim period must be after winner selection"
         );
 
