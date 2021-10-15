@@ -1,9 +1,12 @@
 {
     "name": "claim tickets",
+    "gasSchedule": "v3",
+    "traceGas": true,
     "steps": [
         {
+            "traceGas": false,
             "step": "externalSteps",
-            "path": "confirm_after_new_selection.scen.json"
+            "path": "select_winners_one_call.scen.json"
         },
         {
             "step": "scCall",
@@ -19,7 +22,7 @@
             },
             "expect": {
                 "status": "4",
-                "message": "str:Cannot call this endpoint, SC is in a different stage",
+                "message": "str:Not in claim period",
                 "out": [],
                 "gas": "*",
                 "refund": "*"
@@ -32,24 +35,10 @@
             }
         },
         {
-            "step": "scQuery",
-            "txId": "Query stage",
-            "tx": {
-                "to": "sc:launchpad",
-                "function": "getLaunchStage",
-                "arguments": []
-            },
-            "expect": {
-                "out": [
-                    "str:Claim"
-                ]
-            }
-        },
-        {
             "step": "scCall",
-            "txId": "user2-claim",
+            "txId": "user1-claim",
             "tx": {
-                "from": "address:user2",
+                "from": "address:user1",
                 "to": "sc:launchpad",
                 "value": "0",
                 "function": "claimLaunchpadTokens",
@@ -68,34 +57,37 @@
         {
             "step": "checkState",
             "accounts": {
-                "address:user2": {
+                "address:user1": {
                     "nonce": "*",
-                    "balance": "999,600",
+                    "balance": "999,500",
                     "esdt": {
-                        "str:LAUNCH-123456": "400,000"
+                        "str:LAUNCH-123456": "500,000"
                     },
                     "storage": {}
                 },
                 "sc:launchpad": {
                     "nonce": "0",
-                    "balance": "500",
+                    "balance": "600",
                     "esdt": {
-                        "str:LAUNCH-123456": "100,000"
+                        "str:LAUNCH-123456": "0"
                     },
                     "storage": {
-                        "str:launchpadTokensPerWinningTicket": "100,000",
+                        "str:lastTicketId": "11",
 
-                        "str:ticketStatus|u32:5": "u8:2|u8:1",
-                        "str:ticketStatus|u32:30": "u8:1|u8:1",
-                        "str:ticketStatus|u32:16": "3",
-                        "str:ticketStatus|u32:24": "u8:1|u8:1",
-                        "str:ticketStatus|u32:18": "3",
+                        "str:ticketRangeForAddress|address:user1": "",
+                        "str:ticketRangeForAddress|address:user2": "",
+                        "str:ticketRangeForAddress|address:user3": "u32:11|u32:11",
 
-                        "str:ticketStatus|u32:22": "3",
-                        "str:ticketStatus|u32:23": "3",
+                        "str:ticketBatch|u32:1": "",
+                        "str:ticketBatch|u32:11": "address:user3|u32:1",
+                        "str:ticketBatch|u32:31": "",
 
-                        "str:totalConfirmedTickets": "5",
-                        "str:nrWinningTickets": "5",
+                        "str:claimedTokens|address:user1": "1",
+
+                        "str:claimableTicketPayment": "500",
+                        
+                        "str:ticketsFiltered": "1",
+                        "str:winnersSelected": "1",
 
                         "+": ""
                     },
@@ -106,7 +98,27 @@
         },
         {
             "step": "scCall",
-            "txId": "user2-try-claim-again",
+            "txId": "user1-try-claim-again",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "claimLaunchpadTokens",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:Already claimed",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user2-try-claim",
             "tx": {
                 "from": "address:user2",
                 "to": "sc:launchpad",
@@ -118,7 +130,7 @@
             },
             "expect": {
                 "status": "4",
-                "message": "str:No tickets to redeem",
+                "message": "str:You have no tickets",
                 "out": [],
                 "gas": "*",
                 "refund": "*"
@@ -157,14 +169,55 @@
                 },
                 "sc:launchpad": {
                     "nonce": "0",
-                    "balance": "0",
+                    "balance": "100",
                     "esdt": {
-                        "str:LAUNCH-123456": "100,000"
+                        "str:LAUNCH-123456": "0"
                     },
                     "storage": {
-                        "str:totalConfirmedTickets": "5",
-                        "str:nrWinningTickets": "5",
+                        "str:claimableTicketPayment": "",
 
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user3-claim",
+            "tx": {
+                "from": "address:user3",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "claimLaunchpadTokens",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user3": {
+                    "nonce": "*",
+                    "balance": "1,000,000",
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "0"
+                    },
+                    "storage": {
                         "+": ""
                     },
                     "code": "*"
