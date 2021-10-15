@@ -75,10 +75,6 @@
                         "str:ticketBatch|u32:1": "address:user1|u32:10",
                         "str:ticketBatch|u32:11": "address:user3|u32:1",
                         "str:ticketBatch|u32:31": "",
-
-                        "str:confirmedAllTickets|address:user1": "1",
-                        "str:confirmedAllTickets|address:user2": "",
-                        "str:confirmedAllTickets|address:user3": "1",
                         
                         "str:ticketsFiltered": "1",
 
@@ -146,10 +142,6 @@
                         "str:ticketBatch|u32:1": "address:user1|u32:10",
                         "str:ticketBatch|u32:11": "address:user3|u32:1",
                         "str:ticketBatch|u32:31": "",
-
-                        "str:confirmedAllTickets|address:user1": "1",
-                        "str:confirmedAllTickets|address:user2": "",
-                        "str:confirmedAllTickets|address:user3": "1",
                         
                         "str:ticketsFiltered": "1",
                         "str:winnersSelected": "1",

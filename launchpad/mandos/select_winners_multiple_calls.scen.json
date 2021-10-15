@@ -1,7 +1,10 @@
 {
-    "name": "select winners in a multiple calls (with ongoing operation saving)",
+    "name": "filter and select winners in multiple calls",
+    "gasSchedule": "v3",
+    "traceGas": true,
     "steps": [
         {
+            "traceGas": false,
             "step": "externalSteps",
             "path": "confirm_tickets.scen.json"
         },
@@ -13,14 +16,56 @@
         },
         {
             "step": "scCall",
-            "txId": "filter-tickets",
+            "txId": "try-select-winners-before-filtering",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "selectWinners",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:Must filter tickets first",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "filter-tickets-1",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:launchpad",
                 "value": "0",
                 "function": "filterTickets",
                 "arguments": [],
-                "gasLimit": "50,000,000",
+                "gasLimit": "20,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [
+                    "str:interrupted"
+                ],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "filter-tickets-2",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "filterTickets",
+                "arguments": [],
+                "gasLimit": "30,000,000",
                 "gasPrice": "0"
             },
             "expect": {
@@ -34,8 +79,53 @@
             }
         },
         {
+            "step": "checkState",
+            "accounts": {
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "1,100",
+                    "esdt": {
+                        "str:LAUNCH-123456": "500,000"
+                    },
+                    "storage": {
+                        "str:lastTicketId": "11",
+
+                        "str:ticketRangeForAddress|address:user1": "u32:1|u32:10",
+                        "str:ticketRangeForAddress|address:user2": "",
+                        "str:ticketRangeForAddress|address:user3": "u32:11|u32:11",
+
+                        "str:ticketBatch|u32:1": "address:user1|u32:10",
+                        "str:ticketBatch|u32:11": "address:user3|u32:1",
+                        "str:ticketBatch|u32:31": "",
+                        
+                        "str:ticketsFiltered": "1",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scQuery",
+            "txId": "get ticket range user3",
+            "tx": {
+                "to": "sc:launchpad",
+                "function": "getTicketRangeForAddress",
+                "arguments": [
+                    "address:user3"
+                ]
+            },
+            "expect": {
+                "out": [
+                    "11", "11"
+                ]
+            }
+        },
+        {
             "step": "scCall",
-            "txId": "select-winners-first-call",
+            "txId": "select-winners-1",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:launchpad",
@@ -56,40 +146,15 @@
             }
         },
         {
-            "step": "checkState",
-            "accounts": {
-                "sc:launchpad": {
-                    "nonce": "0",
-                    "balance": "0",
-                    "esdt": {
-                        "str:LAUNCH-123456": "500,000"
-                    },
-                    "storage": {
-                        "str:operation": {
-                            "1-enum_identifier": "u8:1",
-                            "2-seed": "0x6130f9fc2c434215daf648b7b48fe3350b4c5553eaf9e9df3190c3f59356d87c",
-                            "3-seed_index": "u32:8",
-                            "4-ticket_position": "u32:27",
-                            "5-nr_winning_tickets": "u32:5"
-                        },
-
-                        "+": ""
-                    },
-                    "code": "*"
-                },
-                "+": {}
-            }
-        },
-        {
             "step": "scCall",
-            "txId": "select-winners-second-call",
+            "txId": "select-winners-2",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:launchpad",
                 "value": "0",
                 "function": "selectWinners",
                 "arguments": [],
-                "gasLimit": "150,000,000",
+                "gasLimit": "30,000,000",
                 "gasPrice": "0"
             },
             "expect": {
@@ -107,78 +172,29 @@
             "accounts": {
                 "sc:launchpad": {
                     "nonce": "0",
-                    "balance": "0",
+                    "balance": "1,100",
                     "esdt": {
                         "str:LAUNCH-123456": "500,000"
                     },
                     "storage": {
+                        "str:lastTicketId": "11",
+
                         "str:ticketRangeForAddress|address:user1": "u32:1|u32:10",
-                        "str:ticketRangeForAddress|address:user2": "u32:11|u32:30",
-                        "str:ticketRangeForAddress|address:user3": "u32:31|u32:31",
+                        "str:ticketRangeForAddress|address:user2": "",
+                        "str:ticketRangeForAddress|address:user3": "u32:11|u32:11",
 
-                        "str:confirmationPeriodStartEpoch": "50",
-                        "str:winningTicketsRange": "u32:1|u32:5",
-                        "str:currentGeneration": "1",
-
-                        "str:ticketStatus|u32:5": "u8:1|u8:1",
-                        "str:ticketStatus|u32:30": "u8:1|u8:1",
-                        "str:ticketStatus|u32:16": "u8:1|u8:1",
-                        "str:ticketStatus|u32:24": "u8:1|u8:1",
-                        "str:ticketStatus|u32:18": "u8:1|u8:1",
-
-                        "str:shuffledTickets.len": "31",
-
-                        "str:shuffledTickets.item|u32:1": "5",
-                        "str:shuffledTickets.item|u32:2": "30",
-                        "str:shuffledTickets.item|u32:3": "16",
-                        "str:shuffledTickets.item|u32:4": "24",
-                        "str:shuffledTickets.item|u32:5": "18",
-                        "str:shuffledTickets.item|u32:6": "22",
-                        "str:shuffledTickets.item|u32:7": "23",
-                        "str:shuffledTickets.item|u32:8": "20",
-                        "str:shuffledTickets.item|u32:9": "13",
-                        "str:shuffledTickets.item|u32:10": "6",
-                        "str:shuffledTickets.item|u32:11": "14",
-                        "str:shuffledTickets.item|u32:12": "10",
-                        "str:shuffledTickets.item|u32:13": "11",
-                        "str:shuffledTickets.item|u32:14": "19",
-                        "str:shuffledTickets.item|u32:15": "1",
-                        "str:shuffledTickets.item|u32:16": "4",
-                        "str:shuffledTickets.item|u32:17": "31",
-                        "str:shuffledTickets.item|u32:18": "17",
-                        "str:shuffledTickets.item|u32:19": "2",
-                        "str:shuffledTickets.item|u32:20": "29",
-                        "str:shuffledTickets.item|u32:21": "27",
-                        "str:shuffledTickets.item|u32:22": "15",
-                        "str:shuffledTickets.item|u32:23": "25",
-                        "str:shuffledTickets.item|u32:24": "26",
-                        "str:shuffledTickets.item|u32:25": "9",
-                        "str:shuffledTickets.item|u32:26": "7",
-                        "str:shuffledTickets.item|u32:27": "12",
-                        "str:shuffledTickets.item|u32:28": "8",
-                        "str:shuffledTickets.item|u32:29": "21",
-                        "str:shuffledTickets.item|u32:30": "3",
-                        "str:shuffledTickets.item|u32:31": "28",
+                        "str:ticketBatch|u32:1": "address:user1|u32:10",
+                        "str:ticketBatch|u32:11": "address:user3|u32:1",
+                        "str:ticketBatch|u32:31": "",
+                        
+                        "str:ticketsFiltered": "1",
+                        "str:winnersSelected": "1",
 
                         "+": ""
                     },
                     "code": "*"
                 },
                 "+": {}
-            }
-        },
-        {
-            "step": "scQuery",
-            "txId": "Query stage",
-            "tx": {
-                "to": "sc:launchpad",
-                "function": "getLaunchStage",
-                "arguments": []
-            },
-            "expect": {
-                "out": [
-                    "str:Wait Period Before Confirmation"
-                ]
             }
         }
     ]

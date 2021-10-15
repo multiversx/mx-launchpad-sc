@@ -180,8 +180,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
             let nr_confirmed_tickets = self.nr_confirmed_tickets(&address).get();
             if self.is_user_blacklisted(&address) || nr_confirmed_tickets == 0 {
-                nr_removed += nr_tickets_in_batch;
-
                 self.ticket_range_for_address(&address).clear();
                 self.ticket_batch(first_ticket_id_in_batch).clear();
             } else if nr_removed > 0 || nr_confirmed_tickets < nr_tickets_in_batch {
