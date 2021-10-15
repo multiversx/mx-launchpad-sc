@@ -1,7 +1,7 @@
 {
     "name": "deposit launchpad tokens",
     "gasSchedule": "v3",
-    "traceGas": true,
+    "traceGas": false,
     "steps": [
         {
             "traceGas": false,

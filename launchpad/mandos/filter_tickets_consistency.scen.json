@@ -1,7 +1,7 @@
 {
     "name": "filter tickets consistency",
     "gasSchedule": "v3",
-    "traceGas": true,
+    "traceGas": false,
     "steps": [
         {
             "step": "setState",

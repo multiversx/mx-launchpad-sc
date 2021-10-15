@@ -1,7 +1,7 @@
 {
     "name": "select winners in a single call (no ongoing operation)",
     "gasSchedule": "v3",
-    "traceGas": true,
+    "traceGas": false,
     "steps": [
         {
             "traceGas": false,

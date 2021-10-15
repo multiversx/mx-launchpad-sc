@@ -1,7 +1,7 @@
 {
     "name": "init",
     "gasSchedule": "v3",
-    "traceGas": true,
+    "traceGas": false,
     "steps": [
         {
             "step": "setState",

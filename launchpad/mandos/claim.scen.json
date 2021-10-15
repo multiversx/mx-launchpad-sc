@@ -1,7 +1,7 @@
 {
     "name": "claim tickets",
     "gasSchedule": "v3",
-    "traceGas": true,
+    "traceGas": false,
     "steps": [
         {
             "traceGas": false,

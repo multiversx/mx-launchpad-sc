@@ -16,6 +16,18 @@ const FIRST_TICKET_ID: usize = 1;
 type TicketStatus = bool;
 const WINNING_TICKET: TicketStatus = true;
 
+#[derive(TopEncode, TopDecode)]
+pub struct TicketRange {
+    pub first_id: usize,
+    pub last_id: usize,
+}
+
+#[derive(TopEncode, TopDecode)]
+pub struct TicketBatch {
+    pub address: Address,
+    pub nr_tickets: usize,
+}
+
 #[elrond_wasm::derive::contract]
 pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationModule {
     #[only_owner]
@@ -179,11 +191,13 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             self.load_filter_tickets_operation()?;
 
         let run_result = self.run_while_it_has_gas(|| {
-            let (address, nr_tickets_in_batch) = self.ticket_batch(first_ticket_id_in_batch).get();
+            let ticket_batch = self.ticket_batch(first_ticket_id_in_batch).get();
+            let address = &ticket_batch.address;
+            let nr_tickets_in_batch = ticket_batch.nr_tickets;
 
-            let nr_confirmed_tickets = self.nr_confirmed_tickets(&address).get();
-            if self.is_user_blacklisted(&address) || nr_confirmed_tickets == 0 {
-                self.ticket_range_for_address(&address).clear();
+            let nr_confirmed_tickets = self.nr_confirmed_tickets(address).get();
+            if self.is_user_blacklisted(address) || nr_confirmed_tickets == 0 {
+                self.ticket_range_for_address(address).clear();
                 self.ticket_batch(first_ticket_id_in_batch).clear();
             } else if nr_removed > 0 || nr_confirmed_tickets < nr_tickets_in_batch {
                 let new_first_id = first_ticket_id_in_batch - nr_removed;
@@ -191,10 +205,14 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
                 self.ticket_batch(first_ticket_id_in_batch).clear();
 
-                self.ticket_range_for_address(&address)
-                    .set(&(new_first_id, new_last_id));
-                self.ticket_batch(new_first_id)
-                    .set(&(address, nr_confirmed_tickets));
+                self.ticket_range_for_address(address).set(&TicketRange {
+                    first_id: new_first_id,
+                    last_id: new_last_id,
+                });
+                self.ticket_batch(new_first_id).set(&TicketBatch {
+                    address: ticket_batch.address,
+                    nr_tickets: nr_confirmed_tickets,
+                });
             }
 
             nr_removed += nr_tickets_in_batch - nr_confirmed_tickets;
@@ -278,11 +296,11 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let caller = self.blockchain().get_caller();
         require!(!self.has_user_claimed(&caller), "Already claimed");
 
-        let (first_ticket_id, last_ticket_id) = self.try_get_ticket_range(&caller)?;
-        let total_tickets = last_ticket_id - first_ticket_id + 1;
+        let ticket_range = self.try_get_ticket_range(&caller)?;
+        let total_tickets = ticket_range.last_id - ticket_range.first_id + 1;
         let mut nr_redeemable_tickets = 0;
 
-        for ticket_id in first_ticket_id..=last_ticket_id {
+        for ticket_id in ticket_range.first_id..=ticket_range.last_id {
             let ticket_status = self.ticket_status(ticket_id).get();
             if ticket_status == WINNING_TICKET {
                 self.ticket_status(ticket_id).clear();
@@ -295,7 +313,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
 
         self.nr_confirmed_tickets(&caller).clear();
         self.ticket_range_for_address(&caller).clear();
-        self.ticket_batch(first_ticket_id).clear();
+        self.ticket_batch(ticket_range.first_id).clear();
 
         if nr_redeemable_tickets > 0 {
             let ticket_price = self.ticket_price().get();
@@ -330,7 +348,8 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             return OptionalResult::None;
         }
 
-        OptionalArg::Some(self.ticket_range_for_address(&address).get().into())
+        let ticket_range = self.ticket_range_for_address(&address).get();
+        OptionalArg::Some((ticket_range.first_id, ticket_range.last_id).into())
     }
 
     #[view(getTotalNumberOfTicketsForAddress)]
@@ -339,8 +358,8 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             return 0;
         }
 
-        let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(address).get();
-        last_ticket_id - first_ticket_id + 1
+        let ticket_range = self.ticket_range_for_address(address).get();
+        ticket_range.last_id - ticket_range.first_id + 1
     }
 
     #[view(getWinningTicketIdsForAddress)]
@@ -350,9 +369,8 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         }
 
         let mut ticket_ids = Vec::new();
-        let (first_ticket_id, last_ticket_id) = self.ticket_range_for_address(&address).get();
-
-        for ticket_id in first_ticket_id..=last_ticket_id {
+        let ticket_range = self.ticket_range_for_address(&address).get();
+        for ticket_id in ticket_range.first_id..=ticket_range.last_id {
             let actual_ticket_status = self.ticket_status(ticket_id).get();
             if actual_ticket_status == WINNING_TICKET {
                 ticket_ids.push(ticket_id);
@@ -378,9 +396,14 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         let first_ticket_id = self.last_ticket_id().get() + 1;
         let last_ticket_id = first_ticket_id + nr_tickets - 1;
 
-        self.ticket_range_for_address(&buyer)
-            .set(&(first_ticket_id, last_ticket_id));
-        self.ticket_batch(first_ticket_id).set(&(buyer, nr_tickets));
+        self.ticket_range_for_address(&buyer).set(&TicketRange {
+            first_id: first_ticket_id,
+            last_id: last_ticket_id,
+        });
+        self.ticket_batch(first_ticket_id).set(&TicketBatch {
+            address: buyer,
+            nr_tickets,
+        });
         self.last_ticket_id().set(&last_ticket_id);
 
         Ok(())
@@ -403,7 +426,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         self.ticket_pos_to_id(rand_pos).set(&current_ticket_id);
     }
 
-    fn try_get_ticket_range(&self, address: &Address) -> SCResult<(usize, usize)> {
+    fn try_get_ticket_range(&self, address: &Address) -> SCResult<TicketRange> {
         require!(
             !self.ticket_range_for_address(address).is_empty(),
             "You have no tickets"
@@ -478,7 +501,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             current_epoch >= winner_selection_start_epoch,
             "Not in winner selection period"
         );
-
         Ok(())
     }
 
@@ -536,16 +558,13 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     fn last_ticket_id(&self) -> SingleValueMapper<Self::Storage, usize>;
 
     #[storage_mapper("ticketBatch")]
-    fn ticket_batch(
-        &self,
-        start_index: usize,
-    ) -> SingleValueMapper<Self::Storage, (Address, usize)>;
+    fn ticket_batch(&self, start_index: usize) -> SingleValueMapper<Self::Storage, TicketBatch>;
 
     #[storage_mapper("ticketRangeForAddress")]
     fn ticket_range_for_address(
         &self,
         address: &Address,
-    ) -> SingleValueMapper<Self::Storage, (usize, usize)>;
+    ) -> SingleValueMapper<Self::Storage, TicketRange>;
 
     #[view(getNumberOfConfirmedTicketsForAddress)]
     #[storage_mapper("nrConfirmedTickets")]
