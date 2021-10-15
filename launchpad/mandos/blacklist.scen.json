@@ -76,6 +76,163 @@
                 "gas": "*",
                 "refund": "*"
             }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "75"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "filter-tickets",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "filterTickets",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [
+                    "str:completed"
+                ],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "100",
+                    "esdt": {
+                        "str:LAUNCH-123456": "500,000"
+                    },
+                    "storage": {
+                        "str:lastTicketId": "1",
+                        "str:nrWinningTickets": "1",
+
+                        "str:ticketRangeForAddress|address:user3": "u32:1|u32:1",
+                        "str:ticketBatch|u32:1": "address:user3|u32:1",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "select-winners",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "selectWinners",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [
+                    "str:completed"
+                ],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "150"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user3-claim",
+            "tx": {
+                "from": "address:user3",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "claimLaunchpadTokens",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "dumpState"
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-claim-ticket-payment",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "claimTicketPayment",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "*",
+                    "balance": "100",
+                    "esdt": {
+                        "str:LAUNCH-123456": "1,900,000"
+                    },
+                    "storage": {}
+                },
+                "address:user3": {
+                    "nonce": "*",
+                    "balance": "999,900",
+                    "esdt": {
+                        "str:LAUNCH-123456": "100,000"
+                    },
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "0"
+                    },
+                    "storage": {
+                        "str:claimableTicketPayment": "",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
         }
     ]
 }

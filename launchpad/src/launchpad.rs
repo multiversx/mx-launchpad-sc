@@ -42,9 +42,12 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         // this only happens when too many users are blacklisted/don't confirm enough tickets
         let launchpad_token_id = self.launchpad_token_id().get();
         let nr_winning_tickets = self.nr_winning_tickets().get();
+        let nr_claimed_tickets = self.total_claimed_tickets().get();
+        let nr_tickets_left_to_claim = nr_winning_tickets - nr_claimed_tickets;
+
         let launchpad_tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
         let total_lauchpad_tokens_needed =
-            Self::BigUint::from(nr_winning_tickets) * launchpad_tokens_per_winning_ticket;
+            Self::BigUint::from(nr_tickets_left_to_claim) * launchpad_tokens_per_winning_ticket;
         let sc_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
 
         if sc_balance > total_lauchpad_tokens_needed {
@@ -300,6 +303,9 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
                 .update(|claimable_ticket_payment| {
                     *claimable_ticket_payment += redeemed_ticket_cost
                 });
+
+            self.total_claimed_tickets()
+                .update(|total_claimed| *total_claimed += nr_redeemable_tickets);
         }
 
         self.claimed_tokens(&caller).set(&true);
@@ -543,6 +549,9 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[view(getNumberOfConfirmedTicketsForAddress)]
     #[storage_mapper("nrConfirmedTickets")]
     fn nr_confirmed_tickets(&self, address: &Address) -> SingleValueMapper<Self::Storage, usize>;
+
+    #[storage_mapper("totalClaimedTickets")]
+    fn total_claimed_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
 
     // only used during shuffling. Default (0) means ticket pos = ticket ID.
     #[storage_mapper("ticketPosToId")]

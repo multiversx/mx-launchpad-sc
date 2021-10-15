@@ -1,0 +1,32 @@
+{
+    "name": "filter tickets consistency",
+    "gasSchedule": "v3",
+    "traceGas": true,
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:launchpadTokenId": "str:LAUNCH-123456",
+                        "str:launchpadTokensPerWinningTicket": "100,000",
+                        "str:ticketPaymentToken": "str:EGLD",
+                        "str:ticketPrice": "100",
+                        "str:nrWinningTickets": "5",
+                        "str:confirmationPeriodStartEpoch": "25",
+                        "str:winnerSelectionStartEpoch": "50",
+                        "str:claimStartEpoch": "100"
+                    },
+                    "code": "file:../output/launchpad.wasm"
+                }
+            }
+        }
+    ]
+}
