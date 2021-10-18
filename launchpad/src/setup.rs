@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 
 #[elrond_wasm::module]
-pub trait SetupModule {
+pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     #[allow(clippy::too_many_arguments)]
     #[init]
     fn init(
@@ -43,6 +43,56 @@ pub trait SetupModule {
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens(&self) -> SCResult<()> {
         self.require_launchpad_tokens_deposited()
+    }
+
+    #[only_owner]
+    #[endpoint(claimLeftoverLaunchpadTokens)]
+    fn claim_leftover_launchpad_tokens(&self) {
+        let owner = self.blockchain().get_caller();
+
+        // this only happens when too many users are blacklisted/don't confirm enough tickets
+        let launchpad_token_id = self.launchpad_token_id().get();
+        let nr_winning_tickets = self.nr_winning_tickets().get();
+        let nr_claimed_tickets = self.total_claimed_tickets().get();
+        let nr_tickets_left_to_claim = nr_winning_tickets - nr_claimed_tickets;
+
+        let launchpad_tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
+        let total_lauchpad_tokens_needed =
+            Self::BigUint::from(nr_tickets_left_to_claim) * launchpad_tokens_per_winning_ticket;
+        let sc_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
+
+        if sc_balance > total_lauchpad_tokens_needed {
+            let leftover_launchpad_tokens = sc_balance - total_lauchpad_tokens_needed;
+            self.send().direct(
+                &owner,
+                &launchpad_token_id,
+                0,
+                &leftover_launchpad_tokens,
+                &[],
+            );
+        }
+    }
+
+
+    #[only_owner]
+    #[endpoint(setTicketPaymentToken)]
+    fn set_ticket_payment_token(&self, ticket_payment_token: TokenIdentifier) -> SCResult<()> {
+        self.require_add_tickets_period()?;
+        self.try_set_ticket_payment_token(&ticket_payment_token)
+    }
+
+    #[only_owner]
+    #[endpoint(setTicketPrice)]
+    fn set_ticket_price(&self, ticket_price: Self::BigUint) -> SCResult<()> {
+        self.require_add_tickets_period()?;
+        self.try_set_ticket_price(&ticket_price)
+    }
+
+    #[only_owner]
+    #[endpoint(setLaunchpadTokensPerWinningTicket)]
+    fn set_launchpad_tokens_per_winning_ticket(&self, amount: Self::BigUint) -> SCResult<()> {
+        self.require_add_tickets_period()?;
+        self.try_set_launchpad_tokens_per_winning_ticket(&amount)
     }
 
     #[only_owner]
@@ -211,15 +261,6 @@ pub trait SetupModule {
     #[storage_mapper("nrWinningTickets")]
     fn nr_winning_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
 
-    #[view(getConfirmationPeriodStartEpoch)]
-    #[storage_mapper("confirmationPeriodStartEpoch")]
-    fn confirmation_period_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
-
-    #[view(getWinnerSelectionStart)]
-    #[storage_mapper("winnerSelectionStartEpoch")]
-    fn winner_selection_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
-
-    #[view(getClaimStartEpoch)]
-    #[storage_mapper("claimStartEpoch")]
-    fn claim_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
+    #[storage_mapper("totalClaimedTickets")]
+    fn total_claimed_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
 }

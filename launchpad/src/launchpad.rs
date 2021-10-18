@@ -3,6 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+mod launch_stage;
 mod setup;
 
 mod ongoing_operation;
@@ -29,7 +30,9 @@ pub struct TicketBatch {
 }
 
 #[elrond_wasm::derive::contract]
-pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationModule {
+pub trait Launchpad:
+    launch_stage::LaunchStageModule + setup::SetupModule + ongoing_operation::OngoingOperationModule
+{
     #[only_owner]
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment(&self) -> SCResult<()> {
@@ -51,50 +54,7 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
             );
         }
 
-        // this only happens when too many users are blacklisted/don't confirm enough tickets
-        let launchpad_token_id = self.launchpad_token_id().get();
-        let nr_winning_tickets = self.nr_winning_tickets().get();
-        let nr_claimed_tickets = self.total_claimed_tickets().get();
-        let nr_tickets_left_to_claim = nr_winning_tickets - nr_claimed_tickets;
-
-        let launchpad_tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
-        let total_lauchpad_tokens_needed =
-            Self::BigUint::from(nr_tickets_left_to_claim) * launchpad_tokens_per_winning_ticket;
-        let sc_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
-
-        if sc_balance > total_lauchpad_tokens_needed {
-            let leftover_launchpad_tokens = sc_balance - total_lauchpad_tokens_needed;
-            self.send().direct(
-                &owner,
-                &launchpad_token_id,
-                0,
-                &leftover_launchpad_tokens,
-                &[],
-            );
-        }
-
         Ok(())
-    }
-
-    #[only_owner]
-    #[endpoint(setTicketPaymentToken)]
-    fn set_ticket_payment_token(&self, ticket_payment_token: TokenIdentifier) -> SCResult<()> {
-        self.require_add_tickets_period()?;
-        self.try_set_ticket_payment_token(&ticket_payment_token)
-    }
-
-    #[only_owner]
-    #[endpoint(setTicketPrice)]
-    fn set_ticket_price(&self, ticket_price: Self::BigUint) -> SCResult<()> {
-        self.require_add_tickets_period()?;
-        self.try_set_ticket_price(&ticket_price)
-    }
-
-    #[only_owner]
-    #[endpoint(setLaunchpadTokensPerWinningTicket)]
-    fn set_launchpad_tokens_per_winning_ticket(&self, amount: Self::BigUint) -> SCResult<()> {
-        self.require_add_tickets_period()?;
-        self.try_set_launchpad_tokens_per_winning_ticket(&amount)
     }
 
     #[only_owner]
@@ -468,60 +428,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
         self.winners_selected().get()
     }
 
-    fn require_add_tickets_period(&self) -> SCResult<()> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let confirmation_period_start_epoch = self.confirmation_period_start_epoch().get();
-
-        require!(
-            current_epoch < confirmation_period_start_epoch,
-            "Add tickets period has passed"
-        );
-        Ok(())
-    }
-
-    fn require_confirmation_period(&self) -> SCResult<()> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let confirmation_period_start_epoch = self.confirmation_period_start_epoch().get();
-        let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
-
-        require!(
-            current_epoch >= confirmation_period_start_epoch
-                && current_epoch < winner_selection_start_epoch,
-            "Not in confirmation period"
-        );
-        Ok(())
-    }
-
-    fn require_before_winner_selection(&self) -> SCResult<()> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
-
-        require!(
-            current_epoch < winner_selection_start_epoch,
-            "May only modify blacklist before winner selection"
-        );
-        Ok(())
-    }
-
-    fn require_winner_selection_period(&self) -> SCResult<()> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
-
-        require!(
-            current_epoch >= winner_selection_start_epoch,
-            "Not in winner selection period"
-        );
-        Ok(())
-    }
-
-    fn require_claim_period(&self) -> SCResult<()> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let claim_start_epoch = self.claim_start_epoch().get();
-
-        require!(current_epoch >= claim_start_epoch, "Not in claim period");
-        Ok(())
-    }
-
     fn refund_ticket_payment(&self, address: &Address, nr_tickets_to_refund: usize) {
         if nr_tickets_to_refund == 0 {
             return;
@@ -579,9 +485,6 @@ pub trait Launchpad: setup::SetupModule + ongoing_operation::OngoingOperationMod
     #[view(getNumberOfConfirmedTicketsForAddress)]
     #[storage_mapper("nrConfirmedTickets")]
     fn nr_confirmed_tickets(&self, address: &Address) -> SingleValueMapper<Self::Storage, usize>;
-
-    #[storage_mapper("totalClaimedTickets")]
-    fn total_claimed_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
 
     // only used during shuffling. Default (0) means ticket pos = ticket ID.
     #[storage_mapper("ticketPosToId")]

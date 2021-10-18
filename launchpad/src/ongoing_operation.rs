@@ -24,7 +24,7 @@ pub const CONTINUE_OP: bool = true;
 pub const STOP_OP: bool = false;
 
 #[elrond_wasm::module]
-pub trait OngoingOperationModule: crate::setup::SetupModule {
+pub trait OngoingOperationModule {
     fn run_while_it_has_gas<Process>(&self, mut process: Process) -> OperationCompletionStatus
     where
         Process: FnMut() -> LoopOp,
