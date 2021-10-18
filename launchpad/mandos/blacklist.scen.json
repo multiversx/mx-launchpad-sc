@@ -198,7 +198,7 @@
         },
         {
             "step": "scCall",
-            "txId": "owner-claim-ticket-payment",
+            "txId": "owner-claim-leftover-launchpad-tokens",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:launchpad",
