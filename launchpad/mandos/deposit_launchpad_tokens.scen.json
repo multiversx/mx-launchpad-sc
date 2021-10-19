@@ -1,7 +1,10 @@
 {
     "name": "deposit launchpad tokens",
+    "gasSchedule": "v3",
+    "traceGas": false,
     "steps": [
         {
+            "traceGas": false,
             "step": "externalSteps",
             "path": "add_tickets.scen.json"
         },
@@ -14,7 +17,7 @@
                 "value": "0",
                 "esdt": {
                     "tokenIdentifier": "str:LAUNCH-123456",
-                    "value": "1,000,000"
+                    "value": "500"
                 },
                 "function": "depositLaunchpadTokens",
                 "arguments": [],
@@ -23,7 +26,7 @@
             },
             "expect": {
                 "status": "4",
-                "message": "str:Wrong amount deposited",
+                "message": "str:Wrong launchpad tokens amount deposit by owner or not deposited yet",
                 "out": [],
                 "gas": "*",
                 "refund": "*"

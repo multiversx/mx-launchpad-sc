@@ -1,5 +1,7 @@
 {
     "name": "init",
+    "gasSchedule": "v3",
+    "traceGas": false,
     "steps": [
         {
             "step": "setState",
@@ -18,6 +20,11 @@
                     "storage": {}
                 },
                 "address:user2": {
+                    "nonce": "0",
+                    "balance": "1,000,000",
+                    "storage": {}
+                },
+                "address:user3": {
                     "nonce": "0",
                     "balance": "1,000,000",
                     "storage": {}
@@ -46,7 +53,6 @@
                     "5",
                     "25",
                     "50",
-                    "10",
                     "100"
                 ],
                 "gasLimit": "20,000,000",
@@ -79,9 +85,8 @@
                         "str:ticketPaymentToken": "str:EGLD",
                         "str:ticketPrice": "100",
                         "str:nrWinningTickets": "5",
-                        "str:winnerSelectionStartEpoch": "25",
-                        "str:confirmationPeriodStartEpoch": "50",
-                        "str:confirmationPeriodInEpochs": "10",
+                        "str:confirmationPeriodStartEpoch": "25",
+                        "str:winnerSelectionStartEpoch": "50",
                         "str:claimStartEpoch": "100"
                     },
                     "code": "file:../output/launchpad.wasm"
