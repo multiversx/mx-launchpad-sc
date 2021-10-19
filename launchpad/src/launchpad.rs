@@ -281,9 +281,6 @@ pub trait Launchpad:
                 .update(|claimable_ticket_payment| {
                     *claimable_ticket_payment += redeemed_ticket_cost
                 });
-
-            self.total_claimed_tickets()
-                .update(|total_claimed| *total_claimed += nr_redeemable_tickets);
         }
 
         self.claimed_tokens(&caller).set(&true);

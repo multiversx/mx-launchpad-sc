@@ -46,35 +46,6 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     }
 
     #[only_owner]
-    #[endpoint(claimLeftoverLaunchpadTokens)]
-    fn claim_leftover_launchpad_tokens(&self) {
-        let owner = self.blockchain().get_caller();
-
-        // this only happens when too many users are blacklisted/don't confirm enough tickets
-        let launchpad_token_id = self.launchpad_token_id().get();
-        let nr_winning_tickets = self.nr_winning_tickets().get();
-        let nr_claimed_tickets = self.total_claimed_tickets().get();
-        let nr_tickets_left_to_claim = nr_winning_tickets - nr_claimed_tickets;
-
-        let launchpad_tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
-        let total_lauchpad_tokens_needed =
-            Self::BigUint::from(nr_tickets_left_to_claim) * launchpad_tokens_per_winning_ticket;
-        let sc_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
-
-        if sc_balance > total_lauchpad_tokens_needed {
-            let leftover_launchpad_tokens = sc_balance - total_lauchpad_tokens_needed;
-            self.send().direct(
-                &owner,
-                &launchpad_token_id,
-                0,
-                &leftover_launchpad_tokens,
-                &[],
-            );
-        }
-    }
-
-
-    #[only_owner]
     #[endpoint(setTicketPaymentToken)]
     fn set_ticket_payment_token(&self, ticket_payment_token: TokenIdentifier) -> SCResult<()> {
         self.require_add_tickets_period()?;
@@ -260,7 +231,4 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     #[view(getNumberOfWinningTickets)]
     #[storage_mapper("nrWinningTickets")]
     fn nr_winning_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
-
-    #[storage_mapper("totalClaimedTickets")]
-    fn total_claimed_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
 }
