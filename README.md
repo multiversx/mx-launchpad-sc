@@ -24,11 +24,11 @@ The process of the launchpad:
 4) Launch the launchpad smart contract and set-up the custom settings
 5) Write the list(address, numberOfTickets) to the smart contract - only owner function.
 6) Users will deposit their eGLD/bUSD (whitelisted token) and confirm part of all their allocated tickets.
-6) Select the start date when the selection will happen.
-7) Call "filterTickets" a few times to remove the unconfirmed tickets/tickets owned by blacklisted addresses.
-8) Call “selectWinners” a few times in order to randomly shuffle all the ticket entries from the smart contract.
-9) Set the number of winners and the start time for claiming the launchpad tokens
-9) Users will claim the launchpad tokens.
+7) Select the start date when the selection will happen.
+8) Call "filterTickets" a few times to remove the unconfirmed tickets/tickets owned by blacklisted addresses.
+9) Call “selectWinners” a few times in order to randomly shuffle all the ticket entries from the smart contract.
+10) Set the number of winners and the start time for claiming the launchpad tokens
+11) Users will claim the launchpad tokens.
 
 Specifications for the smart contract:
 1) Only owner function of setTickets through which the database of the SC is filled. The input is in the form of a list(address, numberOfTickets). The smart contract internally will create through storage mappers with (address - ticketIDs) and (ticketID - status). Vector of ticketIDs for winners.
