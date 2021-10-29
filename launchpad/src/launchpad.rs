@@ -139,7 +139,6 @@ pub trait Launchpad:
         Ok(())
     }
 
-    #[only_owner]
     #[endpoint(filterTickets)]
     fn filter_tickets(&self) -> SCResult<BoxedBytes> {
         self.require_winner_selection_period()?;
@@ -208,7 +207,6 @@ pub trait Launchpad:
         Ok(run_result.output_bytes().into())
     }
 
-    #[only_owner]
     #[endpoint(selectWinners)]
     fn select_winners(&self) -> SCResult<BoxedBytes> {
         self.require_winner_selection_period()?;
