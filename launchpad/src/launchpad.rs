@@ -36,7 +36,7 @@ pub trait Launchpad:
     #[only_owner]
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment(&self) -> SCResult<()> {
-        self.require_claim_period()?;
+        self.require_claim_period(self.were_winners_selected())?;
 
         let owner = self.blockchain().get_caller();
 
@@ -139,7 +139,6 @@ pub trait Launchpad:
         Ok(())
     }
 
-    #[only_owner]
     #[endpoint(filterTickets)]
     fn filter_tickets(&self) -> SCResult<BoxedBytes> {
         self.require_winner_selection_period()?;
@@ -208,7 +207,6 @@ pub trait Launchpad:
         Ok(run_result.output_bytes().into())
     }
 
-    #[only_owner]
     #[endpoint(selectWinners)]
     fn select_winners(&self) -> SCResult<BoxedBytes> {
         self.require_winner_selection_period()?;
@@ -249,8 +247,7 @@ pub trait Launchpad:
 
     #[endpoint(claimLaunchpadTokens)]
     fn claim_launchpad_tokens(&self) -> SCResult<()> {
-        require!(self.winners_selected().get(), "Winners not selected yet");
-        self.require_claim_period()?;
+        self.require_claim_period(self.were_winners_selected())?;
 
         let caller = self.blockchain().get_caller();
         require!(!self.has_user_claimed(&caller), "Already claimed");
