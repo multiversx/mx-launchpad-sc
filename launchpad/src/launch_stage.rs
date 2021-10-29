@@ -48,14 +48,16 @@ pub trait LaunchStageModule {
         Ok(())
     }
 
-    fn require_claim_period(&self) -> SCResult<()> {
+    fn require_claim_period(&self, winners_selected: bool) -> SCResult<()> {
         let current_epoch = self.blockchain().get_block_epoch();
-        let claim_start_epoch = self.claim_start_epoch().get();
+        let mut claim_start_epoch = self.claim_start_epoch().get();
+        if !winners_selected {
+            claim_start_epoch += 1;
+        }
 
         require!(current_epoch >= claim_start_epoch, "Not in claim period");
         Ok(())
     }
-
 
     // storage
 

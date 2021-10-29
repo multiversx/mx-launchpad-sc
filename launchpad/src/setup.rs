@@ -69,6 +69,9 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     #[only_owner]
     #[endpoint(setConfirmationPeriodStartEpoch)]
     fn set_confirmation_period_start_epoch(&self, start_epoch: u64) -> SCResult<()> {
+        let old_start_epoch = self.confirmation_period_start_epoch().get();
+        self.require_valid_config_epoch_change(old_start_epoch)?;
+
         self.require_valid_time_periods(Some(start_epoch), None, None)?;
 
         self.try_set_confirmation_period_start_epoch(start_epoch)
@@ -77,6 +80,9 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     #[only_owner]
     #[endpoint(setWinnerSelectionStartEpoch)]
     fn set_winner_selection_start_epoch(&self, start_epoch: u64) -> SCResult<()> {
+        let old_start_epoch = self.winner_selection_start_epoch().get();
+        self.require_valid_config_epoch_change(old_start_epoch)?;
+
         self.require_valid_time_periods(None, Some(start_epoch), None)?;
 
         self.try_set_winner_selection_start_epoch(start_epoch)
@@ -85,6 +91,9 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     #[only_owner]
     #[endpoint(setClaimStartEpoch)]
     fn set_claim_start_epoch(&self, claim_start_epoch: u64) -> SCResult<()> {
+        let old_start_epoch = self.claim_start_epoch().get();
+        self.require_valid_config_epoch_change(old_start_epoch)?;
+
         self.require_valid_time_periods(None, None, Some(claim_start_epoch))?;
 
         self.try_set_claim_start_epoch(claim_start_epoch)
@@ -166,6 +175,15 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
 
         self.claim_start_epoch().set(&claim_start_epoch);
 
+        Ok(())
+    }
+
+    fn require_valid_config_epoch_change(&self, old_start_epoch: u64) -> SCResult<()> {
+        let current_epoch = self.blockchain().get_block_epoch();
+        require!(
+            old_start_epoch > current_epoch,
+            "Cannot change start epoch, it's either in progress or passed already"
+        );
         Ok(())
     }
 
