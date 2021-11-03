@@ -26,7 +26,7 @@
             },
             "expect": {
                 "status": "4",
-                "message": "str:Wrong launchpad tokens amount deposit by owner or not deposited yet",
+                "message": "str:Wrong amount",
                 "out": [],
                 "gas": "*",
                 "refund": "*"

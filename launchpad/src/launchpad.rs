@@ -109,7 +109,10 @@ pub trait Launchpad:
         nr_tickets_to_confirm: usize,
     ) -> SCResult<()> {
         self.require_confirmation_period()?;
-        self.require_launchpad_tokens_deposited()?;
+        require!(
+            self.were_launchpad_tokens_deposited(),
+            "Launchpad tokens not deposited yet"
+        );
 
         let caller = self.blockchain().get_caller();
         require!(
