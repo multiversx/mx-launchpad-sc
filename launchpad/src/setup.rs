@@ -41,8 +41,27 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     #[only_owner]
     #[payable("*")]
     #[endpoint(depositLaunchpadTokens)]
-    fn deposit_launchpad_tokens(&self) -> SCResult<()> {
-        self.require_launchpad_tokens_deposited()
+    fn deposit_launchpad_tokens(
+        &self,
+        #[payment_token] payment_token: TokenIdentifier,
+        #[payment_amount] payment_amount: Self::BigUint,
+    ) -> SCResult<()> {
+        require!(
+            !self.were_launchpad_tokens_deposited(),
+            "Tokens already deposited"
+        );
+
+        let launchpad_token_id = self.launchpad_token_id().get();
+        require!(payment_token == launchpad_token_id, "Wrong token");
+
+        let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
+        let total_winning_tickets = self.nr_winning_tickets().get();
+        let amount_needed = amount_per_ticket * Self::BigUint::from(total_winning_tickets);
+        require!(payment_amount == amount_needed, "Wrong amount");
+
+        self.launchpad_tokens_deposited().set(&true);
+
+        Ok(())
     }
 
     #[only_owner]
@@ -211,19 +230,9 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         Ok(())
     }
 
-    fn require_launchpad_tokens_deposited(&self) -> SCResult<()> {
-        let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
-        let total_winning_tickets = self.nr_winning_tickets().get();
-        let amount_needed = amount_per_ticket * Self::BigUint::from(total_winning_tickets);
-
-        let launchpad_token_id = self.launchpad_token_id().get();
-        let sc_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
-        require!(
-            sc_balance >= amount_needed,
-            "Wrong launchpad tokens amount deposit by owner or not deposited yet"
-        );
-
-        Ok(())
+    #[inline(always)]
+    fn were_launchpad_tokens_deposited(&self) -> bool {
+        self.launchpad_tokens_deposited().get()
     }
 
     // storage
@@ -249,4 +258,9 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     #[view(getNumberOfWinningTickets)]
     #[storage_mapper("nrWinningTickets")]
     fn nr_winning_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
+
+    // flags
+
+    #[storage_mapper("launchpadTokensDeposited")]
+    fn launchpad_tokens_deposited(&self) -> SingleValueMapper<Self::Storage, bool>;
 }
