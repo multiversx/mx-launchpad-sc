@@ -36,7 +36,7 @@ pub trait Launchpad:
     #[only_owner]
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment(&self) -> SCResult<()> {
-        self.require_claim_period(self.were_winners_selected())?;
+        self.require_claim_period()?;
 
         let owner = self.blockchain().get_caller();
 
@@ -160,6 +160,10 @@ pub trait Launchpad:
         let (mut first_ticket_id_in_batch, mut nr_removed) =
             self.load_filter_tickets_operation()?;
 
+        if first_ticket_id_in_batch == FIRST_TICKET_ID {
+            self.winner_selection_process_started().set(&true);
+        }
+
         let run_result = self.run_while_it_has_gas(|| {
             let ticket_batch = self.ticket_batch(first_ticket_id_in_batch).get();
             let address = &ticket_batch.address;
@@ -265,14 +269,13 @@ pub trait Launchpad:
 
     #[endpoint(claimLaunchpadTokens)]
     fn claim_launchpad_tokens(&self) -> SCResult<()> {
-        let winners_selected = self.were_winners_selected();
-        self.require_claim_period(winners_selected)?;
+        self.require_claim_period()?;
 
         let caller = self.blockchain().get_caller();
         require!(!self.has_user_claimed(&caller), "Already claimed");
 
         let ticket_range = self.try_get_ticket_range(&caller)?;
-        let total_tickets = ticket_range.last_id - ticket_range.first_id + 1;
+        let nr_confirmed_tickets = self.nr_confirmed_tickets(&caller).get();
         let mut nr_redeemable_tickets = 0;
 
         for ticket_id in ticket_range.first_id..=ticket_range.last_id {
@@ -295,14 +298,9 @@ pub trait Launchpad:
                 .update(|nr_winning_tickets| *nr_winning_tickets -= nr_redeemable_tickets);
         }
 
-        // if winners were selected only partially, this will trigger a full refund
-        if !winners_selected {
-            nr_redeemable_tickets = 0;
-        }
-
         self.claimed_tokens(&caller).set(&true);
 
-        let nr_tickets_to_refund = total_tickets - nr_redeemable_tickets;
+        let nr_tickets_to_refund = nr_confirmed_tickets - nr_redeemable_tickets;
         self.refund_ticket_payment(&caller, nr_tickets_to_refund);
         self.send_launchpad_tokens(&caller, nr_redeemable_tickets);
 
@@ -432,16 +430,6 @@ pub trait Launchpad:
         self.blacklisted(address).get()
     }
 
-    #[inline(always)]
-    fn were_tickets_filtered(&self) -> bool {
-        self.tickets_filtered().get()
-    }
-
-    #[inline(always)]
-    fn were_winners_selected(&self) -> bool {
-        self.winners_selected().get()
-    }
-
     fn refund_ticket_payment(&self, address: &Address, nr_tickets_to_refund: usize) {
         if nr_tickets_to_refund == 0 {
             return;
@@ -508,13 +496,6 @@ pub trait Launchpad:
     fn claimable_ticket_payment(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
     // flags
-
-    #[storage_mapper("ticketsFiltered")]
-    fn tickets_filtered(&self) -> SingleValueMapper<Self::Storage, bool>;
-
-    #[view(wereWinnersSelected)]
-    #[storage_mapper("winnersSelected")]
-    fn winners_selected(&self) -> SingleValueMapper<Self::Storage, bool>;
 
     #[view(hasUserClaimedTokens)]
     #[storage_mapper("claimedTokens")]
