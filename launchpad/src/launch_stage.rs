@@ -40,11 +40,20 @@ pub trait LaunchStageModule {
     fn require_winner_selection_period(&self) -> SCResult<()> {
         let current_epoch = self.blockchain().get_block_epoch();
         let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
+        let claim_start_epoch = self.claim_start_epoch().get();
 
-        require!(
-            current_epoch >= winner_selection_start_epoch,
-            "Not in winner selection period"
-        );
+        if winner_selection_start_epoch == claim_start_epoch {
+            require!(
+                current_epoch == winner_selection_start_epoch,
+                "Not in winner selection period"
+            );
+        } else {
+            require!(
+                current_epoch >= winner_selection_start_epoch && current_epoch < claim_start_epoch,
+                "Not in winner selection period"
+            );
+        }
+
         Ok(())
     }
 
