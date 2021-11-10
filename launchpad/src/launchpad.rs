@@ -40,18 +40,27 @@ pub trait Launchpad:
 
         let owner = self.blockchain().get_caller();
 
-        let ticket_payment_claimable_amount = self.claimable_ticket_payment().get();
-        if ticket_payment_claimable_amount > 0 {
-            let ticket_payment_token = self.ticket_payment_token().get();
-
+        let claimable_ticket_payment = self.claimable_ticket_payment().get();
+        if claimable_ticket_payment > 0 {
             self.claimable_ticket_payment().clear();
+
+            let ticket_payment_token = self.ticket_payment_token().get();
             self.send().direct(
                 &owner,
                 &ticket_payment_token,
                 0,
-                &ticket_payment_claimable_amount,
+                &claimable_ticket_payment,
                 &[],
             );
+        }
+
+        let launchpad_token_id = self.launchpad_token_id().get();
+        let launchpad_tokens_needed = self.get_exact_lanchpad_tokens_needed();
+        let launchpad_tokens_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
+        let extra_launchpad_tokens = launchpad_tokens_balance - launchpad_tokens_needed;
+        if extra_launchpad_tokens > 0 {
+            self.send()
+                .direct(&owner, &launchpad_token_id, 0, &extra_launchpad_tokens, &[]);
         }
 
         Ok(())
@@ -242,6 +251,12 @@ pub trait Launchpad:
             }
             OperationCompletionStatus::Completed => {
                 self.winners_selected().set(&true);
+
+                let ticket_price = self.ticket_price().get();
+                let claimable_ticket_payment =
+                    ticket_price * Self::BigUint::from(nr_winning_tickets);
+                self.claimable_ticket_payment()
+                    .set(&claimable_ticket_payment);
             }
         };
 
@@ -250,7 +265,8 @@ pub trait Launchpad:
 
     #[endpoint(claimLaunchpadTokens)]
     fn claim_launchpad_tokens(&self) -> SCResult<()> {
-        self.require_claim_period(self.were_winners_selected())?;
+        let winners_selected = self.were_winners_selected();
+        self.require_claim_period(winners_selected)?;
 
         let caller = self.blockchain().get_caller();
         require!(!self.has_user_claimed(&caller), "Already claimed");
@@ -275,12 +291,13 @@ pub trait Launchpad:
         self.ticket_batch(ticket_range.first_id).clear();
 
         if nr_redeemable_tickets > 0 {
-            let ticket_price = self.ticket_price().get();
-            let redeemed_ticket_cost = &Self::BigUint::from(nr_redeemable_tickets) * &ticket_price;
-            self.claimable_ticket_payment()
-                .update(|claimable_ticket_payment| {
-                    *claimable_ticket_payment += redeemed_ticket_cost
-                });
+            self.nr_winning_tickets()
+                .update(|nr_winning_tickets| *nr_winning_tickets -= nr_redeemable_tickets);
+        }
+
+        // if winners were selected only partially, this will trigger a full refund
+        if !winners_selected {
+            nr_redeemable_tickets = 0;
         }
 
         self.claimed_tokens(&caller).set(&true);
@@ -320,7 +337,7 @@ pub trait Launchpad:
 
     #[view(getWinningTicketIdsForAddress)]
     fn get_winning_ticket_ids_for_address(&self, address: Address) -> MultiResultVec<usize> {
-        if self.ticket_range_for_address(&address).is_empty() {
+        if !self.were_winners_selected() || self.ticket_range_for_address(&address).is_empty() {
             return MultiResultVec::new();
         }
 

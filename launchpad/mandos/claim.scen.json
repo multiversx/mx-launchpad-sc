@@ -83,8 +83,6 @@
                         "str:ticketBatch|u32:31": "",
 
                         "str:claimedTokens|address:user1": "1",
-
-                        "str:claimableTicketPayment": "500",
                         
                         "str:ticketsFiltered": "1",
                         "str:winnersSelected": "1",
@@ -174,8 +172,6 @@
                         "str:LAUNCH-123456": "0"
                     },
                     "storage": {
-                        "str:claimableTicketPayment": "",
-
                         "+": ""
                     },
                     "code": "*"

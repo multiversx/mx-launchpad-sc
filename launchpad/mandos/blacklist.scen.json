@@ -203,7 +203,7 @@
                     "nonce": "*",
                     "balance": "100",
                     "esdt": {
-                        "str:LAUNCH-123456": "1,500,000"
+                        "str:LAUNCH-123456": "1,900,000"
                     },
                     "storage": {}
                 },
@@ -219,7 +219,63 @@
                     "nonce": "0",
                     "balance": "0",
                     "esdt": {
-                        "str:LAUNCH-123456": "400,000"
+                        "str:LAUNCH-123456": "0"
+                    },
+                    "storage": {
+                        "str:claimableTicketPayment": "",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-claim-again",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "claimTicketPayment",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "comment": "state remains unchanged",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "*",
+                    "balance": "100",
+                    "esdt": {
+                        "str:LAUNCH-123456": "1,900,000"
+                    },
+                    "storage": {}
+                },
+                "address:user3": {
+                    "nonce": "*",
+                    "balance": "999,900",
+                    "esdt": {
+                        "str:LAUNCH-123456": "100,000"
+                    },
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "0"
                     },
                     "storage": {
                         "str:claimableTicketPayment": "",
