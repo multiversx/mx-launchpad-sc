@@ -23,7 +23,9 @@ pub trait LaunchStageModule {
             return LaunchStage::Confirm;
         }
 
-        if self.has_winner_selection_process_started() && !self.were_winners_selected() {
+        let winner_selection_started = self.has_winner_selection_process_started();
+        let were_winners_selected = self.were_winners_selected();
+        if winner_selection_started && !were_winners_selected {
             return LaunchStage::WinnerSelection;
         }
 
@@ -31,6 +33,10 @@ pub trait LaunchStageModule {
         if winner_selection_start_epoch == claim_start_epoch
             && current_epoch == winner_selection_start_epoch
         {
+            if were_winners_selected {
+                return LaunchStage::Claim;
+            }
+
             return LaunchStage::WinnerSelection;
         }
         if current_epoch >= winner_selection_start_epoch && current_epoch < claim_start_epoch {
