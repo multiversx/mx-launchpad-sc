@@ -2,49 +2,13 @@ elrond_wasm::imports!();
 
 #[elrond_wasm::module]
 pub trait SetupModule: crate::launch_stage::LaunchStageModule {
-    #[allow(clippy::too_many_arguments)]
-    #[init]
-    fn init(
-        &self,
-        launchpad_token_id: TokenIdentifier,
-        launchpad_tokens_per_winning_ticket: Self::BigUint,
-        ticket_payment_token: TokenIdentifier,
-        ticket_price: Self::BigUint,
-        nr_winning_tickets: usize,
-        confirmation_period_start_epoch: u64,
-        winner_selection_start_epoch: u64,
-        claim_start_epoch: u64,
-    ) -> SCResult<()> {
-        require!(
-            launchpad_token_id.is_valid_esdt_identifier(),
-            "Invalid Launchpad token ID"
-        );
-        self.launchpad_token_id().set(&launchpad_token_id);
-
-        self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket)?;
-        self.try_set_ticket_payment_token(&ticket_payment_token)?;
-        self.try_set_ticket_price(&ticket_price)?;
-        self.try_set_nr_winning_tickets(nr_winning_tickets)?;
-        self.try_set_confirmation_period_start_epoch(confirmation_period_start_epoch)?;
-        self.try_set_winner_selection_start_epoch(winner_selection_start_epoch)?;
-        self.try_set_claim_start_epoch(claim_start_epoch)?;
-
-        self.require_valid_time_periods(
-            Some(confirmation_period_start_epoch),
-            Some(winner_selection_start_epoch),
-            Some(claim_start_epoch),
-        )?;
-
-        Ok(())
-    }
-
     #[only_owner]
     #[payable("*")]
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens(
         &self,
         #[payment_token] payment_token: TokenIdentifier,
-        #[payment_amount] payment_amount: Self::BigUint,
+        #[payment_amount] payment_amount: BigUint,
     ) -> SCResult<()> {
         require!(
             !self.were_launchpad_tokens_deposited(),
@@ -71,14 +35,14 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
 
     #[only_owner]
     #[endpoint(setTicketPrice)]
-    fn set_ticket_price(&self, ticket_price: Self::BigUint) -> SCResult<()> {
+    fn set_ticket_price(&self, ticket_price: BigUint) -> SCResult<()> {
         self.require_add_tickets_period()?;
         self.try_set_ticket_price(&ticket_price)
     }
 
     #[only_owner]
     #[endpoint(setLaunchpadTokensPerWinningTicket)]
-    fn set_launchpad_tokens_per_winning_ticket(&self, amount: Self::BigUint) -> SCResult<()> {
+    fn set_launchpad_tokens_per_winning_ticket(&self, amount: BigUint) -> SCResult<()> {
         self.require_add_tickets_period()?;
         self.try_set_launchpad_tokens_per_winning_ticket(&amount)
     }
@@ -118,11 +82,11 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
 
     // private
 
-    fn get_exact_lanchpad_tokens_needed(&self) -> Self::BigUint {
+    fn get_exact_lanchpad_tokens_needed(&self) -> BigUint {
         let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
         let total_winning_tickets = self.nr_winning_tickets().get();
 
-        amount_per_ticket * Self::BigUint::from(total_winning_tickets)
+        amount_per_ticket * (total_winning_tickets as u32)
     }
 
     fn try_set_ticket_payment_token(&self, ticket_payment_token: &TokenIdentifier) -> SCResult<()> {
@@ -136,7 +100,7 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         Ok(())
     }
 
-    fn try_set_ticket_price(&self, ticket_price: &Self::BigUint) -> SCResult<()> {
+    fn try_set_ticket_price(&self, ticket_price: &BigUint) -> SCResult<()> {
         require!(ticket_price > &0, "Ticket price must be higher than 0");
 
         self.ticket_price().set(ticket_price);
@@ -144,7 +108,7 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         Ok(())
     }
 
-    fn try_set_launchpad_tokens_per_winning_ticket(&self, amount: &Self::BigUint) -> SCResult<()> {
+    fn try_set_launchpad_tokens_per_winning_ticket(&self, amount: &BigUint) -> SCResult<()> {
         require!(
             amount > &0,
             "Launchpad tokens per winning ticket cannot be set to zero"
@@ -244,28 +208,26 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
 
     #[view(getLaunchpadTokenId)]
     #[storage_mapper("launchpadTokenId")]
-    fn launchpad_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn launchpad_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[view(getLaunchpadTokensPerWinningTicket)]
     #[storage_mapper("launchpadTokensPerWinningTicket")]
-    fn launchpad_tokens_per_winning_ticket(
-        &self,
-    ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn launchpad_tokens_per_winning_ticket(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getTicketPaymentToken)]
     #[storage_mapper("ticketPaymentToken")]
-    fn ticket_payment_token(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn ticket_payment_token(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[view(getTicketPrice)]
     #[storage_mapper("ticketPrice")]
-    fn ticket_price(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn ticket_price(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getNumberOfWinningTickets)]
     #[storage_mapper("nrWinningTickets")]
-    fn nr_winning_tickets(&self) -> SingleValueMapper<Self::Storage, usize>;
+    fn nr_winning_tickets(&self) -> SingleValueMapper<usize>;
 
     // flags
 
     #[storage_mapper("launchpadTokensDeposited")]
-    fn launchpad_tokens_deposited(&self) -> SingleValueMapper<Self::Storage, bool>;
+    fn launchpad_tokens_deposited(&self) -> SingleValueMapper<bool>;
 }

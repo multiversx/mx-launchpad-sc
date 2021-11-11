@@ -82,14 +82,14 @@ pub trait OngoingOperationModule {
         }
     }
 
-    fn load_select_winners_operation(&self) -> SCResult<(Random<Self::CryptoApi>, usize)> {
+    fn load_select_winners_operation(&self) -> SCResult<(Random<Self::Api>, usize)> {
         let ongoing_operation = self.current_ongoing_operation().get();
         match ongoing_operation {
             OngoingOperationType::None => Ok((
                 Random::from_seeds(
-                    self.crypto(),
-                    self.blockchain().get_prev_block_random_seed(),
-                    self.blockchain().get_block_random_seed(),
+                    self.raw_vm_api(),
+                    self.blockchain().get_prev_block_random_seed_legacy(),
+                    self.blockchain().get_block_random_seed_legacy(),
                 ),
                 FIRST_TICKET_ID,
             )),
@@ -98,7 +98,7 @@ pub trait OngoingOperationModule {
                 seed_index,
                 ticket_position,
             } => Ok((
-                Random::from_hash(self.crypto(), seed, seed_index),
+                Random::from_hash(self.raw_vm_api(), seed, seed_index),
                 ticket_position,
             )),
             _ => sc_error!("Another ongoing operation is in progress"),
@@ -106,5 +106,5 @@ pub trait OngoingOperationModule {
     }
 
     #[storage_mapper("operation")]
-    fn current_ongoing_operation(&self) -> SingleValueMapper<Self::Storage, OngoingOperationType>;
+    fn current_ongoing_operation(&self) -> SingleValueMapper<OngoingOperationType>;
 }

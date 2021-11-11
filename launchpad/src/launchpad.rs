@@ -24,8 +24,8 @@ pub struct TicketRange {
 }
 
 #[derive(TopEncode, TopDecode)]
-pub struct TicketBatch {
-    pub address: Address,
+pub struct TicketBatch<M: ManagedTypeApi> {
+    pub address: ManagedAddress<M>,
     pub nr_tickets: usize,
 }
 
@@ -33,6 +33,42 @@ pub struct TicketBatch {
 pub trait Launchpad:
     launch_stage::LaunchStageModule + setup::SetupModule + ongoing_operation::OngoingOperationModule
 {
+    #[allow(clippy::too_many_arguments)]
+    #[init]
+    fn init(
+        &self,
+        launchpad_token_id: TokenIdentifier,
+        launchpad_tokens_per_winning_ticket: BigUint,
+        ticket_payment_token: TokenIdentifier,
+        ticket_price: BigUint,
+        nr_winning_tickets: usize,
+        confirmation_period_start_epoch: u64,
+        winner_selection_start_epoch: u64,
+        claim_start_epoch: u64,
+    ) -> SCResult<()> {
+        require!(
+            launchpad_token_id.is_valid_esdt_identifier(),
+            "Invalid Launchpad token ID"
+        );
+        self.launchpad_token_id().set(&launchpad_token_id);
+
+        self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket)?;
+        self.try_set_ticket_payment_token(&ticket_payment_token)?;
+        self.try_set_ticket_price(&ticket_price)?;
+        self.try_set_nr_winning_tickets(nr_winning_tickets)?;
+        self.try_set_confirmation_period_start_epoch(confirmation_period_start_epoch)?;
+        self.try_set_winner_selection_start_epoch(winner_selection_start_epoch)?;
+        self.try_set_claim_start_epoch(claim_start_epoch)?;
+
+        self.require_valid_time_periods(
+            Some(confirmation_period_start_epoch),
+            Some(winner_selection_start_epoch),
+            Some(claim_start_epoch),
+        )?;
+
+        Ok(())
+    }
+
     #[only_owner]
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment(&self) -> SCResult<()> {
@@ -68,7 +104,7 @@ pub trait Launchpad:
 
     #[only_owner]
     #[endpoint(addAddressToBlacklist)]
-    fn add_address_to_blacklist(&self, address: Address) -> SCResult<()> {
+    fn add_address_to_blacklist(&self, address: ManagedAddress) -> SCResult<()> {
         self.require_before_winner_selection()?;
 
         let nr_confirmed_tickets = self.nr_confirmed_tickets(&address).get();
@@ -84,7 +120,7 @@ pub trait Launchpad:
 
     #[only_owner]
     #[endpoint(removeAddressFromBlacklist)]
-    fn remove_address_from_blacklist(&self, address: Address) -> SCResult<()> {
+    fn remove_address_from_blacklist(&self, address: ManagedAddress) -> SCResult<()> {
         self.require_before_winner_selection()?;
 
         self.blacklisted(&address).clear();
@@ -96,11 +132,11 @@ pub trait Launchpad:
     #[endpoint(addTickets)]
     fn add_tickets(
         &self,
-        #[var_args] address_number_pairs: VarArgs<MultiArg2<Address, usize>>,
+        #[var_args] address_number_pairs: ManagedVarArgs<MultiArg2<ManagedAddress, usize>>,
     ) -> SCResult<()> {
         self.require_add_tickets_period()?;
 
-        for multi_arg in address_number_pairs.into_vec() {
+        for multi_arg in address_number_pairs {
             let (buyer, nr_tickets) = multi_arg.into_tuple();
 
             self.try_create_tickets(buyer, nr_tickets)?;
@@ -114,7 +150,7 @@ pub trait Launchpad:
     fn confirm_tickets(
         &self,
         #[payment_token] payment_token: TokenIdentifier,
-        #[payment_amount] payment_amount: Self::BigUint,
+        #[payment_amount] payment_amount: BigUint,
         nr_tickets_to_confirm: usize,
     ) -> SCResult<()> {
         self.require_confirmation_period()?;
@@ -139,7 +175,7 @@ pub trait Launchpad:
 
         let ticket_payment_token = self.ticket_payment_token().get();
         let ticket_price = self.ticket_price().get();
-        let total_ticket_price = Self::BigUint::from(nr_tickets_to_confirm) * ticket_price;
+        let total_ticket_price = BigUint::from(nr_tickets_to_confirm as u32) * ticket_price;
         require!(
             payment_token == ticket_payment_token,
             "Wrong payment token used"
@@ -257,8 +293,7 @@ pub trait Launchpad:
                 self.winners_selected().set(&true);
 
                 let ticket_price = self.ticket_price().get();
-                let claimable_ticket_payment =
-                    ticket_price * Self::BigUint::from(nr_winning_tickets);
+                let claimable_ticket_payment = ticket_price * (nr_winning_tickets as u32);
                 self.claimable_ticket_payment()
                     .set(&claimable_ticket_payment);
             }
@@ -313,7 +348,7 @@ pub trait Launchpad:
     #[view(getTicketRangeForAddress)]
     fn get_ticket_range_for_address(
         &self,
-        address: Address,
+        address: ManagedAddress,
     ) -> OptionalResult<MultiResult2<usize, usize>> {
         if self.ticket_range_for_address(&address).is_empty() {
             return OptionalResult::None;
@@ -324,7 +359,7 @@ pub trait Launchpad:
     }
 
     #[view(getTotalNumberOfTicketsForAddress)]
-    fn get_total_number_of_tickets_for_address(&self, address: &Address) -> usize {
+    fn get_total_number_of_tickets_for_address(&self, address: &ManagedAddress) -> usize {
         if self.ticket_range_for_address(address).is_empty() {
             return 0;
         }
@@ -334,12 +369,15 @@ pub trait Launchpad:
     }
 
     #[view(getWinningTicketIdsForAddress)]
-    fn get_winning_ticket_ids_for_address(&self, address: Address) -> MultiResultVec<usize> {
+    fn get_winning_ticket_ids_for_address(
+        &self,
+        address: ManagedAddress,
+    ) -> ManagedMultiResultVec<usize> {
         if !self.were_winners_selected() || self.ticket_range_for_address(&address).is_empty() {
-            return MultiResultVec::new();
+            return ManagedMultiResultVec::new(self.raw_vm_api());
         }
 
-        let mut ticket_ids = Vec::new();
+        let mut ticket_ids = ManagedVec::new();
         let ticket_range = self.ticket_range_for_address(&address).get();
         for ticket_id in ticket_range.first_id..=ticket_range.last_id {
             let actual_ticket_status = self.ticket_status(ticket_id).get();
@@ -352,13 +390,13 @@ pub trait Launchpad:
     }
 
     #[view(getNumberOfWinningTicketsForAddress)]
-    fn get_number_of_winning_tickets_for_address(&self, address: Address) -> usize {
+    fn get_number_of_winning_tickets_for_address(&self, address: ManagedAddress) -> usize {
         self.get_winning_ticket_ids_for_address(address).len()
     }
 
     // private
 
-    fn try_create_tickets(&self, buyer: Address, nr_tickets: usize) -> SCResult<()> {
+    fn try_create_tickets(&self, buyer: ManagedAddress, nr_tickets: usize) -> SCResult<()> {
         require!(
             self.ticket_range_for_address(&buyer).is_empty(),
             "Duplicate entry for user"
@@ -384,7 +422,7 @@ pub trait Launchpad:
     /// each position i is swapped with a random one in range [i, n]
     fn shuffle_single_ticket(
         &self,
-        rng: &mut Random<Self::CryptoApi>,
+        rng: &mut Random<Self::Api>,
         current_ticket_position: usize,
         last_ticket_position: usize,
     ) {
@@ -397,7 +435,7 @@ pub trait Launchpad:
         self.ticket_pos_to_id(rand_pos).set(&current_ticket_id);
     }
 
-    fn try_get_ticket_range(&self, address: &Address) -> SCResult<TicketRange> {
+    fn try_get_ticket_range(&self, address: &ManagedAddress) -> SCResult<TicketRange> {
         require!(
             !self.ticket_range_for_address(address).is_empty(),
             "You have no tickets"
@@ -421,23 +459,24 @@ pub trait Launchpad:
     }
 
     #[inline(always)]
-    fn has_user_claimed(&self, address: &Address) -> bool {
+    fn has_user_claimed(&self, address: &ManagedAddress) -> bool {
         self.claimed_tokens(address).get()
     }
 
     #[inline(always)]
-    fn is_user_blacklisted(&self, address: &Address) -> bool {
+    fn is_user_blacklisted(&self, address: &ManagedAddress) -> bool {
         self.blacklisted(address).get()
     }
 
-    fn refund_ticket_payment(&self, address: &Address, nr_tickets_to_refund: usize) {
+    fn refund_ticket_payment(&self, address: &ManagedAddress, nr_tickets_to_refund: usize) {
         if nr_tickets_to_refund == 0 {
             return;
         }
 
         let ticket_price = self.ticket_price().get();
         let ticket_payment_token = self.ticket_payment_token().get();
-        let ticket_payment_refund_amount = Self::BigUint::from(nr_tickets_to_refund) * ticket_price;
+        let ticket_payment_refund_amount =
+            BigUint::from(nr_tickets_to_refund as u32) * ticket_price;
 
         self.send().direct(
             address,
@@ -448,7 +487,7 @@ pub trait Launchpad:
         );
     }
 
-    fn send_launchpad_tokens(&self, address: &Address, nr_claimed_tickets: usize) {
+    fn send_launchpad_tokens(&self, address: &ManagedAddress, nr_claimed_tickets: usize) {
         if nr_claimed_tickets == 0 {
             return;
         }
@@ -456,7 +495,7 @@ pub trait Launchpad:
         let launchpad_token_id = self.launchpad_token_id().get();
         let tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
         let launchpad_tokens_amount_to_send =
-            Self::BigUint::from(nr_claimed_tickets) * tokens_per_winning_ticket;
+            BigUint::from(nr_claimed_tickets as u32) * tokens_per_winning_ticket;
 
         self.send().direct(
             address,
@@ -470,38 +509,35 @@ pub trait Launchpad:
     // storage
 
     #[storage_mapper("ticketStatus")]
-    fn ticket_status(&self, ticket_id: usize) -> SingleValueMapper<Self::Storage, TicketStatus>;
+    fn ticket_status(&self, ticket_id: usize) -> SingleValueMapper<TicketStatus>;
 
     #[storage_mapper("lastTicketId")]
-    fn last_ticket_id(&self) -> SingleValueMapper<Self::Storage, usize>;
+    fn last_ticket_id(&self) -> SingleValueMapper<usize>;
 
     #[storage_mapper("ticketBatch")]
-    fn ticket_batch(&self, start_index: usize) -> SingleValueMapper<Self::Storage, TicketBatch>;
+    fn ticket_batch(&self, start_index: usize) -> SingleValueMapper<TicketBatch<Self::Api>>;
 
     #[storage_mapper("ticketRangeForAddress")]
-    fn ticket_range_for_address(
-        &self,
-        address: &Address,
-    ) -> SingleValueMapper<Self::Storage, TicketRange>;
+    fn ticket_range_for_address(&self, address: &ManagedAddress) -> SingleValueMapper<TicketRange>;
 
     #[view(getNumberOfConfirmedTicketsForAddress)]
     #[storage_mapper("nrConfirmedTickets")]
-    fn nr_confirmed_tickets(&self, address: &Address) -> SingleValueMapper<Self::Storage, usize>;
+    fn nr_confirmed_tickets(&self, address: &ManagedAddress) -> SingleValueMapper<usize>;
 
     // only used during shuffling. Default (0) means ticket pos = ticket ID.
     #[storage_mapper("ticketPosToId")]
-    fn ticket_pos_to_id(&self, ticket_pos: usize) -> SingleValueMapper<Self::Storage, usize>;
+    fn ticket_pos_to_id(&self, ticket_pos: usize) -> SingleValueMapper<usize>;
 
     #[storage_mapper("claimableTicketPayment")]
-    fn claimable_ticket_payment(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn claimable_ticket_payment(&self) -> SingleValueMapper<BigUint>;
 
     // flags
 
     #[view(hasUserClaimedTokens)]
     #[storage_mapper("claimedTokens")]
-    fn claimed_tokens(&self, address: &Address) -> SingleValueMapper<Self::Storage, bool>;
+    fn claimed_tokens(&self, address: &ManagedAddress) -> SingleValueMapper<bool>;
 
     #[view(isUserBlacklisted)]
     #[storage_mapper("blacklisted")]
-    fn blacklisted(&self, address: &Address) -> SingleValueMapper<Self::Storage, bool>;
+    fn blacklisted(&self, address: &ManagedAddress) -> SingleValueMapper<bool>;
 }

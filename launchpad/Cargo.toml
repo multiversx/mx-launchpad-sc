@@ -8,16 +8,8 @@ publish = false
 [lib]
 path = "src/launchpad.rs"
 
-[features]
-wasm-output-mode = ["elrond-wasm-node"]
-
 [dependencies.elrond-wasm]
-version = "0.18"
-features = ["derive"]
-
-[dependencies.elrond-wasm-node]
-version = "0.18"
-optional = true
+version = "0.22.3"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.18"
+version = "0.22.3"
