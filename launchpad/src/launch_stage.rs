@@ -110,25 +110,25 @@ pub trait LaunchStageModule {
 
     #[view(getConfirmationPeriodStartEpoch)]
     #[storage_mapper("confirmationPeriodStartEpoch")]
-    fn confirmation_period_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn confirmation_period_start_epoch(&self) -> SingleValueMapper<u64>;
 
     #[view(getWinnerSelectionStart)]
     #[storage_mapper("winnerSelectionStartEpoch")]
-    fn winner_selection_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn winner_selection_start_epoch(&self) -> SingleValueMapper<u64>;
 
     #[view(getClaimStartEpoch)]
     #[storage_mapper("claimStartEpoch")]
-    fn claim_start_epoch(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn claim_start_epoch(&self) -> SingleValueMapper<u64>;
 
     // flags
 
     #[storage_mapper("winnerSelectionProcessStarted")]
-    fn winner_selection_process_started(&self) -> SingleValueMapper<Self::Storage, bool>;
+    fn winner_selection_process_started(&self) -> SingleValueMapper<bool>;
 
     #[storage_mapper("ticketsFiltered")]
-    fn tickets_filtered(&self) -> SingleValueMapper<Self::Storage, bool>;
+    fn tickets_filtered(&self) -> SingleValueMapper<bool>;
 
     #[view(wereWinnersSelected)]
     #[storage_mapper("winnersSelected")]
-    fn winners_selected(&self) -> SingleValueMapper<Self::Storage, bool>;
+    fn winners_selected(&self) -> SingleValueMapper<bool>;
 }

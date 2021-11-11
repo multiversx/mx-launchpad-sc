@@ -10,9 +10,9 @@ A good part of the setup is done at the deploy time, through the init function:
 fn init(
     &self,
     launchpad_token_id: TokenIdentifier,
-    launchpad_tokens_per_winning_ticket: Self::BigUint,
+    launchpad_tokens_per_winning_ticket: BigUint,
     ticket_payment_token: TokenIdentifier,
-    ticket_price: Self::BigUint,
+    ticket_price: BigUint,
     nr_winning_tickets: usize,
     winner_selection_start_epoch: u64,
     confirmation_period_start_epoch: u64,

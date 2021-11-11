@@ -1,5 +1,6 @@
 [workspace]
 members = [
   "launchpad",
-  "launchpad/abi",
+  "launchpad/meta",
+  "launchpad/wasm"
 ]
