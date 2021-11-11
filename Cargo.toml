@@ -2,5 +2,4 @@
 members = [
   "launchpad",
   "launchpad/meta",
-  "launchpad/wasm"
 ]

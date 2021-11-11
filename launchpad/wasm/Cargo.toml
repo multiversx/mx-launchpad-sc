@@ -24,3 +24,6 @@ version = "0.22.3"
 [dependencies.elrond-wasm-output]
 version = "0.22.3"
 features = ["wasm-output-mode"]
+
+[workspace]
+members = ["."]
