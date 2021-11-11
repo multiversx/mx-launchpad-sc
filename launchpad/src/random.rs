@@ -1,36 +1,37 @@
 elrond_wasm::imports!();
 
-const BLOCK_RAND_SEED_LEN: usize = 48;
-pub type BlockRandomSeed = Box<[u8; BLOCK_RAND_SEED_LEN]>;
-
 const USIZE_BYTES: usize = 4;
+const HASH_LEN: usize = 32;
+
+pub type Hash = [u8; HASH_LEN];
+
+extern "C" {
+    fn sha256(dataOffset: *const u8, length: i32, resultOffset: *mut u8) -> i32;
+}
 
 pub struct Random<CA: CryptoApi> {
     api: CA,
-    pub seed: H256,
+    pub seed: Hash,
     pub index: usize,
 }
 
 impl<CA: CryptoApi> Random<CA> {
     #[allow(clippy::boxed_local)]
-    pub fn from_seeds(
-        api: CA,
-        prev_block_seed: BlockRandomSeed,
-        current_block_seed: BlockRandomSeed,
-    ) -> Self {
-        let mut summed_seeds = BlockRandomSeed::new([0u8; BLOCK_RAND_SEED_LEN]);
-        for i in 0..BLOCK_RAND_SEED_LEN {
-            summed_seeds[i] = prev_block_seed[i].wrapping_add(current_block_seed[i]);
+    pub fn from_seeds(api: CA) -> Self {
+        let summed_seeds = [0u8; 48];
+        let mut seed = [0u8; HASH_LEN];
+        unsafe {
+            sha256(summed_seeds.as_ptr(), 48, seed.as_mut_ptr());
         }
 
         Self {
-            seed: api.sha256(&summed_seeds[..]),
+            seed,
             index: 0,
             api,
         }
     }
 
-    pub fn from_hash(api: CA, hash: H256, index: usize) -> Self {
+    pub fn from_hash(api: CA, hash: Hash, index: usize) -> Self {
         Self {
             seed: hash,
             index,
@@ -39,11 +40,13 @@ impl<CA: CryptoApi> Random<CA> {
     }
 
     pub fn next_usize(&mut self) -> usize {
-        if self.index + USIZE_BYTES > H256::len_bytes() {
-            self.hash_seed();
+        if self.index + USIZE_BYTES > HASH_LEN {
+            unsafe {
+                self.hash_seed();
+            }
         }
 
-        let bytes = &self.seed.as_bytes()[self.index..(self.index + USIZE_BYTES)];
+        let bytes = &self.seed[self.index..(self.index + USIZE_BYTES)];
         let rand = usize::top_decode(bytes).unwrap_or_default();
 
         self.index += USIZE_BYTES;
@@ -64,8 +67,15 @@ impl<CA: CryptoApi> Random<CA> {
 }
 
 impl<CA: CryptoApi> Random<CA> {
-    fn hash_seed(&mut self) {
-        self.seed = self.api.sha256(self.seed.as_bytes());
+    unsafe fn hash_seed(&mut self) {
+        let mut hashed_result = [0u8; HASH_LEN];
+        sha256(
+            self.seed.as_ptr(),
+            HASH_LEN as i32,
+            hashed_result.as_mut_ptr(),
+        );
+
+        self.seed = hashed_result;
         self.index = 0;
     }
 }

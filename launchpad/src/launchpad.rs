@@ -184,7 +184,7 @@ pub trait Launchpad:
     }
 
     #[endpoint(filterTickets)]
-    fn filter_tickets(&self) -> SCResult<BoxedBytes> {
+    fn filter_tickets(&self) -> SCResult<OperationCompletionStatus> {
         self.require_winner_selection_period()?;
         require!(!self.were_tickets_filtered(), "Tickets already filtered");
 
@@ -252,11 +252,11 @@ pub trait Launchpad:
             }
         };
 
-        Ok(run_result.output_bytes().into())
+        Ok(run_result)
     }
 
     #[endpoint(selectWinners)]
-    fn select_winners(&self) -> SCResult<BoxedBytes> {
+    fn select_winners(&self) -> SCResult<OperationCompletionStatus> {
         self.require_winner_selection_period()?;
         require!(self.were_tickets_filtered(), "Must filter tickets first");
         require!(!self.were_winners_selected(), "Winners already selected");
@@ -295,7 +295,7 @@ pub trait Launchpad:
             }
         };
 
-        Ok(run_result.output_bytes().into())
+        Ok(run_result)
     }
 
     #[endpoint(claimLaunchpadTokens)]
