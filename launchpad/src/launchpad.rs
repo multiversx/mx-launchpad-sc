@@ -46,14 +46,10 @@ pub trait Launchpad:
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
     ) -> SCResult<()> {
-        require!(
-            launchpad_token_id.is_valid_esdt_identifier(),
-            "Invalid Launchpad token ID"
-        );
         self.launchpad_token_id().set(&launchpad_token_id);
 
         self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket)?;
-        self.try_set_ticket_payment_token(&ticket_payment_token)?;
+        self.ticket_payment_token().set(&ticket_payment_token);
         self.try_set_ticket_price(&ticket_price)?;
         self.try_set_nr_winning_tickets(nr_winning_tickets)?;
         self.try_set_confirmation_period_start_epoch(confirmation_period_start_epoch)?;
