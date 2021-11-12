@@ -3,6 +3,8 @@ elrond_wasm::imports!();
 const USIZE_BYTES: usize = 4;
 pub const HASH_LEN: usize = 32;
 
+// TODO: Use managed crypto API when it's available from the VM
+
 pub type Hash = [u8; HASH_LEN];
 type Handle = i32;
 
