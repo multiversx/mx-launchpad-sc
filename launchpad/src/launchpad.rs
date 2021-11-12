@@ -29,6 +29,10 @@ pub struct TicketBatch<M: ManagedTypeApi> {
     pub nr_tickets: usize,
 }
 
+extern "C" {
+    fn mBufferGetBytes(mBufferHandle: i32, resultOffset: *mut u8) -> i32;
+}
+
 #[elrond_wasm::derive::contract]
 pub trait Launchpad:
     launch_stage::LaunchStageModule + setup::SetupModule + ongoing_operation::OngoingOperationModule
@@ -46,14 +50,10 @@ pub trait Launchpad:
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
     ) -> SCResult<()> {
-        require!(
-            launchpad_token_id.is_valid_esdt_identifier(),
-            "Invalid Launchpad token ID"
-        );
         self.launchpad_token_id().set(&launchpad_token_id);
 
         self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket)?;
-        self.try_set_ticket_payment_token(&ticket_payment_token)?;
+        self.ticket_payment_token().set(&ticket_payment_token);
         self.try_set_ticket_price(&ticket_price)?;
         self.try_set_nr_winning_tickets(nr_winning_tickets)?;
         self.try_set_confirmation_period_start_epoch(confirmation_period_start_epoch)?;
@@ -188,7 +188,7 @@ pub trait Launchpad:
     }
 
     #[endpoint(filterTickets)]
-    fn filter_tickets(&self) -> SCResult<BoxedBytes> {
+    fn filter_tickets(&self) -> SCResult<OperationCompletionStatus> {
         self.require_winner_selection_period()?;
         require!(!self.were_tickets_filtered(), "Tickets already filtered");
 
@@ -256,11 +256,11 @@ pub trait Launchpad:
             }
         };
 
-        Ok(run_result.output_bytes().into())
+        Ok(run_result)
     }
 
     #[endpoint(selectWinners)]
-    fn select_winners(&self) -> SCResult<BoxedBytes> {
+    fn select_winners(&self) -> SCResult<OperationCompletionStatus> {
         self.require_winner_selection_period()?;
         require!(self.were_tickets_filtered(), "Must filter tickets first");
         require!(!self.were_winners_selected(), "Winners already selected");
@@ -282,13 +282,16 @@ pub trait Launchpad:
         });
 
         match run_result {
-            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
+            OperationCompletionStatus::InterruptedBeforeOutOfGas => unsafe {
+                let mut seed_bytes = [0u8; random::HASH_LEN];
+                mBufferGetBytes(rng.seed_handle, seed_bytes.as_mut_ptr());
+
                 self.save_progress(&OngoingOperationType::SelectWinners {
-                    seed: rng.seed,
+                    seed: seed_bytes,
                     seed_index: rng.index,
                     ticket_position,
                 });
-            }
+            },
             OperationCompletionStatus::Completed => {
                 self.winners_selected().set(&true);
 
@@ -299,7 +302,7 @@ pub trait Launchpad:
             }
         };
 
-        Ok(run_result.output_bytes().into())
+        Ok(run_result)
     }
 
     #[endpoint(claimLaunchpadTokens)]
@@ -422,7 +425,7 @@ pub trait Launchpad:
     /// each position i is swapped with a random one in range [i, n]
     fn shuffle_single_ticket(
         &self,
-        rng: &mut Random<Self::Api>,
+        rng: &mut Random,
         current_ticket_position: usize,
         last_ticket_position: usize,
     ) {

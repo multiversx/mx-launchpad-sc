@@ -30,7 +30,9 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     #[endpoint(setTicketPaymentToken)]
     fn set_ticket_payment_token(&self, ticket_payment_token: TokenIdentifier) -> SCResult<()> {
         self.require_add_tickets_period()?;
-        self.try_set_ticket_payment_token(&ticket_payment_token)
+        self.ticket_payment_token().set(&ticket_payment_token);
+
+        Ok(())
     }
 
     #[only_owner]
@@ -87,17 +89,6 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         let total_winning_tickets = self.nr_winning_tickets().get();
 
         amount_per_ticket * (total_winning_tickets as u32)
-    }
-
-    fn try_set_ticket_payment_token(&self, ticket_payment_token: &TokenIdentifier) -> SCResult<()> {
-        require!(
-            ticket_payment_token.is_egld() || ticket_payment_token.is_valid_esdt_identifier(),
-            "Invalid ticket payment token"
-        );
-
-        self.ticket_payment_token().set(ticket_payment_token);
-
-        Ok(())
     }
 
     fn try_set_ticket_price(&self, ticket_price: &BigUint) -> SCResult<()> {
