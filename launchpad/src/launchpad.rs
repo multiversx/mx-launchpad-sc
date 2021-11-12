@@ -29,6 +29,10 @@ pub struct TicketBatch<M: ManagedTypeApi> {
     pub nr_tickets: usize,
 }
 
+extern "C" {
+    fn mBufferGetBytes(mBufferHandle: i32, resultOffset: *mut u8) -> i32;
+}
+
 #[elrond_wasm::derive::contract]
 pub trait Launchpad:
     launch_stage::LaunchStageModule + setup::SetupModule + ongoing_operation::OngoingOperationModule
@@ -278,13 +282,16 @@ pub trait Launchpad:
         });
 
         match run_result {
-            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
+            OperationCompletionStatus::InterruptedBeforeOutOfGas => unsafe {
+                let mut seed_bytes = [0u8; random::HASH_LEN];
+                mBufferGetBytes(rng.seed_handle, seed_bytes.as_mut_ptr());
+
                 self.save_progress(&OngoingOperationType::SelectWinners {
-                    seed: rng.seed,
+                    seed: seed_bytes,
                     seed_index: rng.index,
                     ticket_position,
                 });
-            }
+            },
             OperationCompletionStatus::Completed => {
                 self.winners_selected().set(&true);
 
@@ -418,7 +425,7 @@ pub trait Launchpad:
     /// each position i is swapped with a random one in range [i, n]
     fn shuffle_single_ticket(
         &self,
-        rng: &mut Random<Self::Api>,
+        rng: &mut Random,
         current_ticket_position: usize,
         last_ticket_position: usize,
     ) {

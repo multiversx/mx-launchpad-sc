@@ -1,57 +1,75 @@
 elrond_wasm::imports!();
 
 const USIZE_BYTES: usize = 4;
-const HASH_LEN: usize = 32;
+pub const HASH_LEN: usize = 32;
 
 pub type Hash = [u8; HASH_LEN];
+type Handle = i32;
 
 extern "C" {
     fn sha256(dataOffset: *const u8, length: i32, resultOffset: *mut u8) -> i32;
+
+    fn mBufferNew() -> i32;
+    fn mBufferNewFromBytes(byte_ptr: *const u8, byte_len: i32) -> i32;
+
+    fn mBufferGetBytes(mBufferHandle: i32, resultOffset: *mut u8) -> i32;
+    fn mBufferGetByteSlice(
+        sourceHandle: i32,
+        startingPosition: i32,
+        sliceLength: i32,
+        resultOffset: *mut u8,
+    ) -> i32;
+
+    fn mBufferSetBytes(mBufferHandle: i32, byte_ptr: *const u8, byte_len: i32) -> i32;
+    fn mBufferSetRandom(destinationHandle: i32, length: i32) -> i32;
 }
 
-pub struct Random<CA: CryptoApi> {
-    api: CA,
-    pub seed: Hash,
+pub struct Random {
+    pub seed_handle: Handle,
     pub index: usize,
 }
 
-impl<CA: CryptoApi> Random<CA> {
-    #[allow(clippy::boxed_local)]
-    pub fn from_seeds(api: CA) -> Self {
-        let summed_seeds = [0u8; 48];
-        let mut seed = [0u8; HASH_LEN];
+impl Random {
+    pub fn new() -> Self {
         unsafe {
-            sha256(summed_seeds.as_ptr(), 48, seed.as_mut_ptr());
-        }
+            let seed_handle = mBufferNew();
+            mBufferSetRandom(seed_handle, HASH_LEN as i32);
 
-        Self {
-            seed,
-            index: 0,
-            api,
+            Self {
+                seed_handle,
+                index: 0,
+            }
         }
     }
 
-    pub fn from_hash(api: CA, hash: Hash, index: usize) -> Self {
-        Self {
-            seed: hash,
-            index,
-            api,
+    pub fn from_hash(hash: Hash, index: usize) -> Self {
+        unsafe {
+            let seed_handle = mBufferNewFromBytes(hash.as_ptr(), HASH_LEN as i32);
+
+            Self { seed_handle, index }
         }
     }
 
     pub fn next_usize(&mut self) -> usize {
-        if self.index + USIZE_BYTES > HASH_LEN {
-            unsafe {
+        unsafe {
+            if self.index + USIZE_BYTES > HASH_LEN {
                 self.hash_seed();
             }
+
+            let mut raw_bytes = [0u8; USIZE_BYTES];
+            mBufferGetByteSlice(
+                self.seed_handle,
+                self.index as i32,
+                USIZE_BYTES as i32,
+                raw_bytes.as_mut_ptr(),
+            );
+
+            let rand = usize::top_decode(&raw_bytes[..]).unwrap_or_default();
+
+            self.index += USIZE_BYTES;
+
+            rand
         }
-
-        let bytes = &self.seed[self.index..(self.index + USIZE_BYTES)];
-        let rand = usize::top_decode(bytes).unwrap_or_default();
-
-        self.index += USIZE_BYTES;
-
-        rand
     }
 
     /// Range is [min, max)
@@ -66,16 +84,21 @@ impl<CA: CryptoApi> Random<CA> {
     }
 }
 
-impl<CA: CryptoApi> Random<CA> {
-    unsafe fn hash_seed(&mut self) {
-        let mut hashed_result = [0u8; HASH_LEN];
-        sha256(
-            self.seed.as_ptr(),
-            HASH_LEN as i32,
-            hashed_result.as_mut_ptr(),
-        );
+impl Random {
+    fn hash_seed(&mut self) {
+        unsafe {
+            let mut seed_bytes = [0u8; HASH_LEN];
+            let mut hashed_result = [0u8; HASH_LEN];
 
-        self.seed = hashed_result;
-        self.index = 0;
+            mBufferGetBytes(self.seed_handle, seed_bytes.as_mut_ptr());
+            sha256(
+                seed_bytes.as_ptr(),
+                HASH_LEN as i32,
+                hashed_result.as_mut_ptr(),
+            );
+
+            mBufferSetBytes(self.seed_handle, hashed_result.as_ptr(), HASH_LEN as i32);
+            self.index = 0;
+        }
     }
 }

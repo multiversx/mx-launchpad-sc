@@ -82,20 +82,15 @@ pub trait OngoingOperationModule {
         }
     }
 
-    fn load_select_winners_operation(&self) -> SCResult<(Random<Self::Api>, usize)> {
+    fn load_select_winners_operation(&self) -> SCResult<(Random, usize)> {
         let ongoing_operation = self.current_ongoing_operation().get();
         match ongoing_operation {
-            OngoingOperationType::None => {
-                Ok((Random::from_seeds(self.raw_vm_api()), FIRST_TICKET_ID))
-            }
+            OngoingOperationType::None => Ok((Random::new(), FIRST_TICKET_ID)),
             OngoingOperationType::SelectWinners {
                 seed,
                 seed_index,
                 ticket_position,
-            } => Ok((
-                Random::from_hash(self.raw_vm_api(), seed, seed_index),
-                ticket_position,
-            )),
+            } => Ok((Random::from_hash(seed, seed_index), ticket_position)),
             _ => sc_error!("Another ongoing operation is in progress"),
         }
     }
