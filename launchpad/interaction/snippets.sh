@@ -1,4 +1,4 @@
-OWNER_PEM_PATH="ownerWallet.pem"
+OWNER_PEM_PATH="elrondOwner.pem"
 
 ADDRESS=$(erdpy data load --key=address-sc)
 PROXY=https://devnet-gateway.elrond.com
@@ -10,14 +10,14 @@ TICKET_PAYMENT_TOKEN="EGLD"
 TICKET_PRICE=100000000000000000 # 0.1 EGLD
 NR_WINNING_TICKETS=10000
 LAUNCHPAD_TOKENS_AMOUNT_TO_DEPOSIT_HEX=0x02faf080   # Amount should be equal to NR_WINNING_TICKETS * LAUNCHPAD_TOKENS_PER_WINNING_TICKET
-CONFIRMATION_PERIOD_START_EPOCH=1892
-WINNER_SELECTION_START_EPOCH=1893
-CLAIM_START_EPOCH=1893
+CONFIRMATION_PERIOD_START_EPOCH=1895
+WINNER_SELECTION_START_EPOCH=1896
+CLAIM_START_EPOCH=1896
 
 
 build() {
-    erdpy contract clean ../launchpad
-    erdpy contract build ../launchpad
+    erdpy contract clean ../../launchpad
+    erdpy contract build ../../launchpad
 }
 
 deploy() {
@@ -171,7 +171,7 @@ claimTicketPayment() {
 
 # USER ENDPOINTS
 
-# parms
+# params
 #   $1 = User pem file path
 #   $2 = User pem index
 #   $3 = Number of tickets (max. 255)
@@ -186,12 +186,26 @@ confirmTicketsUser() {
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 }
 
-# parms
+# params
 #   $1 = User pem file path
 #   $2 = User pem index
 claimLaunchpadTokensUser() {
     # no arguments needed
     erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=$1\
     --pem-index=$2 --gas-limit=25000000 --function="claimLaunchpadTokens" \
+    --send --proxy=${PROXY} --chain=${CHAIN_ID}
+}
+
+
+# CHANGE SC OWNERSHIP
+
+#params
+#   $1 = New owner address
+changeSCOwner() {
+    local NEW_OWNER_ADDRESS_HEX="0x$(erdpy wallet bech32 --decode $1)"
+    
+    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
+    --gas-limit=25000000 --function="ChangeOwnerAddress" \
+    --arguments ${NEW_OWNER_ADDRESS_HEX} \
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 }
