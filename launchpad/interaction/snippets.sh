@@ -164,7 +164,7 @@ selectWinners() {
 
 claimTicketPayment() {
     # no arguments needed
-    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${USER1_PEM_PATH} \
+    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
     --gas-limit=25000000 --function="claimTicketPayment" \
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 }
