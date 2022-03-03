@@ -9,7 +9,7 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         &self,
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_amount] payment_amount: BigUint,
-    ) -> SCResult<()> {
+    ) {
         require!(
             !self.were_launchpad_tokens_deposited(),
             "Tokens already deposited"
@@ -22,62 +22,58 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         require!(payment_amount == amount_needed, "Wrong amount");
 
         self.launchpad_tokens_deposited().set(&true);
-
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint(setTicketPaymentToken)]
-    fn set_ticket_payment_token(&self, ticket_payment_token: TokenIdentifier) -> SCResult<()> {
-        self.require_add_tickets_period()?;
+    fn set_ticket_payment_token(&self, ticket_payment_token: TokenIdentifier) {
+        self.require_add_tickets_period();
         self.ticket_payment_token().set(&ticket_payment_token);
-
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint(setTicketPrice)]
-    fn set_ticket_price(&self, ticket_price: BigUint) -> SCResult<()> {
-        self.require_add_tickets_period()?;
+    fn set_ticket_price(&self, ticket_price: BigUint) {
+        self.require_add_tickets_period();
         self.try_set_ticket_price(&ticket_price)
     }
 
     #[only_owner]
     #[endpoint(setLaunchpadTokensPerWinningTicket)]
-    fn set_launchpad_tokens_per_winning_ticket(&self, amount: BigUint) -> SCResult<()> {
-        self.require_add_tickets_period()?;
+    fn set_launchpad_tokens_per_winning_ticket(&self, amount: BigUint) {
+        self.require_add_tickets_period();
         self.try_set_launchpad_tokens_per_winning_ticket(&amount)
     }
 
     #[only_owner]
     #[endpoint(setConfirmationPeriodStartEpoch)]
-    fn set_confirmation_period_start_epoch(&self, start_epoch: u64) -> SCResult<()> {
+    fn set_confirmation_period_start_epoch(&self, start_epoch: u64) {
         let old_start_epoch = self.confirmation_period_start_epoch().get();
-        self.require_valid_config_epoch_change(old_start_epoch)?;
+        self.require_valid_config_epoch_change(old_start_epoch);
 
-        self.require_valid_time_periods(Some(start_epoch), None, None)?;
+        self.require_valid_time_periods(Some(start_epoch), None, None);
 
         self.try_set_confirmation_period_start_epoch(start_epoch)
     }
 
     #[only_owner]
     #[endpoint(setWinnerSelectionStartEpoch)]
-    fn set_winner_selection_start_epoch(&self, start_epoch: u64) -> SCResult<()> {
+    fn set_winner_selection_start_epoch(&self, start_epoch: u64) {
         let old_start_epoch = self.winner_selection_start_epoch().get();
-        self.require_valid_config_epoch_change(old_start_epoch)?;
+        self.require_valid_config_epoch_change(old_start_epoch);
 
-        self.require_valid_time_periods(None, Some(start_epoch), None)?;
+        self.require_valid_time_periods(None, Some(start_epoch), None);
 
         self.try_set_winner_selection_start_epoch(start_epoch)
     }
 
     #[only_owner]
     #[endpoint(setClaimStartEpoch)]
-    fn set_claim_start_epoch(&self, claim_start_epoch: u64) -> SCResult<()> {
+    fn set_claim_start_epoch(&self, claim_start_epoch: u64) {
         let old_start_epoch = self.claim_start_epoch().get();
-        self.require_valid_config_epoch_change(old_start_epoch)?;
+        self.require_valid_config_epoch_change(old_start_epoch);
 
-        self.require_valid_time_periods(None, None, Some(claim_start_epoch))?;
+        self.require_valid_time_periods(None, None, Some(claim_start_epoch));
 
         self.try_set_claim_start_epoch(claim_start_epoch)
     }
@@ -91,37 +87,31 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         amount_per_ticket * (total_winning_tickets as u32)
     }
 
-    fn try_set_ticket_price(&self, ticket_price: &BigUint) -> SCResult<()> {
+    fn try_set_ticket_price(&self, ticket_price: &BigUint) {
         require!(ticket_price > &0, "Ticket price must be higher than 0");
 
         self.ticket_price().set(ticket_price);
-
-        Ok(())
     }
 
-    fn try_set_launchpad_tokens_per_winning_ticket(&self, amount: &BigUint) -> SCResult<()> {
+    fn try_set_launchpad_tokens_per_winning_ticket(&self, amount: &BigUint) {
         require!(
             amount > &0,
             "Launchpad tokens per winning ticket cannot be set to zero"
         );
 
         self.launchpad_tokens_per_winning_ticket().set(amount);
-
-        Ok(())
     }
 
-    fn try_set_nr_winning_tickets(&self, nr_winning_tickets: usize) -> SCResult<()> {
+    fn try_set_nr_winning_tickets(&self, nr_winning_tickets: usize) {
         require!(
             nr_winning_tickets > 0,
             "Cannot set number of winning tickets to zero"
         );
 
         self.nr_winning_tickets().set(&nr_winning_tickets);
-
-        Ok(())
     }
 
-    fn try_set_confirmation_period_start_epoch(&self, start_epoch: u64) -> SCResult<()> {
+    fn try_set_confirmation_period_start_epoch(&self, start_epoch: u64) {
         let current_epoch = self.blockchain().get_block_epoch();
         require!(
             start_epoch > current_epoch,
@@ -129,11 +119,9 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         );
 
         self.confirmation_period_start_epoch().set(&start_epoch);
-
-        Ok(())
     }
 
-    fn try_set_winner_selection_start_epoch(&self, start_epoch: u64) -> SCResult<()> {
+    fn try_set_winner_selection_start_epoch(&self, start_epoch: u64) {
         let current_epoch = self.blockchain().get_block_epoch();
         require!(
             start_epoch > current_epoch,
@@ -141,11 +129,9 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         );
 
         self.winner_selection_start_epoch().set(&start_epoch);
-
-        Ok(())
     }
 
-    fn try_set_claim_start_epoch(&self, claim_start_epoch: u64) -> SCResult<()> {
+    fn try_set_claim_start_epoch(&self, claim_start_epoch: u64) {
         let current_epoch = self.blockchain().get_block_epoch();
         require!(
             claim_start_epoch > current_epoch,
@@ -153,17 +139,14 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         );
 
         self.claim_start_epoch().set(&claim_start_epoch);
-
-        Ok(())
     }
 
-    fn require_valid_config_epoch_change(&self, old_start_epoch: u64) -> SCResult<()> {
+    fn require_valid_config_epoch_change(&self, old_start_epoch: u64) {
         let current_epoch = self.blockchain().get_block_epoch();
         require!(
             old_start_epoch > current_epoch,
             "Cannot change start epoch, it's either in progress or passed already"
         );
-        Ok(())
     }
 
     fn require_valid_time_periods(
@@ -171,7 +154,7 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         opt_confirm_start_epoch: Option<u64>,
         opt_winner_selection_start_epoch: Option<u64>,
         opt_claim_start: Option<u64>,
-    ) -> SCResult<()> {
+    ) {
         let confirm_start_epoch =
             opt_confirm_start_epoch.unwrap_or_else(|| self.confirmation_period_start_epoch().get());
         let winner_selection_start_epoch = opt_winner_selection_start_epoch
@@ -186,8 +169,6 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
             winner_selection_start_epoch <= claim_start,
             "Claim period must be after winner selection"
         );
-
-        Ok(())
     }
 
     #[inline(always)]

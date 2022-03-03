@@ -6,14 +6,14 @@ use crate::{random::Random, FIRST_TICKET_ID};
 const MIN_GAS_TO_SAVE_PROGRESS: u64 = 10_000_000;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
-pub enum OngoingOperationType {
+pub enum OngoingOperationType<M: ManagedTypeApi> {
     None,
     FilterTickets {
         first_ticket_id_in_batch: usize,
         nr_removed: usize,
     },
     SelectWinners {
-        seed: crate::random::Hash,
+        seed: crate::random::Hash<M>,
         seed_index: usize,
         ticket_position: usize,
     },
@@ -61,7 +61,7 @@ pub trait OngoingOperationModule {
     }
 
     #[inline(always)]
-    fn save_progress(&self, op: &OngoingOperationType) {
+    fn save_progress(&self, op: &OngoingOperationType<Self::Api>) {
         self.current_ongoing_operation().set(op);
     }
 
@@ -70,31 +70,31 @@ pub trait OngoingOperationModule {
         self.current_ongoing_operation().clear();
     }
 
-    fn load_filter_tickets_operation(&self) -> SCResult<(usize, usize)> {
+    fn load_filter_tickets_operation(&self) -> (usize, usize) {
         let ongoing_operation = self.current_ongoing_operation().get();
         match ongoing_operation {
-            OngoingOperationType::None => Ok((FIRST_TICKET_ID, 0)),
+            OngoingOperationType::None => (FIRST_TICKET_ID, 0),
             OngoingOperationType::FilterTickets {
                 first_ticket_id_in_batch,
                 nr_removed,
-            } => Ok((first_ticket_id_in_batch, nr_removed)),
-            _ => sc_error!("Another ongoing operation is in progress"),
+            } => (first_ticket_id_in_batch, nr_removed),
+            _ => sc_panic!("Another ongoing operation is in progress"),
         }
     }
 
-    fn load_select_winners_operation(&self) -> SCResult<(Random, usize)> {
+    fn load_select_winners_operation(&self) -> (Random<Self::Api>, usize) {
         let ongoing_operation = self.current_ongoing_operation().get();
         match ongoing_operation {
-            OngoingOperationType::None => Ok((Random::new(), FIRST_TICKET_ID)),
+            OngoingOperationType::None => (Random::new(), FIRST_TICKET_ID),
             OngoingOperationType::SelectWinners {
                 seed,
                 seed_index,
                 ticket_position,
-            } => Ok((Random::from_hash(seed, seed_index), ticket_position)),
-            _ => sc_error!("Another ongoing operation is in progress"),
+            } => (Random::from_hash(seed, seed_index), ticket_position),
+            _ => sc_panic!("Another ongoing operation is in progress"),
         }
     }
 
     #[storage_mapper("operation")]
-    fn current_ongoing_operation(&self) -> SingleValueMapper<OngoingOperationType>;
+    fn current_ongoing_operation(&self) -> SingleValueMapper<OngoingOperationType<Self::Api>>;
 }
