@@ -18,7 +18,7 @@ fn init(
     confirmation_period_start_epoch: u64,
     confirmation_period_in_epochs: u64,
     claim_start_epoch: u64,
-) -> SCResult<()>
+) 
 ```
 
 `launchpad_token_id` is the identifier of the token you want to launch through this smart contract. Keep in mind that the current implementation supports fungible ESDTs only.  
@@ -49,8 +49,8 @@ Besides the initial setup, which is done at deployment time, some additional pos
 #[endpoint(addTickets)]
 fn add_tickets(
     &self,
-    #[var_args] address_number_pairs: VarArgs<MultiArg2<Address, usize>>,
-) -> SCResult<()>
+    #[var_args] address_number_pairs: MultiValueEncoded<MultiValue2<Address, usize>>,
+) 
 ```
 
 This endpint accepts pairs of `(user_address, number_of_tickets)`. The only restriction is tickets cannot be added twice for the same user, even by different calls.  
@@ -64,7 +64,7 @@ The only thing that's left is to deposit the actual tokens, which is done throug
 #[endpoint(depositLaunchpadTokens)]
 fn deposit_launchpad_tokens(
     &self,
-) -> SCResult<()>
+) 
 ```
 
 No additional arguments. Keep in mind you have to pay exactly `nr_winning_tickets * launchpad_tokens_per_winning_ticket`, otherwise, the SC will throw an error.  
@@ -86,7 +86,7 @@ Once the `AddTickets` period has concluded and the `WinnerSelection` stage has s
 
 ```
 [endpoint(selectWinners)]
-fn select_winners(&self) -> SCResult<OperationCompletionStatus>
+fn select_winners(&self) -> OperationCompletionStatus
 ```
 
 This endpoint requires no arguments. Keep in mind this is a very expensive operation in terms of gas, so this endpoint might have to be called many times before the shuffling is complete. The shuffling is done through the [Fisher-Yates shuffle](https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle).  
@@ -102,7 +102,7 @@ Once the winners have been selected, they may call the `confirmTickets` endpoint
 fn confirm_tickets(
     &self,
     nr_tickets_to_confirm: usize,
-) -> SCResult<()>
+) 
 ```
 
 A confirmed ticket remains confirmed forever (unless the user is added to the blacklist, which we'll discuss more about later). The user must pay exactly `ticket_price * nr_tickets_to_confirm` of `ticket_payment_token`s. Keep in mind users are not required to confirm all tickets all at once, or even confirm them all. Any unconfirmed tickets get redistributed in the next selection period.  
@@ -112,7 +112,7 @@ A confirmed ticket remains confirmed forever (unless the user is added to the bl
 If the confirmation period has ended and there are still tickets left, anyone may call the `selectNewWinners` endpoint to redistribute the leftover tickets:
 ```
 #[endpoint(selectNewWinners)]
-fn select_new_winners(&self) -> SCResult<OperationCompletionStatus>
+fn select_new_winners(&self) -> OperationCompletionStatus
 ```
 
 This operation is a lot less expensive than the initial `selectWinners`, as all this does is move the "range" of winning tickets (all tickets were initially shuffled in `selectWinners`) and mark those as winning for the current generation.  
@@ -127,7 +127,7 @@ Claim period can be reached either "naturally" by having all tickets confirm, or
 ```
 #[only_owner]
 #[endpoint(forceClaimPeriodStart)]
-fn force_claim_period_start(&self) -> SCResult<()>
+fn force_claim_period_start(&self) 
 ```
 
 All this endpoint does is set the number of "Confirmed" tickets to be equal to the total number of winning tickets. Keep in mind this does not affect the `claim_start_epoch` parameter in any way and the endpoint might not be activate right away if that epoch has not passed yet.  
@@ -135,7 +135,7 @@ All this endpoint does is set the number of "Confirmed" tickets to be equal to t
 Once the claim period has started, users may claim their launchpad tokens by calling the following endpoint:
 ```
 #[endpoint(claimLaunchpadTokens)]
-fn claim_launchpad_tokens(&self) -> SCResult<()>
+fn claim_launchpad_tokens(&self) 
 ```
 
 No additional arguments or payment required. The user will receive `launchpad_tokens_per_winning_ticket * nr_confirmed_tickets` launchpad tokens. 
@@ -146,21 +146,21 @@ Since this whole flow requires the user to do an off-chain KYC (Know Your Custom
 ```
 #[only_owner]
 #[endpoint(addAddressToBlacklist)]
-fn add_address_to_blacklist(&self, address: Address) -> SCResult<()>
+fn add_address_to_blacklist(&self, address: Address) 
 ```
 
 This disables the confirm and claim functionalities for the specifed user. If the user already paid and confirmed tickets, the owner can refund the payment through:
 ```
 #[only_owner]
 #[endpoint(refundConfirmedTickets)]
-fn refund_confirmed_tickets(&self, address: Address) -> SCResult<()>
+fn refund_confirmed_tickets(&self, address: Address) 
 ```
 
 For cases where there has simply been a mistake or anything of that nature, the owner can remove the user from the blacklist:
 ```
 #[only_owner]
 #[endpoint(removeAddressFromBlacklist)]
-fn remove_address_from_blacklist(&self, address: Address) -> SCResult<()>
+fn remove_address_from_blacklist(&self, address: Address) 
 ```
 
 # Conclusion

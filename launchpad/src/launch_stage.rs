@@ -47,48 +47,43 @@ pub trait LaunchStageModule {
     }
 
     #[inline(always)]
-    fn require_add_tickets_period(&self) -> SCResult<()> {
+    fn require_add_tickets_period(&self) {
         require!(
             self.get_launch_stage() == LaunchStage::AddTickets,
             "Add tickets period has passed"
         );
-        Ok(())
     }
 
     #[inline(always)]
-    fn require_confirmation_period(&self) -> SCResult<()> {
+    fn require_confirmation_period(&self) {
         require!(
             self.get_launch_stage() == LaunchStage::Confirm,
             "Not in confirmation period"
         );
-        Ok(())
     }
 
     #[inline(always)]
-    fn require_before_winner_selection(&self) -> SCResult<()> {
+    fn require_before_winner_selection(&self) {
         require!(
             self.get_launch_stage() < LaunchStage::WinnerSelection,
             "May only modify blacklist before winner selection"
         );
-        Ok(())
     }
 
     #[inline(always)]
-    fn require_winner_selection_period(&self) -> SCResult<()> {
+    fn require_winner_selection_period(&self) {
         require!(
             self.get_launch_stage() == LaunchStage::WinnerSelection,
             "Not in winner selection period"
         );
-        Ok(())
     }
 
     #[inline(always)]
-    fn require_claim_period(&self) -> SCResult<()> {
+    fn require_claim_period(&self) {
         require!(
             self.get_launch_stage() == LaunchStage::Claim,
             "Not in claim period"
         );
-        Ok(())
     }
 
     #[inline(always)]

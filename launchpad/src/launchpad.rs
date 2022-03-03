@@ -49,30 +49,28 @@ pub trait Launchpad:
         confirmation_period_start_epoch: u64,
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
-    ) -> SCResult<()> {
+    ) {
         self.launchpad_token_id().set(&launchpad_token_id);
 
-        self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket)?;
+        self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket);
         self.ticket_payment_token().set(&ticket_payment_token);
-        self.try_set_ticket_price(&ticket_price)?;
-        self.try_set_nr_winning_tickets(nr_winning_tickets)?;
-        self.try_set_confirmation_period_start_epoch(confirmation_period_start_epoch)?;
-        self.try_set_winner_selection_start_epoch(winner_selection_start_epoch)?;
-        self.try_set_claim_start_epoch(claim_start_epoch)?;
+        self.try_set_ticket_price(&ticket_price);
+        self.try_set_nr_winning_tickets(nr_winning_tickets);
+        self.try_set_confirmation_period_start_epoch(confirmation_period_start_epoch);
+        self.try_set_winner_selection_start_epoch(winner_selection_start_epoch);
+        self.try_set_claim_start_epoch(claim_start_epoch);
 
         self.require_valid_time_periods(
             Some(confirmation_period_start_epoch),
             Some(winner_selection_start_epoch),
             Some(claim_start_epoch),
-        )?;
-
-        Ok(())
+        );
     }
 
     #[only_owner]
     #[endpoint(claimTicketPayment)]
-    fn claim_ticket_payment(&self) -> SCResult<()> {
-        self.require_claim_period()?;
+    fn claim_ticket_payment(&self) {
+        self.require_claim_period();
 
         let owner = self.blockchain().get_caller();
 
@@ -98,14 +96,12 @@ pub trait Launchpad:
             self.send()
                 .direct(&owner, &launchpad_token_id, 0, &extra_launchpad_tokens, &[]);
         }
-
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint(addAddressToBlacklist)]
-    fn add_address_to_blacklist(&self, address: ManagedAddress) -> SCResult<()> {
-        self.require_before_winner_selection()?;
+    fn add_address_to_blacklist(&self, address: ManagedAddress) {
+        self.require_before_winner_selection();
 
         let nr_confirmed_tickets = self.nr_confirmed_tickets(&address).get();
         if nr_confirmed_tickets > 0 {
@@ -114,35 +110,29 @@ pub trait Launchpad:
         }
 
         self.blacklisted(&address).set(&true);
-
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint(removeAddressFromBlacklist)]
-    fn remove_address_from_blacklist(&self, address: ManagedAddress) -> SCResult<()> {
-        self.require_before_winner_selection()?;
+    fn remove_address_from_blacklist(&self, address: ManagedAddress) {
+        self.require_before_winner_selection();
 
         self.blacklisted(&address).clear();
-
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint(addTickets)]
     fn add_tickets(
         &self,
-        #[var_args] address_number_pairs: ManagedVarArgs<MultiArg2<ManagedAddress, usize>>,
-    ) -> SCResult<()> {
-        self.require_add_tickets_period()?;
+        #[var_args] address_number_pairs: MultiValueEncoded<MultiValue2<ManagedAddress, usize>>,
+    ) {
+        self.require_add_tickets_period();
 
         for multi_arg in address_number_pairs {
             let (buyer, nr_tickets) = multi_arg.into_tuple();
 
-            self.try_create_tickets(buyer, nr_tickets)?;
+            self.try_create_tickets(buyer, nr_tickets);
         }
-
-        Ok(())
     }
 
     #[payable("*")]
@@ -152,8 +142,8 @@ pub trait Launchpad:
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_amount] payment_amount: BigUint,
         nr_tickets_to_confirm: usize,
-    ) -> SCResult<()> {
-        self.require_confirmation_period()?;
+    ) {
+        self.require_confirmation_period();
         require!(
             self.were_launchpad_tokens_deposited(),
             "Launchpad tokens not deposited yet"
@@ -183,18 +173,15 @@ pub trait Launchpad:
         require!(payment_amount == total_ticket_price, "Wrong amount sent");
 
         self.nr_confirmed_tickets(&caller).set(&total_confirmed);
-
-        Ok(())
     }
 
     #[endpoint(filterTickets)]
-    fn filter_tickets(&self) -> SCResult<OperationCompletionStatus> {
-        self.require_winner_selection_period()?;
+    fn filter_tickets(&self) -> OperationCompletionStatus {
+        self.require_winner_selection_period();
         require!(!self.were_tickets_filtered(), "Tickets already filtered");
 
         let last_ticket_id = self.last_ticket_id().get();
-        let (mut first_ticket_id_in_batch, mut nr_removed) =
-            self.load_filter_tickets_operation()?;
+        let (mut first_ticket_id_in_batch, mut nr_removed) = self.load_filter_tickets_operation();
 
         if first_ticket_id_in_batch == FIRST_TICKET_ID {
             self.winner_selection_process_started().set(&true);
@@ -256,19 +243,19 @@ pub trait Launchpad:
             }
         };
 
-        Ok(run_result)
+        run_result
     }
 
     #[endpoint(selectWinners)]
-    fn select_winners(&self) -> SCResult<OperationCompletionStatus> {
-        self.require_winner_selection_period()?;
+    fn select_winners(&self) -> OperationCompletionStatus {
+        self.require_winner_selection_period();
         require!(self.were_tickets_filtered(), "Must filter tickets first");
         require!(!self.were_winners_selected(), "Winners already selected");
 
         let nr_winning_tickets = self.nr_winning_tickets().get();
         let last_ticket_position = self.get_total_tickets();
 
-        let (mut rng, mut ticket_position) = self.load_select_winners_operation()?;
+        let (mut rng, mut ticket_position) = self.load_select_winners_operation();
         let run_result = self.run_while_it_has_gas(|| {
             self.shuffle_single_ticket(&mut rng, ticket_position, last_ticket_position);
 
@@ -302,17 +289,17 @@ pub trait Launchpad:
             }
         };
 
-        Ok(run_result)
+        run_result
     }
 
     #[endpoint(claimLaunchpadTokens)]
-    fn claim_launchpad_tokens(&self) -> SCResult<()> {
-        self.require_claim_period()?;
+    fn claim_launchpad_tokens(&self) {
+        self.require_claim_period();
 
         let caller = self.blockchain().get_caller();
         require!(!self.has_user_claimed(&caller), "Already claimed");
 
-        let ticket_range = self.try_get_ticket_range(&caller)?;
+        let ticket_range = self.try_get_ticket_range(&caller);
         let nr_confirmed_tickets = self.nr_confirmed_tickets(&caller).get();
         let mut nr_redeemable_tickets = 0;
 
@@ -341,8 +328,6 @@ pub trait Launchpad:
         let nr_tickets_to_refund = nr_confirmed_tickets - nr_redeemable_tickets;
         self.refund_ticket_payment(&caller, nr_tickets_to_refund);
         self.send_launchpad_tokens(&caller, nr_redeemable_tickets);
-
-        Ok(())
     }
 
     // views
@@ -352,13 +337,13 @@ pub trait Launchpad:
     fn get_ticket_range_for_address(
         &self,
         address: ManagedAddress,
-    ) -> OptionalResult<MultiResult2<usize, usize>> {
+    ) -> OptionalValue<MultiValue2<usize, usize>> {
         if self.ticket_range_for_address(&address).is_empty() {
-            return OptionalResult::None;
+            return OptionalValue::None;
         }
 
         let ticket_range = self.ticket_range_for_address(&address).get();
-        OptionalArg::Some((ticket_range.first_id, ticket_range.last_id).into())
+        OptionalValue::Some((ticket_range.first_id, ticket_range.last_id).into())
     }
 
     #[view(getTotalNumberOfTicketsForAddress)]
@@ -375,9 +360,9 @@ pub trait Launchpad:
     fn get_winning_ticket_ids_for_address(
         &self,
         address: ManagedAddress,
-    ) -> ManagedMultiResultVec<usize> {
+    ) -> MultiValueEncoded<usize> {
         if !self.were_winners_selected() || self.ticket_range_for_address(&address).is_empty() {
-            return ManagedMultiResultVec::new(self.raw_vm_api());
+            return MultiValueEncoded::new();
         }
 
         let mut ticket_ids = ManagedVec::new();
@@ -399,7 +384,7 @@ pub trait Launchpad:
 
     // private
 
-    fn try_create_tickets(&self, buyer: ManagedAddress, nr_tickets: usize) -> SCResult<()> {
+    fn try_create_tickets(&self, buyer: ManagedAddress, nr_tickets: usize) {
         require!(
             self.ticket_range_for_address(&buyer).is_empty(),
             "Duplicate entry for user"
@@ -417,8 +402,6 @@ pub trait Launchpad:
             nr_tickets,
         });
         self.last_ticket_id().set(&last_ticket_id);
-
-        Ok(())
     }
 
     /// Fisher-Yates algorithm,
@@ -438,13 +421,13 @@ pub trait Launchpad:
         self.ticket_pos_to_id(rand_pos).set(&current_ticket_id);
     }
 
-    fn try_get_ticket_range(&self, address: &ManagedAddress) -> SCResult<TicketRange> {
+    fn try_get_ticket_range(&self, address: &ManagedAddress) -> TicketRange {
         require!(
             !self.ticket_range_for_address(address).is_empty(),
             "You have no tickets"
         );
 
-        Ok(self.ticket_range_for_address(address).get())
+        self.ticket_range_for_address(address).get()
     }
 
     fn get_ticket_id_from_pos(&self, ticket_pos: usize) -> usize {
