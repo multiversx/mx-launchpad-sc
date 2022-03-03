@@ -6,14 +6,14 @@ use crate::{random::Random, FIRST_TICKET_ID};
 const MIN_GAS_TO_SAVE_PROGRESS: u64 = 10_000_000;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
-pub enum OngoingOperationType {
+pub enum OngoingOperationType<M: ManagedTypeApi> {
     None,
     FilterTickets {
         first_ticket_id_in_batch: usize,
         nr_removed: usize,
     },
     SelectWinners {
-        seed: crate::random::Hash,
+        seed: crate::random::Hash<M>,
         seed_index: usize,
         ticket_position: usize,
     },
@@ -61,7 +61,7 @@ pub trait OngoingOperationModule {
     }
 
     #[inline(always)]
-    fn save_progress(&self, op: &OngoingOperationType) {
+    fn save_progress(&self, op: &OngoingOperationType<Self::Api>) {
         self.current_ongoing_operation().set(op);
     }
 
@@ -82,7 +82,7 @@ pub trait OngoingOperationModule {
         }
     }
 
-    fn load_select_winners_operation(&self) -> (Random, usize) {
+    fn load_select_winners_operation(&self) -> (Random<Self::Api>, usize) {
         let ongoing_operation = self.current_ongoing_operation().get();
         match ongoing_operation {
             OngoingOperationType::None => (Random::new(), FIRST_TICKET_ID),
@@ -96,5 +96,5 @@ pub trait OngoingOperationModule {
     }
 
     #[storage_mapper("operation")]
-    fn current_ongoing_operation(&self) -> SingleValueMapper<OngoingOperationType>;
+    fn current_ongoing_operation(&self) -> SingleValueMapper<OngoingOperationType<Self::Api>>;
 }
