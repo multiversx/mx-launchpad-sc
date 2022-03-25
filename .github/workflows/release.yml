@@ -34,7 +34,8 @@ jobs:
         run: |
           # Setting $HOME is required by erdpy.
           export HOME=$ELROND_HOME
-          cd $REPO_PATH && bash ./build-wasm.sh
+          cd $REPO_PATH
+          erdpy --verbose contract build ./launchpad
 
       - name: Save artifacts
         uses: actions/upload-artifact@v2
@@ -72,6 +73,6 @@ jobs:
             echo " - **${filename}**: \`${checksum}\`" >> notes.txt
           done
 
-          gh release create ${{ github.event.inputs.tag }} --prerelease --title="${{ github.event.inputs.title }}" --generate-notes --notes-file=notes.txt
+          gh release create --prerelease ${{ github.event.inputs.tag }} --prerelease --title="${{ github.event.inputs.title }}" --generate-notes --notes-file=notes.txt
           sleep 10
           gh release upload ${{ github.event.inputs.tag }} $(find ./assets -type f)
