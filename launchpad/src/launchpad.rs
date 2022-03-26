@@ -46,21 +46,6 @@ pub trait Launchpad:
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
     ) {
-        self.launchpad_token_id().set(&launchpad_token_id);
-
-        self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket);
-        self.ticket_payment_token().set(&ticket_payment_token);
-        self.try_set_ticket_price(&ticket_price);
-        self.try_set_nr_winning_tickets(nr_winning_tickets);
-        self.try_set_confirmation_period_start_epoch(confirmation_period_start_epoch);
-        self.try_set_winner_selection_start_epoch(winner_selection_start_epoch);
-        self.try_set_claim_start_epoch(claim_start_epoch);
-
-        self.require_valid_time_periods(
-            Some(confirmation_period_start_epoch),
-            Some(winner_selection_start_epoch),
-            Some(claim_start_epoch),
-        );
     }
 
     #[only_owner]
@@ -122,8 +107,6 @@ pub trait Launchpad:
         &self,
         #[var_args] address_number_pairs: MultiValueEncoded<MultiValue2<ManagedAddress, usize>>,
     ) {
-        self.require_add_tickets_period();
-
         for multi_arg in address_number_pairs {
             let (buyer, nr_tickets) = multi_arg.into_tuple();
 
