@@ -35,17 +35,7 @@ pub trait Launchpad:
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
-    fn init(
-        &self,
-        launchpad_token_id: TokenIdentifier,
-        launchpad_tokens_per_winning_ticket: BigUint,
-        ticket_payment_token: TokenIdentifier,
-        ticket_price: BigUint,
-        nr_winning_tickets: usize,
-        confirmation_period_start_epoch: u64,
-        winner_selection_start_epoch: u64,
-        claim_start_epoch: u64,
-    ) {
+    fn init(&self) {
     }
 
     #[only_owner]
