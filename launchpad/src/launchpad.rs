@@ -400,7 +400,7 @@ pub trait Launchpad:
 
         self.ticket_batch(old_ticket_range.first_id).set(&TicketBatch {
             address: ManagedAddress::zero(),
-            nr_old_tickets,
+            nr_tickets: nr_old_tickets,
         });
 
         self.set_ticket_range_batch_for_user(buyer, nr_tickets);
