@@ -8,6 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     launchpad
     (
         addAddressToBlacklist
+        addMoreTicketsForSameUser
         addTickets
         claimLaunchpadTokens
         claimTicketPayment
