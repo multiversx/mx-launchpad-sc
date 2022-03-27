@@ -104,6 +104,19 @@ pub trait Launchpad:
         }
     }
 
+    #[only_owner]
+    #[endpoint(addMoreTicketsForSameUser)]
+    fn add_tickets(
+        &self,
+        #[var_args] address_number_pairs: MultiValueEncoded<MultiValue2<ManagedAddress, usize>>,
+    ) {
+        for multi_arg in address_number_pairs {
+            let (buyer, nr_tickets) = multi_arg.into_tuple();
+
+            self.try_add_more_tickets_for_same_user(buyer, nr_tickets);
+        }
+    }
+
     #[payable("*")]
     #[endpoint(confirmTickets)]
     fn confirm_tickets(
@@ -359,6 +372,10 @@ pub trait Launchpad:
             "Duplicate entry for user"
         );
 
+        self.set_ticket_range_batch_for_user(buyer, nr_tickets);
+    }
+
+    fn set_ticket_range_batch_for_user(&self, buyer: ManagedAddress, nr_tickets: usize) {
         let first_ticket_id = self.last_ticket_id().get() + 1;
         let last_ticket_id = first_ticket_id + nr_tickets - 1;
 
@@ -371,6 +388,18 @@ pub trait Launchpad:
             nr_tickets,
         });
         self.last_ticket_id().set(&last_ticket_id);
+    }
+
+    fn try_add_more_tickets_for_same_user(&self, buyer: ManagedAddress, nr_tickets: usize) {
+        let old_ticket_range = self.try_get_ticket_range(&buyer);
+        let nr_old_tickets = old_ticket_range.last_id - old_ticket_range.first_id;
+
+        self.ticket_batch(old_ticket_range.first_id).Set(&TicketBatch {
+            address: ManagedAddress::zero(),
+            nr_old_tickets,
+        });
+
+        self.set_ticket_range_batch_for_user(buyer, nr_tickets);
     }
 
     /// Fisher-Yates algorithm,
