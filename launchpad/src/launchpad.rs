@@ -392,7 +392,7 @@ pub trait Launchpad:
 
     fn try_add_more_tickets_for_same_user(&self, buyer: ManagedAddress, nr_tickets: usize) {
         let old_ticket_range = self.try_get_ticket_range(&buyer);
-        let nr_old_tickets = old_ticket_range.last_id - old_ticket_range.first_id;
+        let nr_old_tickets = old_ticket_range.last_id - old_ticket_range.first_id + 1;
 
         self.ticket_batch(old_ticket_range.first_id).Set(&TicketBatch {
             address: ManagedAddress::zero(),
