@@ -49,9 +49,8 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     #[endpoint(setConfirmationPeriodStartEpoch)]
     fn set_confirmation_period_start_epoch(&self, start_epoch: u64) {
         let old_start_epoch = self.confirmation_period_start_epoch().get();
-        self.require_valid_config_epoch_change(old_start_epoch);
-
-        self.require_valid_time_periods(Some(start_epoch), None, None);
+        //self.require_valid_config_epoch_change(old_start_epoch);
+        //self.require_valid_time_periods(Some(start_epoch), None, None);
 
         self.try_set_confirmation_period_start_epoch(start_epoch)
     }
@@ -60,9 +59,9 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     #[endpoint(setWinnerSelectionStartEpoch)]
     fn set_winner_selection_start_epoch(&self, start_epoch: u64) {
         let old_start_epoch = self.winner_selection_start_epoch().get();
-        self.require_valid_config_epoch_change(old_start_epoch);
 
-        self.require_valid_time_periods(None, Some(start_epoch), None);
+        //self.require_valid_config_epoch_change(old_start_epoch);
+        //self.require_valid_time_periods(None, Some(start_epoch), None);
 
         self.try_set_winner_selection_start_epoch(start_epoch)
     }
@@ -71,9 +70,9 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     #[endpoint(setClaimStartEpoch)]
     fn set_claim_start_epoch(&self, claim_start_epoch: u64) {
         let old_start_epoch = self.claim_start_epoch().get();
-        self.require_valid_config_epoch_change(old_start_epoch);
-
-        self.require_valid_time_periods(None, None, Some(claim_start_epoch));
+        
+        //self.require_valid_config_epoch_change(old_start_epoch);
+        //self.require_valid_time_periods(None, None, Some(claim_start_epoch));
 
         self.try_set_claim_start_epoch(claim_start_epoch)
     }
