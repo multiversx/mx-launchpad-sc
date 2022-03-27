@@ -106,7 +106,7 @@ pub trait Launchpad:
 
     #[only_owner]
     #[endpoint(addMoreTicketsForSameUser)]
-    fn add_tickets(
+    fn add_more_tickets(
         &self,
         #[var_args] address_number_pairs: MultiValueEncoded<MultiValue2<ManagedAddress, usize>>,
     ) {
