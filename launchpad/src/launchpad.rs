@@ -396,7 +396,7 @@ pub trait Launchpad:
 
         require!(
             nr_old_tickets < nr_tickets, "new tickets must be higher then old tickets" 
-        )
+        );
 
         self.ticket_batch(old_ticket_range.first_id).Set(&TicketBatch {
             address: ManagedAddress::zero(),
