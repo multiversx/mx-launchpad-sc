@@ -15,7 +15,7 @@
                 "from": "address:owner",
                 "to": "sc:launchpad",
                 "value": "0",
-                "function": "addAddressToBlacklist",
+                "function": "addUsersToBlacklist",
                 "arguments": [
                     "address:user1"
                 ],
