@@ -35,8 +35,7 @@ pub trait Launchpad:
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
-    fn init(&self) {
-    }
+    fn init(&self) {}
 
     #[only_owner]
     #[endpoint(claimTicketPayment)]
@@ -70,25 +69,32 @@ pub trait Launchpad:
     }
 
     #[only_owner]
-    #[endpoint(addAddressToBlacklist)]
-    fn add_address_to_blacklist(&self, address: ManagedAddress) {
+    #[endpoint(addUsersToBlacklist)]
+    fn add_users_to_blacklist(&self, #[var_args] users_list: MultiValueEncoded<ManagedAddress>) {
         self.require_before_winner_selection();
 
-        let nr_confirmed_tickets = self.nr_confirmed_tickets(&address).get();
-        if nr_confirmed_tickets > 0 {
-            self.refund_ticket_payment(&address, nr_confirmed_tickets);
-            self.nr_confirmed_tickets(&address).clear();
-        }
+        for address in users_list {
+            let nr_confirmed_tickets = self.nr_confirmed_tickets(&address).get();
+            if nr_confirmed_tickets > 0 {
+                self.refund_ticket_payment(&address, nr_confirmed_tickets);
+                self.nr_confirmed_tickets(&address).clear();
+            }
 
-        self.blacklisted(&address).set(&true);
+            self.blacklisted(&address).set(&true);
+        }
     }
 
     #[only_owner]
-    #[endpoint(removeAddressFromBlacklist)]
-    fn remove_address_from_blacklist(&self, address: ManagedAddress) {
+    #[endpoint(removeUsersFromBlacklist)]
+    fn remove_users_from_blacklist(
+        &self,
+        #[var_args] users_list: MultiValueEncoded<ManagedAddress>,
+    ) {
         self.require_before_winner_selection();
 
-        self.blacklisted(&address).clear();
+        for address in users_list {
+            self.blacklisted(&address).clear();
+        }
     }
 
     #[only_owner]
@@ -395,13 +401,15 @@ pub trait Launchpad:
         let nr_old_tickets = old_ticket_range.last_id - old_ticket_range.first_id + 1;
 
         require!(
-            nr_old_tickets < nr_tickets, "new tickets must be higher then old tickets" 
+            nr_old_tickets < nr_tickets,
+            "new tickets must be higher then old tickets"
         );
 
-        self.ticket_batch(old_ticket_range.first_id).set(&TicketBatch {
-            address: ManagedAddress::zero(),
-            nr_tickets: nr_old_tickets,
-        });
+        self.ticket_batch(old_ticket_range.first_id)
+            .set(&TicketBatch {
+                address: ManagedAddress::zero(),
+                nr_tickets: nr_old_tickets,
+            });
 
         self.set_ticket_range_batch_for_user(buyer, nr_tickets);
     }
