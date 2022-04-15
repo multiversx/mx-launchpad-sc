@@ -95,25 +95,32 @@ pub trait Launchpad:
     }
 
     #[only_owner]
-    #[endpoint(addAddressToBlacklist)]
-    fn add_address_to_blacklist(&self, address: ManagedAddress) {
+    #[endpoint(addUsersToBlacklist)]
+    fn add_users_to_blacklist(&self, #[var_args] users_list: MultiValueEncoded<ManagedAddress>) {
         self.require_before_winner_selection();
 
-        let nr_confirmed_tickets = self.nr_confirmed_tickets(&address).get();
-        if nr_confirmed_tickets > 0 {
-            self.refund_ticket_payment(&address, nr_confirmed_tickets);
-            self.nr_confirmed_tickets(&address).clear();
-        }
+        for address in users_list {
+            let nr_confirmed_tickets = self.nr_confirmed_tickets(&address).get();
+            if nr_confirmed_tickets > 0 {
+                self.refund_ticket_payment(&address, nr_confirmed_tickets);
+                self.nr_confirmed_tickets(&address).clear();
+            }
 
-        self.blacklisted(&address).set(&true);
+            self.blacklisted(&address).set(&true);
+        }
     }
 
     #[only_owner]
-    #[endpoint(removeAddressFromBlacklist)]
-    fn remove_address_from_blacklist(&self, address: ManagedAddress) {
+    #[endpoint(removeUsersFromBlacklist)]
+    fn remove_users_from_blacklist(
+        &self,
+        #[var_args] users_list: MultiValueEncoded<ManagedAddress>,
+    ) {
         self.require_before_winner_selection();
 
-        self.blacklisted(&address).clear();
+        for address in users_list {
+            self.blacklisted(&address).clear();
+        }
     }
 
     #[only_owner]

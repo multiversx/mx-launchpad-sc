@@ -7,8 +7,8 @@
 elrond_wasm_node::wasm_endpoints! {
     launchpad
     (
-        addAddressToBlacklist
         addTickets
+        addUsersToBlacklist
         claimLaunchpadTokens
         claimTicketPayment
         confirmTickets
@@ -29,7 +29,7 @@ elrond_wasm_node::wasm_endpoints! {
         getWinningTicketIdsForAddress
         hasUserClaimedTokens
         isUserBlacklisted
-        removeAddressFromBlacklist
+        removeUsersFromBlacklist
         selectWinners
         setClaimStartEpoch
         setConfirmationPeriodStartEpoch
