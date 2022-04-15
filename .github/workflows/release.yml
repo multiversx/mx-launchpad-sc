@@ -23,12 +23,17 @@ jobs:
     container: 
       image: elrondnetwork/elrond-sdk-erdpy-rust:frozen-003
     steps:
-      # We don't use actions/checkout, since we want to control the location of the repository,
-      # in order to achieve deterministic builds.
-      - name: Check out code
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ env.GITHUB_REF_NAME }}
+          fetch-depth: 0
+          repository: ElrondNetwork/sc-launchpad-rs
+
+      - name: Copy source code to build location
         run: |
-          echo "Cloning ref: $GITHUB_REF_NAME"
-          cd $ELROND_HOME && git clone $REPO_URL --branch=$GITHUB_REF_NAME --depth=1
+          mkdir -p ${REPO_PATH}
+          cp -a /__w/sc-launchpad-rs/sc-launchpad-rs/. ${REPO_PATH}
 
       - name: Build WASM files
         run: |
@@ -64,12 +69,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "## Checksums (SHA 256):" >> notes.txt
+          echo "## Checksums (blake2b):" >> notes.txt
           echo "" >> notes.txt
 
           for i in $(find ./assets -type f); do
             filename=$(basename ${i})
-            checksum=($(sha256sum ${i}))
+            checksum=($(b2sum -l 256 ${i}))
             echo " - **${filename}**: \`${checksum}\`" >> notes.txt
           done
 
