@@ -23,7 +23,7 @@ jobs:
     container: 
       image: elrondnetwork/elrond-sdk-erdpy-rust:frozen-003
     steps:
-      - name: Checkout (attempt)
+      - name: Checkout
         uses: actions/checkout@v2
         with:
           ref: ${{ env.GITHUB_REF_NAME }}
@@ -31,7 +31,7 @@ jobs:
           repository: ElrondNetwork/sc-launchpad-rs
 
       - name: Copy source code to build location
-      - run: |
+        run: |
           mkdir -p ${REPO_PATH}
           cp -a /__w/sc-launchpad-rs/sc-launchpad-rs/. ${REPO_PATH}
 
