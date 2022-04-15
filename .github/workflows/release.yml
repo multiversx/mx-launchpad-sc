@@ -27,8 +27,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: ElrondNetwork/sc-launchpad-rs
-          path: ${{ env.ELROND_HOME }}
 
+      - run: mkdir -p ${REPO_PATH}
+      - run: cp -a /__w/sc-launchpad-rs/sc-launchpad-rs/. ${REPO_PATH}
       - run: ls $ELROND_HOME
       - run: ls $REPO_PATH
 
