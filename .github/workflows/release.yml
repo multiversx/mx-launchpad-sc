@@ -27,8 +27,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: ElrondNetwork/sc-launchpad-rs
-          path: $ELROND_HOME
+          path: ${{ env.ELROND_HOME }}
 
+      - run: ls $ELROND_HOME
       - run: ls $REPO_PATH
 
       # We don't use actions/checkout, since we want to control the location of the repository,
