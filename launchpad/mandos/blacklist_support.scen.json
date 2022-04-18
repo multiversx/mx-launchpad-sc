@@ -1,0 +1,389 @@
+{
+    "name": "add user to blacklist + refund",
+    "gasSchedule": "v3",
+    "traceGas": false,
+    "steps": [
+        {
+            "traceGas": false,
+            "step": "externalSteps",
+            "path": "confirm_tickets.scen.json"
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "address:support": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "2,000,000"
+                    },
+                    "storage": {}
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "set-support-address",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "setSupportAddress",
+                "arguments": [
+                    "address:support"
+                ],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:launchpad": {
+                    "storage": {
+                        "str:supportAddress": "address:support",
+
+                        "+": ""
+                    },
+                    "esdt": "*",
+                    "balance": "*",
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "supporter-add-user1-to-blacklist",
+            "tx": {
+                "from": "address:support",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "addUsersToBlacklist",
+                "arguments": [
+                    "address:user1"
+                ],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "*",
+                    "balance": "1,000,000",
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "100",
+                    "esdt": {
+                        "str:LAUNCH-123456": "500,000"
+                    },
+                    "storage": {
+                        "str:nrConfirmedTickets|address:user1": "",
+                        "str:blacklisted|address:user1": "1",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "failed-add-user3-to-blacklist",
+            "tx": {
+                "from": "address:user2",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "addUsersToBlacklist",
+                "arguments": [
+                    "address:user3"
+                ],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:Permission denied",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user3": {
+                    "nonce": "*",
+                    "balance": "999,900",
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "100",
+                    "esdt": {
+                        "str:LAUNCH-123456": "500,000"
+                    },
+                    "storage": {
+                        "str:nrConfirmedTickets|address:user3": "1",
+                        "str:blacklisted|address:user3": "",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user1-try-confirm",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "confirmTickets",
+                "arguments": [
+                    "2"
+                ],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:You have been put into the blacklist and may not confirm tickets",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "75"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "filter-tickets",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "filterTickets",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [
+                    "str:completed"
+                ],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "100",
+                    "esdt": {
+                        "str:LAUNCH-123456": "500,000"
+                    },
+                    "storage": {
+                        "str:lastTicketId": "1",
+                        "str:nrWinningTickets": "1",
+
+                        "str:ticketRangeForAddress|address:user3": "u32:1|u32:1",
+                        "str:ticketBatch|u32:1": "address:user3|u32:1",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "select-winners",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "selectWinners",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [
+                    "str:completed"
+                ],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "150"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user3-claim",
+            "tx": {
+                "from": "address:user3",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "claimLaunchpadTokens",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-claim-ticket-payment",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "claimTicketPayment",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "*",
+                    "balance": "100",
+                    "esdt": {
+                        "str:LAUNCH-123456": "1,900,000"
+                    },
+                    "storage": {}
+                },
+                "address:user3": {
+                    "nonce": "*",
+                    "balance": "999,900",
+                    "esdt": {
+                        "str:LAUNCH-123456": "100,000"
+                    },
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "0"
+                    },
+                    "storage": {
+                        "str:claimableTicketPayment": "",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "owner-claim-again",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:launchpad",
+                "value": "0",
+                "function": "claimTicketPayment",
+                "arguments": [],
+                "gasLimit": "50,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "message": "",
+                "out": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "comment": "state remains unchanged",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "*",
+                    "balance": "100",
+                    "esdt": {
+                        "str:LAUNCH-123456": "1,900,000"
+                    },
+                    "storage": {}
+                },
+                "address:user3": {
+                    "nonce": "*",
+                    "balance": "999,900",
+                    "esdt": {
+                        "str:LAUNCH-123456": "100,000"
+                    },
+                    "storage": {}
+                },
+                "sc:launchpad": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LAUNCH-123456": "0"
+                    },
+                    "storage": {
+                        "str:claimableTicketPayment": "",
+
+                        "+": ""
+                    },
+                    "code": "*"
+                },
+                "+": {}
+            }
+        }
+    ]
+}

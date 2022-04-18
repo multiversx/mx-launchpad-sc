@@ -21,9 +21,11 @@ elrond_wasm_node::wasm_endpoints! {
         getNumberOfConfirmedTicketsForAddress
         getNumberOfWinningTickets
         getNumberOfWinningTicketsForAddress
+        getSupportAddress
         getTicketPaymentToken
         getTicketPrice
         getTicketRangeForAddress
+        getTotalNumberOfTickets
         getTotalNumberOfTicketsForAddress
         getWinnerSelectionStart
         getWinningTicketIdsForAddress
@@ -34,6 +36,7 @@ elrond_wasm_node::wasm_endpoints! {
         setClaimStartEpoch
         setConfirmationPeriodStartEpoch
         setLaunchpadTokensPerWinningTicket
+        setSupportAddress
         setTicketPaymentToken
         setTicketPrice
         setWinnerSelectionStartEpoch

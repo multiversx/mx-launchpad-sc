@@ -87,7 +87,8 @@
                         "str:nrWinningTickets": "5",
                         "str:confirmationPeriodStartEpoch": "25",
                         "str:winnerSelectionStartEpoch": "50",
-                        "str:claimStartEpoch": "100"
+                        "str:claimStartEpoch": "100",
+                        "str:supportAddress": ""
                     },
                     "code": "file:../output/launchpad.wasm"
                 },
