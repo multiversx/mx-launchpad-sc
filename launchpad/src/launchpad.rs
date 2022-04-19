@@ -56,6 +56,8 @@ pub trait Launchpad:
         self.try_set_winner_selection_start_epoch(winner_selection_start_epoch);
         self.try_set_claim_start_epoch(claim_start_epoch);
 
+        self.support_address().set(self.blockchain().get_caller());
+
         self.require_valid_time_periods(
             Some(confirmation_period_start_epoch),
             Some(winner_selection_start_epoch),
@@ -94,9 +96,9 @@ pub trait Launchpad:
         }
     }
 
-    #[only_owner]
     #[endpoint(addUsersToBlacklist)]
     fn add_users_to_blacklist(&self, #[var_args] users_list: MultiValueEncoded<ManagedAddress>) {
+        self.require_extended_permissions();
         self.require_before_winner_selection();
 
         for address in users_list {
@@ -110,12 +112,12 @@ pub trait Launchpad:
         }
     }
 
-    #[only_owner]
     #[endpoint(removeUsersFromBlacklist)]
     fn remove_users_from_blacklist(
         &self,
         #[var_args] users_list: MultiValueEncoded<ManagedAddress>,
     ) {
+        self.require_extended_permissions();
         self.require_before_winner_selection();
 
         for address in users_list {
@@ -136,6 +138,12 @@ pub trait Launchpad:
 
             self.try_create_tickets(buyer, nr_tickets);
         }
+    }
+
+    #[only_owner]
+    #[endpoint(setSupportAddress)]
+    fn add_support_address(&self, address: ManagedAddress) {
+        self.support_address().set(&address);
     }
 
     #[payable("*")]
@@ -442,6 +450,14 @@ pub trait Launchpad:
         ticket_id
     }
 
+    fn require_extended_permissions(&self) {
+        let caller = self.blockchain().get_caller();
+        let owner = self.blockchain().get_owner_address();
+        let support_address = self.support_address().get();
+
+        require!(caller == owner || caller == support_address, "Permission denied");
+    }
+
     #[inline(always)]
     fn get_total_tickets(&self) -> usize {
         self.last_ticket_id().get()
@@ -500,6 +516,7 @@ pub trait Launchpad:
     #[storage_mapper("ticketStatus")]
     fn ticket_status(&self, ticket_id: usize) -> SingleValueMapper<TicketStatus>;
 
+    #[view(getTotalNumberOfTickets)]
     #[storage_mapper("lastTicketId")]
     fn last_ticket_id(&self) -> SingleValueMapper<usize>;
 
@@ -519,6 +536,10 @@ pub trait Launchpad:
 
     #[storage_mapper("claimableTicketPayment")]
     fn claimable_ticket_payment(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getSupportAddress)]
+    #[storage_mapper("supportAddress")]
+    fn support_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     // flags
 
