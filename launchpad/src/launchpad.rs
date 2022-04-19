@@ -56,6 +56,8 @@ pub trait Launchpad:
         self.try_set_winner_selection_start_epoch(winner_selection_start_epoch);
         self.try_set_claim_start_epoch(claim_start_epoch);
 
+        self.support_address().set(self.blockchain().get_caller());
+
         self.require_valid_time_periods(
             Some(confirmation_period_start_epoch),
             Some(winner_selection_start_epoch),
@@ -451,12 +453,9 @@ pub trait Launchpad:
     fn require_extended_permissions(&self) {
         let caller = self.blockchain().get_caller();
         let owner = self.blockchain().get_owner_address();
-        if self.support_address().is_empty() {
-            require!(caller == owner, "Permission denied");
-        } else {
-            let support_address = self.support_address().get();
-            require!(caller == owner || caller == support_address, "Permission denied");
-        }
+        let support_address = self.support_address().get();
+
+        require!(caller == owner || caller == support_address, "Permission denied");
     }
 
     #[inline(always)]

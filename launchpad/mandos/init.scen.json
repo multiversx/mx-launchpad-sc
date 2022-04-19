@@ -88,7 +88,7 @@
                         "str:confirmationPeriodStartEpoch": "25",
                         "str:winnerSelectionStartEpoch": "50",
                         "str:claimStartEpoch": "100",
-                        "str:supportAddress": ""
+                        "str:supportAddress": "address:owner"
                     },
                     "code": "file:../output/launchpad.wasm"
                 },
