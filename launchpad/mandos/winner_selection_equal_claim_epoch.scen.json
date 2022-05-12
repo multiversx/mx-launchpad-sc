@@ -35,8 +35,11 @@
                     "balance": "*",
                     "esdt": "*",
                     "storage": {
-                        "str:winnerSelectionStartEpoch": "50",
-                        "str:claimStartEpoch": "50",
+                        "str:configuration": {
+                            "1-confirmation_period_start_epoch": "u64:25",
+                            "2-winner_selection_start_epoch": "u64:50",
+                            "3-claim_start_epoch": "u64:50"
+                        },
                         "+": ""
                     },
                     "code": "file:../output/launchpad.wasm"

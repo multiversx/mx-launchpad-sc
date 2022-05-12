@@ -82,12 +82,17 @@
                     "storage": {
                         "str:launchpadTokenId": "str:LAUNCH-123456",
                         "str:launchpadTokensPerWinningTicket": "100,000",
-                        "str:ticketPaymentToken": "str:EGLD",
-                        "str:ticketPrice": "100",
                         "str:nrWinningTickets": "5",
-                        "str:confirmationPeriodStartEpoch": "25",
-                        "str:winnerSelectionStartEpoch": "50",
-                        "str:claimStartEpoch": "100",
+                        "str:ticketPrice": {
+                            "1-token_id": "nested:str:EGLD",
+                            "2-amount": "biguint:100"
+                        },
+                        "str:configuration": {
+                            "1-confirmation_period_start_epoch": "u64:25",
+                            "2-winner_selection_start_epoch": "u64:50",
+                            "3-claim_start_epoch": "u64:100"
+                        },
+                        "str:flags": "u8:0|u8:0|u8:0",
                         "str:supportAddress": "address:owner"
                     },
                     "code": "file:../output/launchpad.wasm"

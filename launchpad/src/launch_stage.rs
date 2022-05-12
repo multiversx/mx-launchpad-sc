@@ -1,4 +1,5 @@
 elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 #[derive(PartialEq, PartialOrd)]
 pub enum LaunchStage {
@@ -8,45 +9,55 @@ pub enum LaunchStage {
     Claim,
 }
 
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct EpochsConfig {
+    pub confirmation_period_start_epoch: u64,
+    pub winner_selection_start_epoch: u64,
+    pub claim_start_epoch: u64,
+}
+
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct Flags {
+    pub has_winner_selection_process_started: bool,
+    pub were_tickets_filtered: bool,
+    pub were_winners_selected: bool,
+}
+
 #[elrond_wasm::module]
 pub trait LaunchStageModule {
     fn get_launch_stage(&self) -> LaunchStage {
         let current_epoch = self.blockchain().get_block_epoch();
-        let confirmation_period_start_epoch = self.confirmation_period_start_epoch().get();
+        let config: EpochsConfig = self.configuration().get();
+        let flags: Flags = self.flags().get();
 
-        if current_epoch < confirmation_period_start_epoch {
+        if current_epoch < config.confirmation_period_start_epoch {
             return LaunchStage::AddTickets;
         }
-
-        let winner_selection_start_epoch = self.winner_selection_start_epoch().get();
-        if current_epoch < winner_selection_start_epoch {
+        if current_epoch < config.winner_selection_start_epoch {
             return LaunchStage::Confirm;
         }
-
-        let winner_selection_started = self.has_winner_selection_process_started();
-        let were_winners_selected = self.were_winners_selected();
-        if winner_selection_started && !were_winners_selected {
+        if flags.has_winner_selection_process_started && !flags.were_winners_selected {
             return LaunchStage::WinnerSelection;
         }
-
-        let claim_start_epoch = self.claim_start_epoch().get();
-        if winner_selection_start_epoch == claim_start_epoch
-            && current_epoch == winner_selection_start_epoch
+        if config.winner_selection_start_epoch == config.claim_start_epoch
+            && current_epoch == config.winner_selection_start_epoch
         {
-            if were_winners_selected {
+            if flags.were_winners_selected {
                 return LaunchStage::Claim;
             }
 
             return LaunchStage::WinnerSelection;
         }
-        if current_epoch >= winner_selection_start_epoch && current_epoch < claim_start_epoch {
+        if current_epoch >= config.winner_selection_start_epoch
+            && current_epoch < config.claim_start_epoch
+        {
             return LaunchStage::WinnerSelection;
         }
 
         LaunchStage::Claim
     }
 
-    #[inline(always)]
+    #[inline]
     fn require_add_tickets_period(&self) {
         require!(
             self.get_launch_stage() == LaunchStage::AddTickets,
@@ -54,7 +65,7 @@ pub trait LaunchStageModule {
         );
     }
 
-    #[inline(always)]
+    #[inline]
     fn require_confirmation_period(&self) {
         require!(
             self.get_launch_stage() == LaunchStage::Confirm,
@@ -62,7 +73,7 @@ pub trait LaunchStageModule {
         );
     }
 
-    #[inline(always)]
+    #[inline]
     fn require_before_winner_selection(&self) {
         require!(
             self.get_launch_stage() < LaunchStage::WinnerSelection,
@@ -70,7 +81,7 @@ pub trait LaunchStageModule {
         );
     }
 
-    #[inline(always)]
+    #[inline]
     fn require_winner_selection_period(&self) {
         require!(
             self.get_launch_stage() == LaunchStage::WinnerSelection,
@@ -78,7 +89,7 @@ pub trait LaunchStageModule {
         );
     }
 
-    #[inline(always)]
+    #[inline]
     fn require_claim_period(&self) {
         require!(
             self.get_launch_stage() == LaunchStage::Claim,
@@ -86,44 +97,11 @@ pub trait LaunchStageModule {
         );
     }
 
-    #[inline(always)]
-    fn has_winner_selection_process_started(&self) -> bool {
-        self.winner_selection_process_started().get()
-    }
+    #[view(getConfiguration)]
+    #[storage_mapper("configuration")]
+    fn configuration(&self) -> SingleValueMapper<EpochsConfig>;
 
-    #[inline(always)]
-    fn were_tickets_filtered(&self) -> bool {
-        self.tickets_filtered().get()
-    }
-
-    #[inline(always)]
-    fn were_winners_selected(&self) -> bool {
-        self.winners_selected().get()
-    }
-
-    // storage
-
-    #[view(getConfirmationPeriodStartEpoch)]
-    #[storage_mapper("confirmationPeriodStartEpoch")]
-    fn confirmation_period_start_epoch(&self) -> SingleValueMapper<u64>;
-
-    #[view(getWinnerSelectionStart)]
-    #[storage_mapper("winnerSelectionStartEpoch")]
-    fn winner_selection_start_epoch(&self) -> SingleValueMapper<u64>;
-
-    #[view(getClaimStartEpoch)]
-    #[storage_mapper("claimStartEpoch")]
-    fn claim_start_epoch(&self) -> SingleValueMapper<u64>;
-
-    // flags
-
-    #[storage_mapper("winnerSelectionProcessStarted")]
-    fn winner_selection_process_started(&self) -> SingleValueMapper<bool>;
-
-    #[storage_mapper("ticketsFiltered")]
-    fn tickets_filtered(&self) -> SingleValueMapper<bool>;
-
-    #[view(wereWinnersSelected)]
-    #[storage_mapper("winnersSelected")]
-    fn winners_selected(&self) -> SingleValueMapper<bool>;
+    #[view(getLaunchStageFlags)]
+    #[storage_mapper("flags")]
+    fn flags(&self) -> SingleValueMapper<Flags>;
 }

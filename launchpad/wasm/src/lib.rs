@@ -14,20 +14,18 @@ elrond_wasm_node::wasm_endpoints! {
         confirmTickets
         depositLaunchpadTokens
         filterTickets
-        getClaimStartEpoch
-        getConfirmationPeriodStartEpoch
+        getConfiguration
+        getLaunchStageFlags
         getLaunchpadTokenId
         getLaunchpadTokensPerWinningTicket
         getNumberOfConfirmedTicketsForAddress
         getNumberOfWinningTickets
         getNumberOfWinningTicketsForAddress
         getSupportAddress
-        getTicketPaymentToken
         getTicketPrice
         getTicketRangeForAddress
         getTotalNumberOfTickets
         getTotalNumberOfTicketsForAddress
-        getWinnerSelectionStart
         getWinningTicketIdsForAddress
         hasUserClaimedTokens
         isUserBlacklisted
@@ -37,10 +35,8 @@ elrond_wasm_node::wasm_endpoints! {
         setConfirmationPeriodStartEpoch
         setLaunchpadTokensPerWinningTicket
         setSupportAddress
-        setTicketPaymentToken
         setTicketPrice
         setWinnerSelectionStartEpoch
-        wereWinnersSelected
     )
 }
 

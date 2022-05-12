@@ -53,19 +53,19 @@ pub trait OngoingOperationModule {
         OperationCompletionStatus::Completed
     }
 
-    #[inline(always)]
+    #[inline]
     fn can_continue_operation(&self, operation_cost: u64) -> bool {
         let gas_left = self.blockchain().get_gas_left();
 
         gas_left > MIN_GAS_TO_SAVE_PROGRESS + operation_cost
     }
 
-    #[inline(always)]
+    #[inline]
     fn save_progress(&self, op: &OngoingOperationType<Self::Api>) {
         self.current_ongoing_operation().set(op);
     }
 
-    #[inline(always)]
+    #[inline]
     fn clear_operation(&self) {
         self.current_ongoing_operation().clear();
     }

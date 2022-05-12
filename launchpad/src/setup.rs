@@ -1,4 +1,13 @@
+use crate::launch_stage::EpochsConfig;
+
 elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
+
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct TokenAmountPair<M: ManagedTypeApi> {
+    pub token_id: TokenIdentifier<M>,
+    pub amount: BigUint<M>,
+}
 
 #[elrond_wasm::module]
 pub trait SetupModule: crate::launch_stage::LaunchStageModule {
@@ -25,57 +34,56 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     }
 
     #[only_owner]
-    #[endpoint(setTicketPaymentToken)]
-    fn set_ticket_payment_token(&self, ticket_payment_token: TokenIdentifier) {
-        self.require_add_tickets_period();
-        self.ticket_payment_token().set(&ticket_payment_token);
-    }
-
-    #[only_owner]
     #[endpoint(setTicketPrice)]
-    fn set_ticket_price(&self, ticket_price: BigUint) {
+    fn set_ticket_price(&self, token_id: TokenIdentifier, amount: BigUint) {
         self.require_add_tickets_period();
-        self.try_set_ticket_price(&ticket_price)
+        self.try_set_ticket_price(token_id, amount);
     }
 
     #[only_owner]
     #[endpoint(setLaunchpadTokensPerWinningTicket)]
     fn set_launchpad_tokens_per_winning_ticket(&self, amount: BigUint) {
         self.require_add_tickets_period();
-        self.try_set_launchpad_tokens_per_winning_ticket(&amount)
+        self.try_set_launchpad_tokens_per_winning_ticket(&amount);
     }
 
     #[only_owner]
     #[endpoint(setConfirmationPeriodStartEpoch)]
-    fn set_confirmation_period_start_epoch(&self, start_epoch: u64) {
-        let old_start_epoch = self.confirmation_period_start_epoch().get();
-        self.require_valid_config_epoch_change(old_start_epoch);
+    fn set_confirmation_period_start_epoch(&self, new_start_epoch: u64) {
+        self.configuration().update(|config| {
+            self.require_valid_config_epoch_change(
+                config.confirmation_period_start_epoch,
+                new_start_epoch,
+            );
 
-        self.require_valid_time_periods(Some(start_epoch), None, None);
-
-        self.try_set_confirmation_period_start_epoch(start_epoch)
+            config.confirmation_period_start_epoch = new_start_epoch;
+            self.require_valid_time_periods(config);
+        });
     }
 
     #[only_owner]
     #[endpoint(setWinnerSelectionStartEpoch)]
-    fn set_winner_selection_start_epoch(&self, start_epoch: u64) {
-        let old_start_epoch = self.winner_selection_start_epoch().get();
-        self.require_valid_config_epoch_change(old_start_epoch);
+    fn set_winner_selection_start_epoch(&self, new_start_epoch: u64) {
+        self.configuration().update(|config| {
+            self.require_valid_config_epoch_change(
+                config.winner_selection_start_epoch,
+                new_start_epoch,
+            );
 
-        self.require_valid_time_periods(None, Some(start_epoch), None);
-
-        self.try_set_winner_selection_start_epoch(start_epoch)
+            config.winner_selection_start_epoch = new_start_epoch;
+            self.require_valid_time_periods(config);
+        });
     }
 
     #[only_owner]
     #[endpoint(setClaimStartEpoch)]
-    fn set_claim_start_epoch(&self, claim_start_epoch: u64) {
-        let old_start_epoch = self.claim_start_epoch().get();
-        self.require_valid_config_epoch_change(old_start_epoch);
+    fn set_claim_start_epoch(&self, new_start_epoch: u64) {
+        self.configuration().update(|config| {
+            self.require_valid_config_epoch_change(config.claim_start_epoch, new_start_epoch);
 
-        self.require_valid_time_periods(None, None, Some(claim_start_epoch));
-
-        self.try_set_claim_start_epoch(claim_start_epoch)
+            config.claim_start_epoch = new_start_epoch;
+            self.require_valid_time_periods(config);
+        });
     }
 
     // private
@@ -87,10 +95,15 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         amount_per_ticket * (total_winning_tickets as u32)
     }
 
-    fn try_set_ticket_price(&self, ticket_price: &BigUint) {
-        require!(ticket_price > &0, "Ticket price must be higher than 0");
+    fn try_set_ticket_price(&self, token_id: TokenIdentifier, amount: BigUint) {
+        require!(
+            token_id.is_egld() || token_id.is_valid_esdt_identifier(),
+            "Invalid token ID"
+        );
+        require!(amount > 0, "Ticket price must be higher than 0");
 
-        self.ticket_price().set(ticket_price);
+        self.ticket_price()
+            .set(&TokenAmountPair { token_id, amount });
     }
 
     fn try_set_launchpad_tokens_per_winning_ticket(&self, amount: &BigUint) {
@@ -111,67 +124,30 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         self.nr_winning_tickets().set(&nr_winning_tickets);
     }
 
-    fn try_set_confirmation_period_start_epoch(&self, start_epoch: u64) {
-        let current_epoch = self.blockchain().get_block_epoch();
-        require!(
-            start_epoch > current_epoch,
-            "Confirmation period start epoch cannot be in the past"
-        );
-
-        self.confirmation_period_start_epoch().set(&start_epoch);
-    }
-
-    fn try_set_winner_selection_start_epoch(&self, start_epoch: u64) {
-        let current_epoch = self.blockchain().get_block_epoch();
-        require!(
-            start_epoch > current_epoch,
-            "Start epoch cannot be in the past"
-        );
-
-        self.winner_selection_start_epoch().set(&start_epoch);
-    }
-
-    fn try_set_claim_start_epoch(&self, claim_start_epoch: u64) {
-        let current_epoch = self.blockchain().get_block_epoch();
-        require!(
-            claim_start_epoch > current_epoch,
-            "Claim start epoch cannot be in the past"
-        );
-
-        self.claim_start_epoch().set(&claim_start_epoch);
-    }
-
-    fn require_valid_config_epoch_change(&self, old_start_epoch: u64) {
+    fn require_valid_config_epoch_change(&self, old_start_epoch: u64, new_start_epoch: u64) {
         let current_epoch = self.blockchain().get_block_epoch();
         require!(
             old_start_epoch > current_epoch,
             "Cannot change start epoch, it's either in progress or passed already"
         );
+        require!(
+            new_start_epoch > current_epoch,
+            "Start epoch cannot be in the past"
+        );
     }
 
-    fn require_valid_time_periods(
-        &self,
-        opt_confirm_start_epoch: Option<u64>,
-        opt_winner_selection_start_epoch: Option<u64>,
-        opt_claim_start: Option<u64>,
-    ) {
-        let confirm_start_epoch =
-            opt_confirm_start_epoch.unwrap_or_else(|| self.confirmation_period_start_epoch().get());
-        let winner_selection_start_epoch = opt_winner_selection_start_epoch
-            .unwrap_or_else(|| self.winner_selection_start_epoch().get());
-        let claim_start = opt_claim_start.unwrap_or_else(|| self.claim_start_epoch().get());
-
+    fn require_valid_time_periods(&self, config: &EpochsConfig) {
         require!(
-            confirm_start_epoch < winner_selection_start_epoch,
+            config.confirmation_period_start_epoch < config.winner_selection_start_epoch,
             "Winner selection start epoch must be after confirm start epoch"
         );
         require!(
-            winner_selection_start_epoch <= claim_start,
+            config.winner_selection_start_epoch <= config.claim_start_epoch,
             "Claim period must be after winner selection"
         );
     }
 
-    #[inline(always)]
+    #[inline]
     fn were_launchpad_tokens_deposited(&self) -> bool {
         self.launchpad_tokens_deposited().get()
     }
@@ -186,13 +162,9 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     #[storage_mapper("launchpadTokensPerWinningTicket")]
     fn launchpad_tokens_per_winning_ticket(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getTicketPaymentToken)]
-    #[storage_mapper("ticketPaymentToken")]
-    fn ticket_payment_token(&self) -> SingleValueMapper<TokenIdentifier>;
-
     #[view(getTicketPrice)]
     #[storage_mapper("ticketPrice")]
-    fn ticket_price(&self) -> SingleValueMapper<BigUint>;
+    fn ticket_price(&self) -> SingleValueMapper<TokenAmountPair<Self::Api>>;
 
     #[view(getNumberOfWinningTickets)]
     #[storage_mapper("nrWinningTickets")]
