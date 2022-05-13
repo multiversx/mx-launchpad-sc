@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 
 const USIZE_BYTES: usize = 4;
 pub const HASH_LEN: usize = 32;
-const FAILED_COPY_ERR_MSG: &[u8] = b"Failed copy to/from managed buffer";
+static FAILED_COPY_ERR_MSG: &[u8] = b"Failed copy to/from managed buffer";
 
 pub type Hash<M> = ManagedByteArray<M, HASH_LEN>;
 

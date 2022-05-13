@@ -49,7 +49,7 @@ Besides the initial setup, which is done at deployment time, some additional pos
 #[endpoint(addTickets)]
 fn add_tickets(
     &self,
-    #[var_args] address_number_pairs: MultiValueEncoded<MultiValue2<Address, usize>>,
+    address_number_pairs: MultiValueEncoded<MultiValue2<Address, usize>>,
 ) 
 ```
 
