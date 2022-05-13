@@ -1,4 +1,5 @@
 elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 #[derive(PartialEq, PartialOrd)]
 pub enum LaunchStage {
@@ -6,6 +7,20 @@ pub enum LaunchStage {
     Confirm,
     WinnerSelection,
     Claim,
+}
+
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct EpochsConfig {
+    pub confirmation_period_start_epoch: u64,
+    pub winner_selection_start_epoch: u64,
+    pub claim_start_epoch: u64,
+}
+
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct Flags {
+    pub has_winner_selection_process_started: bool,
+    pub were_tickets_filtered: bool,
+    pub were_winners_selected: bool,
 }
 
 #[elrond_wasm::module]
@@ -99,6 +114,24 @@ pub trait LaunchStageModule {
     #[inline(always)]
     fn were_winners_selected(&self) -> bool {
         self.winners_selected().get()
+    }
+
+    #[view(getConfiguration)]
+    fn get_configuration(&self) -> EpochsConfig {
+        EpochsConfig {
+            confirmation_period_start_epoch: self.confirmation_period_start_epoch().get(),
+            winner_selection_start_epoch: self.winner_selection_start_epoch().get(),
+            claim_start_epoch: self.claim_start_epoch().get(),
+        }
+    }
+
+    #[view(getLaunchStageFlags)]
+    fn get_flags(&self) -> Flags {
+        Flags {
+            has_winner_selection_process_started: self.winner_selection_process_started().get(),
+            were_tickets_filtered: self.tickets_filtered().get(),
+            were_winners_selected: self.winners_selected().get(),
+        }
     }
 
     // storage

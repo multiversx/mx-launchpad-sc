@@ -29,41 +29,13 @@ pub struct TicketBatch<M: ManagedTypeApi> {
     pub nr_tickets: usize,
 }
 
-#[elrond_wasm::derive::contract]
+#[elrond_wasm::contract]
 pub trait Launchpad:
     launch_stage::LaunchStageModule + setup::SetupModule + ongoing_operation::OngoingOperationModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
-    fn init(
-        &self,
-        launchpad_token_id: TokenIdentifier,
-        launchpad_tokens_per_winning_ticket: BigUint,
-        ticket_payment_token: TokenIdentifier,
-        ticket_price: BigUint,
-        nr_winning_tickets: usize,
-        confirmation_period_start_epoch: u64,
-        winner_selection_start_epoch: u64,
-        claim_start_epoch: u64,
-    ) {
-        self.launchpad_token_id().set(&launchpad_token_id);
-
-        self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket);
-        self.ticket_payment_token().set(&ticket_payment_token);
-        self.try_set_ticket_price(&ticket_price);
-        self.try_set_nr_winning_tickets(nr_winning_tickets);
-        self.try_set_confirmation_period_start_epoch(confirmation_period_start_epoch);
-        self.try_set_winner_selection_start_epoch(winner_selection_start_epoch);
-        self.try_set_claim_start_epoch(claim_start_epoch);
-
-        self.support_address().set(self.blockchain().get_caller());
-
-        self.require_valid_time_periods(
-            Some(confirmation_period_start_epoch),
-            Some(winner_selection_start_epoch),
-            Some(claim_start_epoch),
-        );
-    }
+    fn init(&self) {}
 
     #[only_owner]
     #[endpoint(claimTicketPayment)]
@@ -455,7 +427,10 @@ pub trait Launchpad:
         let owner = self.blockchain().get_owner_address();
         let support_address = self.support_address().get();
 
-        require!(caller == owner || caller == support_address, "Permission denied");
+        require!(
+            caller == owner || caller == support_address,
+            "Permission denied"
+        );
     }
 
     #[inline(always)]
