@@ -27,7 +27,7 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
         let launchpad_token_id = self.launchpad_token_id().get();
         require!(payment_token == launchpad_token_id, "Wrong token");
 
-        let amount_needed = self.get_exact_lanchpad_tokens_needed();
+        let amount_needed = self.get_exact_launchpad_tokens_needed();
         require!(payment_amount == amount_needed, "Wrong amount");
 
         self.launchpad_tokens_deposited().set(&true);
@@ -88,7 +88,7 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
 
     // private
 
-    fn get_exact_lanchpad_tokens_needed(&self) -> BigUint {
+    fn get_exact_launchpad_tokens_needed(&self) -> BigUint {
         let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
         let total_winning_tickets = self.nr_winning_tickets().get();
 

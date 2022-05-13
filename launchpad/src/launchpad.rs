@@ -94,7 +94,7 @@ pub trait Launchpad:
         }
 
         let launchpad_token_id = self.launchpad_token_id().get();
-        let launchpad_tokens_needed = self.get_exact_lanchpad_tokens_needed();
+        let launchpad_tokens_needed = self.get_exact_launchpad_tokens_needed();
         let launchpad_tokens_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
         let extra_launchpad_tokens = launchpad_tokens_balance - launchpad_tokens_needed;
         if extra_launchpad_tokens > 0 {
