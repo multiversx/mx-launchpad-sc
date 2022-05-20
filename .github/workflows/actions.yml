@@ -6,7 +6,10 @@ on:
       - main
   pull_request:
 
-permissions: write-all
+permissions:
+  checks: write
+  pull-requests: write
+  repository-projects: read
 
 jobs:
   contracts:
