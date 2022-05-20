@@ -6,10 +6,7 @@ on:
       - main
   pull_request:
 
-permissions:
-  actions: write
-  checks: write
-  pull-requests: write
+permissions: write-all
 
 jobs:
   contracts:
