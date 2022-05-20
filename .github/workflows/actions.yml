@@ -8,8 +8,8 @@ on:
 
 permissions:
   checks: write
+  contents: read
   pull-requests: write
-  repository-projects: read
 
 jobs:
   contracts:
