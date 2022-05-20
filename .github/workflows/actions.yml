@@ -13,7 +13,7 @@ permissions:
 jobs:
   contracts:
     name: Contracts
-    uses: ElrondNetwork/elrond-actions/.github/workflows/contracts.yml@v1
+    uses: ElrondNetwork/elrond-actions/.github/workflows/contracts.yml@use-token-on-checkout
     with:
       rust-toolchain: nightly-2022-03-01
       vmtools-version: v1.4.43
