@@ -11,7 +11,7 @@ permissions: write-all
 jobs:
   contracts:
     name: Contracts
-    uses: ElrondNetwork/elrond-actions/.github/workflows/contracts.yml@use-token-on-checkout
+    uses: ElrondNetwork/elrond-actions/.github/workflows/contracts.yml@v1
     with:
       rust-toolchain: nightly-2022-03-01
       vmtools-version: v1.4.43
