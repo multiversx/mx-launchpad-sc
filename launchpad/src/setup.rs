@@ -1,16 +1,11 @@
-use crate::launch_stage::EpochsConfig;
-
 elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
-pub struct TokenAmountPair<M: ManagedTypeApi> {
-    pub token_id: TokenIdentifier<M>,
-    pub amount: BigUint<M>,
-}
+use crate::config::{EpochsConfig, TokenAmountPair};
 
 #[elrond_wasm::module]
-pub trait SetupModule: crate::launch_stage::LaunchStageModule {
+pub trait SetupModule:
+    crate::launch_stage::LaunchStageModule + crate::config::ConfigModule
+{
     #[only_owner]
     #[payable("*")]
     #[endpoint(depositLaunchpadTokens)]
@@ -151,27 +146,4 @@ pub trait SetupModule: crate::launch_stage::LaunchStageModule {
     fn were_launchpad_tokens_deposited(&self) -> bool {
         self.launchpad_tokens_deposited().get()
     }
-
-    // storage
-
-    #[view(getLaunchpadTokenId)]
-    #[storage_mapper("launchpadTokenId")]
-    fn launchpad_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
-    #[view(getLaunchpadTokensPerWinningTicket)]
-    #[storage_mapper("launchpadTokensPerWinningTicket")]
-    fn launchpad_tokens_per_winning_ticket(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getTicketPrice)]
-    #[storage_mapper("ticketPrice")]
-    fn ticket_price(&self) -> SingleValueMapper<TokenAmountPair<Self::Api>>;
-
-    #[view(getNumberOfWinningTickets)]
-    #[storage_mapper("nrWinningTickets")]
-    fn nr_winning_tickets(&self) -> SingleValueMapper<usize>;
-
-    // flags
-
-    #[storage_mapper("launchpadTokensDeposited")]
-    fn launchpad_tokens_deposited(&self) -> SingleValueMapper<bool>;
 }

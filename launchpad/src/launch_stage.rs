@@ -1,19 +1,14 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use crate::config::EpochsConfig;
+
 #[derive(PartialEq, PartialOrd)]
 pub enum LaunchStage {
     AddTickets,
     Confirm,
     WinnerSelection,
     Claim,
-}
-
-#[derive(TypeAbi, TopEncode, TopDecode)]
-pub struct EpochsConfig {
-    pub confirmation_period_start_epoch: u64,
-    pub winner_selection_start_epoch: u64,
-    pub claim_start_epoch: u64,
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
@@ -24,7 +19,7 @@ pub struct Flags {
 }
 
 #[elrond_wasm::module]
-pub trait LaunchStageModule {
+pub trait LaunchStageModule: crate::config::ConfigModule {
     fn get_launch_stage(&self) -> LaunchStage {
         let current_epoch = self.blockchain().get_block_epoch();
         let config: EpochsConfig = self.configuration().get();
@@ -96,10 +91,6 @@ pub trait LaunchStageModule {
             "Not in claim period"
         );
     }
-
-    #[view(getConfiguration)]
-    #[storage_mapper("configuration")]
-    fn configuration(&self) -> SingleValueMapper<EpochsConfig>;
 
     #[view(getLaunchStageFlags)]
     #[storage_mapper("flags")]
