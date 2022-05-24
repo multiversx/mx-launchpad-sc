@@ -8,6 +8,9 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
+[dependencies.launchpad-common]
+path = "../launchpad-common"
+
 [dependencies.elrond-wasm]
 version = "0.31.1"
 
