@@ -89,7 +89,7 @@ pub trait OngoingOperationModule {
     fn load_select_winners_operation(&self) -> (Random<Self::Api>, usize) {
         let ongoing_operation = self.current_ongoing_operation().get();
         match ongoing_operation {
-            OngoingOperationType::None => (Random::new(), FIRST_TICKET_ID),
+            OngoingOperationType::None => (Random::default(), FIRST_TICKET_ID),
             OngoingOperationType::SelectWinners {
                 seed,
                 seed_index,
