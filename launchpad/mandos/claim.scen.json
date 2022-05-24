@@ -87,7 +87,8 @@
                         "str:flags": {
                             "1-has_winner_selection_process_started": "u8:1",
                             "2-were_tickets_filtered": "u8:1",
-                            "3-were_winners_selected": "u8:1"
+                            "3-were_winners_selected": "u8:1",
+                            "4-was_additional_step_completed": "u8:1"
                         },
 
                         "+": ""

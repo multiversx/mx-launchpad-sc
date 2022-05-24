@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use launchpad_common::*;
+use launchpad_common::{launch_stage::Flags, *};
 
 #[elrond_wasm::contract]
 pub trait Launchpad:
@@ -32,6 +32,12 @@ pub trait Launchpad:
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
     ) {
+        let flags = Flags {
+            has_winner_selection_process_started: false,
+            were_tickets_filtered: false,
+            were_winners_selected: false,
+            was_additional_step_completed: true, // we have no additional step in basic launchpad
+        };
         self.init_base(
             launchpad_token_id,
             launchpad_tokens_per_winning_ticket,
@@ -41,6 +47,7 @@ pub trait Launchpad:
             confirmation_period_start_epoch,
             winner_selection_start_epoch,
             claim_start_epoch,
+            flags,
         );
     }
 }
