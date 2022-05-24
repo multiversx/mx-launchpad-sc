@@ -3,25 +3,12 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-mod blacklist;
-mod config;
-mod launch_stage;
-mod ongoing_operation;
-mod permissions;
-mod random;
-mod setup;
-mod tickets;
-mod token_send;
-mod user_interactions;
-mod winner_selection;
-
-use config::{EpochsConfig, TokenAmountPair};
-use launch_stage::Flags;
-use tickets::FIRST_TICKET_ID;
+use launchpad_common::*;
 
 #[elrond_wasm::contract]
 pub trait Launchpad:
-    launch_stage::LaunchStageModule
+    launchpad_common::LaunchpadMain
+    + launch_stage::LaunchStageModule
     + config::ConfigModule
     + setup::SetupModule
     + tickets::TicketsModule
@@ -45,58 +32,15 @@ pub trait Launchpad:
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
     ) {
-        self.launchpad_token_id().set(&launchpad_token_id);
-
-        self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket);
-        self.try_set_ticket_price(ticket_payment_token, ticket_price);
-        self.try_set_nr_winning_tickets(nr_winning_tickets);
-
-        let config = EpochsConfig {
+        self.init_base(
+            launchpad_token_id,
+            launchpad_tokens_per_winning_ticket,
+            ticket_payment_token,
+            ticket_price,
+            nr_winning_tickets,
             confirmation_period_start_epoch,
             winner_selection_start_epoch,
             claim_start_epoch,
-        };
-        self.require_valid_time_periods(&config);
-        self.configuration().set(&config);
-        self.flags().set_if_empty(&Flags {
-            were_tickets_filtered: false,
-            were_winners_selected: false,
-            has_winner_selection_process_started: false,
-        });
-
-        let caller = self.blockchain().get_caller();
-        self.support_address().set_if_empty(&caller);
-    }
-
-    #[only_owner]
-    #[endpoint(claimTicketPayment)]
-    fn claim_ticket_payment(&self) {
-        self.require_claim_period();
-
-        let owner = self.blockchain().get_caller();
-
-        let ticket_payment_mapper = self.claimable_ticket_payment();
-        let claimable_ticket_payment = ticket_payment_mapper.get();
-        if claimable_ticket_payment > 0 {
-            ticket_payment_mapper.clear();
-
-            let ticket_price: TokenAmountPair<Self::Api> = self.ticket_price().get();
-            self.send().direct(
-                &owner,
-                &ticket_price.token_id,
-                0,
-                &claimable_ticket_payment,
-                &[],
-            );
-        }
-
-        let launchpad_token_id = self.launchpad_token_id().get();
-        let launchpad_tokens_needed = self.get_exact_launchpad_tokens_needed();
-        let launchpad_tokens_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
-        let extra_launchpad_tokens = launchpad_tokens_balance - launchpad_tokens_needed;
-        if extra_launchpad_tokens > 0 {
-            self.send()
-                .direct(&owner, &launchpad_token_id, 0, &extra_launchpad_tokens, &[]);
-        }
+        );
     }
 }

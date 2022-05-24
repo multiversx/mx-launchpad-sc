@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "launchpad-common",
   "launchpad",
   "launchpad/meta",
 ]
