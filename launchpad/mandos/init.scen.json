@@ -92,7 +92,7 @@
                             "2-winner_selection_start_epoch": "u64:50",
                             "3-claim_start_epoch": "u64:100"
                         },
-                        "str:flags": "u8:0|u8:0|u8:0",
+                        "str:flags": "u8:0|u8:0|u8:0|u8:1",
                         "str:supportAddress": "address:owner"
                     },
                     "code": "file:../output/launchpad.wasm"

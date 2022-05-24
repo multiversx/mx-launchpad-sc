@@ -11,14 +11,16 @@ pub struct Random<M: ManagedTypeApi + CryptoApi> {
     pub index: usize,
 }
 
-impl<M: ManagedTypeApi + CryptoApi> Random<M> {
-    pub fn new() -> Self {
+impl<M: ManagedTypeApi + CryptoApi> Default for Random<M> {
+    fn default() -> Self {
         Self {
             seed: ManagedBuffer::new_random(HASH_LEN),
             index: 0,
         }
     }
+}
 
+impl<M: ManagedTypeApi + CryptoApi> Random<M> {
     pub fn from_hash(hash: Hash<M>, index: usize) -> Self {
         Self {
             seed: ManagedBuffer::from_raw_handle(hash.get_raw_handle()),
@@ -56,7 +58,7 @@ impl<M: ManagedTypeApi + CryptoApi> Random<M> {
     fn hash_seed(&mut self) {
         let mut prev_seed_bytes = [0u8; HASH_LEN];
         let prev_seed_slice = self.seed.load_to_byte_array(&mut prev_seed_bytes);
-        let new_seed_bytes = M::crypto_api_impl().sha256_legacy(&prev_seed_slice);
+        let new_seed_bytes = M::crypto_api_impl().sha256_legacy(prev_seed_slice);
 
         self.seed.overwrite(&new_seed_bytes[..]);
         self.index = 0;

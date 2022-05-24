@@ -4,6 +4,7 @@ elrond_wasm::derive_imports!();
 use crate::{random::Random, FIRST_TICKET_ID};
 
 const MIN_GAS_TO_SAVE_PROGRESS: u64 = 10_000_000;
+static ANOTHER_OP_ERR_MSG: &[u8] = b"Another ongoing operation is in progress";
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub enum OngoingOperationType<M: ManagedTypeApi> {
@@ -16,6 +17,9 @@ pub enum OngoingOperationType<M: ManagedTypeApi> {
         seed: crate::random::Hash<M>,
         seed_index: usize,
         ticket_position: usize,
+    },
+    AdditionalSelection {
+        encoded_data: ManagedBuffer<M>,
     },
 }
 
@@ -78,20 +82,32 @@ pub trait OngoingOperationModule {
                 first_ticket_id_in_batch,
                 nr_removed,
             } => (first_ticket_id_in_batch, nr_removed),
-            _ => sc_panic!("Another ongoing operation is in progress"),
+            _ => sc_panic!(ANOTHER_OP_ERR_MSG),
         }
     }
 
     fn load_select_winners_operation(&self) -> (Random<Self::Api>, usize) {
         let ongoing_operation = self.current_ongoing_operation().get();
         match ongoing_operation {
-            OngoingOperationType::None => (Random::new(), FIRST_TICKET_ID),
+            OngoingOperationType::None => (Random::default(), FIRST_TICKET_ID),
             OngoingOperationType::SelectWinners {
                 seed,
                 seed_index,
                 ticket_position,
             } => (Random::from_hash(seed, seed_index), ticket_position),
-            _ => sc_panic!("Another ongoing operation is in progress"),
+            _ => sc_panic!(ANOTHER_OP_ERR_MSG),
+        }
+    }
+
+    fn load_additional_selection_operation<T: TopDecode + Default>(&self) -> T {
+        let ongoing_operation = self.current_ongoing_operation().get();
+        match ongoing_operation {
+            OngoingOperationType::None => T::default(),
+            OngoingOperationType::AdditionalSelection { encoded_data } => {
+                T::top_decode(encoded_data)
+                    .unwrap_or_else(|_| sc_panic!("Failed to deserialize custom ongoing operation"))
+            }
+            _ => sc_panic!(ANOTHER_OP_ERR_MSG),
         }
     }
 

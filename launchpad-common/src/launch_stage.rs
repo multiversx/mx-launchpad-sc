@@ -16,6 +16,7 @@ pub struct Flags {
     pub has_winner_selection_process_started: bool,
     pub were_tickets_filtered: bool,
     pub were_winners_selected: bool,
+    pub was_additional_step_completed: bool,
 }
 
 #[elrond_wasm::module]
@@ -31,9 +32,13 @@ pub trait LaunchStageModule: crate::config::ConfigModule {
         if current_epoch < config.winner_selection_start_epoch {
             return LaunchStage::Confirm;
         }
-        if flags.has_winner_selection_process_started && !flags.were_winners_selected {
+
+        let both_selection_steps_completed =
+            flags.were_winners_selected && flags.was_additional_step_completed;
+        if flags.has_winner_selection_process_started && !both_selection_steps_completed {
             return LaunchStage::WinnerSelection;
         }
+        
         if config.winner_selection_start_epoch == config.claim_start_epoch
             && current_epoch == config.winner_selection_start_epoch
         {

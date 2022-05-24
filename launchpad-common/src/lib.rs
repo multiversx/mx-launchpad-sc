@@ -44,6 +44,7 @@ pub trait LaunchpadMain:
         confirmation_period_start_epoch: u64,
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
+        flags: Flags,
     ) {
         self.launchpad_token_id().set(&launchpad_token_id);
 
@@ -58,11 +59,7 @@ pub trait LaunchpadMain:
         };
         self.require_valid_time_periods(&config);
         self.configuration().set(&config);
-        self.flags().set_if_empty(&Flags {
-            were_tickets_filtered: false,
-            were_winners_selected: false,
-            has_winner_selection_process_started: false,
-        });
+        self.flags().set_if_empty(&flags);
 
         let caller = self.blockchain().get_caller();
         self.support_address().set_if_empty(&caller);
