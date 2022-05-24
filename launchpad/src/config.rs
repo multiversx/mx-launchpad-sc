@@ -16,6 +16,11 @@ pub struct EpochsConfig {
 
 #[elrond_wasm::module]
 pub trait ConfigModule {
+    #[inline]
+    fn were_launchpad_tokens_deposited(&self) -> bool {
+        self.launchpad_tokens_deposited().get()
+    }
+
     #[view(getConfiguration)]
     #[storage_mapper("configuration")]
     fn configuration(&self) -> SingleValueMapper<EpochsConfig>;

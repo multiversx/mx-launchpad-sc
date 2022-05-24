@@ -141,9 +141,4 @@ pub trait SetupModule:
             "Claim period must be after winner selection"
         );
     }
-
-    #[inline]
-    fn were_launchpad_tokens_deposited(&self) -> bool {
-        self.launchpad_tokens_deposited().get()
-    }
 }
