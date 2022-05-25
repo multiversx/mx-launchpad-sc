@@ -73,7 +73,7 @@ pub trait ConfirmNftModule:
     fn nft_cost(&self) -> SingleValueMapper<EsdtTokenPayment<Self::Api>>;
 
     #[storage_mapper("totalAvailableNfts")]
-    fn total_available_nfts(&self) -> SingleValueMapper<u64>;
+    fn total_available_nfts(&self) -> SingleValueMapper<usize>;
 
     #[storage_mapper("accumulatedNftPayment")]
     fn accumulated_nft_payment(&self) -> SingleValueMapper<BigUint>;

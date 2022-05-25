@@ -7,15 +7,14 @@ const MIN_GAS_TO_SAVE_PROGRESS: u64 = 10_000_000;
 static ANOTHER_OP_ERR_MSG: &[u8] = b"Another ongoing operation is in progress";
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
-pub enum OngoingOperationType<M: ManagedTypeApi> {
+pub enum OngoingOperationType<M: ManagedTypeApi + CryptoApi> {
     None,
     FilterTickets {
         first_ticket_id_in_batch: usize,
         nr_removed: usize,
     },
     SelectWinners {
-        seed: crate::random::Hash<M>,
-        seed_index: usize,
+        rng: Random<M>,
         ticket_position: usize,
     },
     AdditionalSelection {
@@ -91,10 +90,9 @@ pub trait OngoingOperationModule {
         match ongoing_operation {
             OngoingOperationType::None => (Random::default(), FIRST_TICKET_ID),
             OngoingOperationType::SelectWinners {
-                seed,
-                seed_index,
+                rng,
                 ticket_position,
-            } => (Random::from_hash(seed, seed_index), ticket_position),
+            } => (rng, ticket_position),
             _ => sc_panic!(ANOTHER_OP_ERR_MSG),
         }
     }

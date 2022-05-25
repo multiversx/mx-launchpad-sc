@@ -40,7 +40,7 @@ pub trait Launchpad:
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
         nft_cost: EsdtTokenPayment<Self::Api>,
-        total_available_nfts: u64,
+        total_available_nfts: usize,
     ) {
         self.require_valid_cost(&nft_cost);
         require!(total_available_nfts > 0, "Invalid total_available_nfts");

@@ -122,12 +122,8 @@ pub trait WinnerSelectionModule:
 
         match run_result {
             OperationCompletionStatus::InterruptedBeforeOutOfGas => {
-                let mut seed_bytes = [0u8; crate::random::HASH_LEN];
-                let _ = rng.seed.load_to_byte_array(&mut seed_bytes);
-
                 self.save_progress(&OngoingOperationType::SelectWinners {
-                    seed: ManagedByteArray::new_from_bytes(&seed_bytes),
-                    seed_index: rng.index,
+                    rng,
                     ticket_position,
                 });
             }
