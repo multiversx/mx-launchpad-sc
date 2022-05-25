@@ -63,33 +63,15 @@ $ deploy
 
 #### Add tickets in contract
 
-15. First, we need to filter the KYC list from the snapshots, then import the resulting list into the contract. Go to `temp-mex-indexing`
+If averaged snapshotting is needed (even though non-averaged can be handled similarly too and more optimally so), reffer to `launchpad-scripts` method of adding tickets. Otherwise, use the old fashioned way `temp-mex-indexing`.
 
-16. Execute:
-```
-$ npm install
-```
+##### (Variant 1) Launchpad-scripts
 
-17. Edit `temp-mex-indexing/launchpad/vars.js` with our wallet mnemonics, snapshot file, KYC exports, proxy, launchpad contract
+15. Go to `launchpad-scripts` repo and follow the instructions specified in there.
 
-  **KYC status has to be exported from our DataBase**, most likely, to include changed addresses after KYC submit. The data needed here is: Address, Country of residence (for capped ticket owners).
+##### (Variant 2) Temp-mex-indexing
 
-  Theoretically, the data in our DataBase should be combined with the data from the KYC processor using the "email" as primary key.
-
-18. To generate the accounts with according tickets allocation `tickets-allocation.json` execute:
-```
-$ node ./launchpad/computeTickets.js
-```
-
-19. To send the `addTickets` transactions to the contract execute according to the resulted tickets allocation:
-
-  It is recommended to delete any unused/old files in the folder to avoid confusions / wrong files used by the import.
-```
-$ node ./launchpad/indexTickets.js
-```
-  **Care for the proper path to the filtered tickets file as this path is currently hardcoded in indexTickets.js in function getTicketData.**
-
-  In case the import fails (e.g. unresponsive API), check the last processed transaction by the contract, get the last added account from this tx then delete all the addresses above this one (including it) from the filtered accounts list that is used for the import. Then restart the import.
+15. Go to `temp-mex-indexing` repo and follow the instructions specified in there.
 
 #### Final adjustments & ownership change
 
