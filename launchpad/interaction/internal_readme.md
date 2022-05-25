@@ -63,7 +63,7 @@ $ deploy
 
 #### Add tickets in contract
 
-If averaged snapshotting is needed (even though non-averaged can be handled similarly too and more optimally so), reffer to `launchpad-scripts` method of adding tickets. Otherwise, use the old fashioned way `temp-mex-indexing`.
+If averaged snapshotting is needed (even though non-averaged can be handled similarly too and more optimally so), refer to `launchpad-scripts` method of adding tickets. Otherwise, use the old fashioned way `temp-mex-indexing`.
 
 ##### (Variant 1) Launchpad-scripts
 
