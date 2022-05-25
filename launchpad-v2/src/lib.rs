@@ -3,6 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+mod confirm_nft;
 mod mystery_sft;
 
 use launchpad_common::{launch_stage::Flags, *};
@@ -22,6 +23,7 @@ pub trait Launchpad:
     + user_interactions::UserInteractionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + mystery_sft::MysterySftModule
+    + confirm_nft::ConfirmNftModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
@@ -35,6 +37,7 @@ pub trait Launchpad:
         confirmation_period_start_epoch: u64,
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
+        nft_cost: EsdtTokenPayment<Self::Api>,
     ) {
         self.init_base(
             launchpad_token_id,
@@ -47,5 +50,21 @@ pub trait Launchpad:
             claim_start_epoch,
             Flags::default(),
         );
+
+        self.require_valid_cost(&nft_cost);
+        self.nft_cost().set(&nft_cost);
+    }
+
+    fn require_valid_cost(&self, cost: &EsdtTokenPayment<Self::Api>) {
+        if cost.token_identifier.is_egld() {
+            require!(cost.token_nonce == 0, "EGLD token has no nonce");
+        } else {
+            require!(
+                cost.token_identifier.is_valid_esdt_identifier(),
+                "Invalid ESDT token ID"
+            );
+        }
+
+        require!(cost.amount > 0, "Cost may not be 0");
     }
 }
