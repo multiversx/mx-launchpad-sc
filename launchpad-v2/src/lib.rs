@@ -5,6 +5,7 @@ elrond_wasm::derive_imports!();
 
 mod confirm_nft;
 mod mystery_sft;
+mod nft_winners_selection;
 
 use launchpad_common::{launch_stage::Flags, *};
 
@@ -24,6 +25,7 @@ pub trait Launchpad:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + mystery_sft::MysterySftModule
     + confirm_nft::ConfirmNftModule
+    + nft_winners_selection::NftWinnersSelectionModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
@@ -38,7 +40,11 @@ pub trait Launchpad:
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
         nft_cost: EsdtTokenPayment<Self::Api>,
+        total_available_nfts: u64,
     ) {
+        self.require_valid_cost(&nft_cost);
+        require!(total_available_nfts > 0, "Invalid total_available_nfts");
+
         self.init_base(
             launchpad_token_id,
             launchpad_tokens_per_winning_ticket,
@@ -51,8 +57,8 @@ pub trait Launchpad:
             Flags::default(),
         );
 
-        self.require_valid_cost(&nft_cost);
         self.nft_cost().set(&nft_cost);
+        self.total_available_nfts().set(total_available_nfts);
     }
 
     fn require_valid_cost(&self, cost: &EsdtTokenPayment<Self::Api>) {

@@ -4,7 +4,9 @@ use elrond_wasm::storage::StorageKey;
 
 #[elrond_wasm::module]
 pub trait ConfirmNftModule:
-    launchpad_common::launch_stage::LaunchStageModule + launchpad_common::config::ConfigModule
+    launchpad_common::launch_stage::LaunchStageModule
+    + launchpad_common::config::ConfigModule
+    + launchpad_common::tickets::TicketsModule
 {
     #[payable("*")]
     #[endpoint(confirmNft)]
@@ -12,11 +14,42 @@ pub trait ConfirmNftModule:
         self.require_confirmation_period();
 
         let caller = self.blockchain().get_caller();
+        let nr_base_launchpad_confirmed = self.nr_confirmed_tickets(&caller).get();
+        require!(
+            nr_base_launchpad_confirmed > 0,
+            "Must confirm launchpad tickets before entering NFT draw"
+        );
+
         let new_user = self.confirmed_nft_user_list().insert(caller);
         require!(new_user, "Already confirmed NFT");
 
         let payment = self.call_value().payment();
         self.require_exact_nft_cost(&payment);
+
+        self.accumulated_nft_payment()
+            .update(|acc| *acc += payment.amount);
+    }
+
+    #[only_owner]
+    #[endpoint(claimNftPayment)]
+    fn claim_nft_payment(&self) {
+        let mapper = self.accumulated_nft_payment();
+        let accumulated_amount = mapper.get();
+        if accumulated_amount > 0 {
+            let mut payment = self.nft_cost().get();
+            payment.amount = accumulated_amount;
+
+            let owner = self.blockchain().get_caller();
+            self.send().direct(
+                &owner,
+                &payment.token_identifier,
+                payment.token_nonce,
+                &payment.amount,
+                &[],
+            );
+
+            mapper.clear();
+        }
     }
 
     fn require_exact_nft_cost(&self, payment: &EsdtTokenPayment<Self::Api>) {
@@ -41,4 +74,7 @@ pub trait ConfirmNftModule:
 
     #[storage_mapper("totalAvailableNfts")]
     fn total_available_nfts(&self) -> SingleValueMapper<u64>;
+
+    #[storage_mapper("accumulatedNftPayment")]
+    fn accumulated_nft_payment(&self) -> SingleValueMapper<BigUint>;
 }
