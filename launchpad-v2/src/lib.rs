@@ -1,31 +1,34 @@
 #![no_std]
+#![feature(trait_alias)]
+
+use launchpad_common::launch_stage::Flags;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+mod claim_nft;
 mod confirm_nft;
 mod mystery_sft;
 mod nft_winners_selection;
 
-use launchpad_common::{launch_stage::Flags, *};
-
 #[elrond_wasm::contract]
 pub trait Launchpad:
     launchpad_common::LaunchpadMain
-    + launch_stage::LaunchStageModule
-    + config::ConfigModule
-    + setup::SetupModule
-    + tickets::TicketsModule
-    + winner_selection::WinnerSelectionModule
-    + ongoing_operation::OngoingOperationModule
-    + permissions::PermissionsModule
-    + blacklist::BlacklistModule
-    + token_send::TokenSendModule
-    + user_interactions::UserInteractionsModule
+    + launchpad_common::launch_stage::LaunchStageModule
+    + launchpad_common::config::ConfigModule
+    + launchpad_common::setup::SetupModule
+    + launchpad_common::tickets::TicketsModule
+    + launchpad_common::winner_selection::WinnerSelectionModule
+    + launchpad_common::ongoing_operation::OngoingOperationModule
+    + launchpad_common::permissions::PermissionsModule
+    + launchpad_common::blacklist::BlacklistModule
+    + launchpad_common::token_send::TokenSendModule
+    + launchpad_common::user_interactions::UserInteractionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + mystery_sft::MysterySftModule
     + confirm_nft::ConfirmNftModule
     + nft_winners_selection::NftWinnersSelectionModule
+    + claim_nft::ClaimNftModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]

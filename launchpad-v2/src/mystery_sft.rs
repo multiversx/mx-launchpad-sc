@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use elrond_wasm::elrond_codec::Empty;
 
-const SFT_INITIAL_AMOUNT: u32 = 1;
+pub const NFT_AMOUNT: u32 = 1;
 static SFT_NAMES: &[&[u8]] = &[b"Confirmed Won", b"Confirmed Lost", b"Not Confirmed"];
 
 pub enum MysterySftTypes {
@@ -29,7 +29,7 @@ impl MysterySftTypes {
 #[elrond_wasm::module]
 pub trait MysterySftModule:
     elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + crate::permissions::PermissionsModule
+    + launchpad_common::permissions::PermissionsModule
 {
     #[payable("*")]
     #[endpoint(issueMysterySft)]
@@ -55,7 +55,7 @@ pub trait MysterySftModule:
         let current_balance = self.blockchain().get_sc_balance(&token_id, 1);
         require!(current_balance == 0, "Initial SFTs already created");
 
-        let initial_amount = BigUint::from(SFT_INITIAL_AMOUNT);
+        let initial_amount = BigUint::from(NFT_AMOUNT);
         let api = self.send();
         for i in 0..MysterySftTypes::total_instances() {
             api.esdt_nft_create_compact_named(
