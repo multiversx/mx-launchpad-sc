@@ -72,6 +72,10 @@ pub trait NftWinnersSelectionModule:
             OperationCompletionStatus::Completed => {
                 flags.was_additional_step_completed = true;
                 flags_mapper.set(&flags);
+
+                let nft_cost = self.nft_cost().get();
+                let claimable_nft_payment = nft_cost.amount * winners_selected as u32;
+                self.claimable_nft_payment().set(&claimable_nft_payment);
             }
         }
 

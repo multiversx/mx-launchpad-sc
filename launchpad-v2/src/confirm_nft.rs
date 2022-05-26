@@ -25,19 +25,16 @@ pub trait ConfirmNftModule:
 
         let payment = self.call_value().payment();
         self.require_exact_nft_cost(&payment);
-
-        self.accumulated_nft_payment()
-            .update(|acc| *acc += payment.amount);
     }
 
     #[only_owner]
     #[endpoint(claimNftPayment)]
     fn claim_nft_payment(&self) {
-        let mapper = self.accumulated_nft_payment();
-        let accumulated_amount = mapper.get();
-        if accumulated_amount > 0 {
+        let mapper = self.claimable_nft_payment();
+        let claimable_amount = mapper.get();
+        if claimable_amount > 0 {
             let mut payment = self.nft_cost().get();
-            payment.amount = accumulated_amount;
+            payment.amount = claimable_amount;
 
             let owner = self.blockchain().get_caller();
             self.send().direct(
@@ -75,6 +72,6 @@ pub trait ConfirmNftModule:
     #[storage_mapper("totalAvailableNfts")]
     fn total_available_nfts(&self) -> SingleValueMapper<usize>;
 
-    #[storage_mapper("accumulatedNftPayment")]
-    fn accumulated_nft_payment(&self) -> SingleValueMapper<BigUint>;
+    #[storage_mapper("claimableNftPayment")]
+    fn claimable_nft_payment(&self) -> SingleValueMapper<BigUint>;
 }

@@ -35,5 +35,16 @@ pub trait ClaimNftModule:
             mystery_sft_type.as_nonce(),
             NFT_AMOUNT.into(),
         );
+
+        if matches!(mystery_sft_type, MysterySftTypes::ConfirmedLost) {
+            let nft_cost = self.nft_cost().get();
+            self.send().direct(
+                &caller,
+                &nft_cost.token_identifier,
+                nft_cost.token_nonce,
+                &nft_cost.amount,
+                &[],
+            );
+        }
     }
 }
