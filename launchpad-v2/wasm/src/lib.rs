@@ -5,13 +5,17 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    launchpad
+    launchpad_v2
     (
+        callBack
         addTickets
         addUsersToBlacklist
         claimLaunchpadTokens
+        claimNftPayment
         claimTicketPayment
+        confirmNft
         confirmTickets
+        createInitialSfts
         depositLaunchpadTokens
         filterTickets
         getConfiguration
@@ -29,7 +33,9 @@ elrond_wasm_node::wasm_endpoints! {
         getWinningTicketIdsForAddress
         hasUserClaimedTokens
         isUserBlacklisted
+        issueMysterySft
         removeUsersFromBlacklist
+        selectNftWinners
         selectWinners
         setClaimStartEpoch
         setConfirmationPeriodStartEpoch
@@ -37,7 +43,6 @@ elrond_wasm_node::wasm_endpoints! {
         setSupportAddress
         setTicketPrice
         setWinnerSelectionStartEpoch
+        set_transfer_role
     )
 }
-
-elrond_wasm_node::wasm_empty_callback! {}
