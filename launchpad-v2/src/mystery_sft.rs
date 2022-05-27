@@ -73,6 +73,7 @@ pub trait MysterySftModule:
             );
         }
 
+        steps.issued_token = true;
         steps.created_initial_tokens = true;
         steps_mapper.set(&steps);
     }
