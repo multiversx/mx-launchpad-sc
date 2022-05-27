@@ -1,9 +1,11 @@
 mod launchpad_v2_setup;
 
-use elrond_wasm_debug::{managed_address, rust_biguint};
+use elrond_wasm::elrond_codec::Empty;
+use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint};
 use launchpad_common::tickets::{TicketsModule, WINNING_TICKET};
 use launchpad_v2::{
-    confirm_nft::ConfirmNftModule, nft_winners_selection::NftWinnersSelectionModule,
+    confirm_nft::ConfirmNftModule, mystery_sft::MysterySftTypes,
+    nft_winners_selection::NftWinnersSelectionModule,
 };
 use launchpad_v2_setup::*;
 
@@ -113,4 +115,85 @@ fn claim_test() {
     for user in &users {
         lp_setup.claim(user).assert_ok();
     }
+
+    // check NFT balances
+    lp_setup.b_mock.check_nft_balance(
+        &users[0],
+        SFT_TOKEN_ID,
+        MysterySftTypes::ConfirmedWon.as_nonce(),
+        &rust_biguint!(1u32),
+        Some(&Empty),
+    );
+    lp_setup.b_mock.check_nft_balance(
+        &users[1],
+        SFT_TOKEN_ID,
+        MysterySftTypes::ConfirmedLost.as_nonce(),
+        &rust_biguint!(1u32),
+        Some(&Empty),
+    );
+    lp_setup.b_mock.check_nft_balance(
+        &users[2],
+        SFT_TOKEN_ID,
+        MysterySftTypes::NotConfirmed.as_nonce(),
+        &rust_biguint!(1u32),
+        Some(&Empty),
+    );
+
+    // check EGLD balances
+    let initial_balance = BASE_TICKET_COST + NFT_TICKET_COST;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&users[0], &rust_biguint!(0));
+    lp_setup
+        .b_mock
+        .check_egld_balance(&users[1], &rust_biguint!(initial_balance));
+    lp_setup
+        .b_mock
+        .check_egld_balance(&users[2], &rust_biguint!(initial_balance));
+
+    lp_setup.b_mock.check_egld_balance(
+        &lp_setup.lp_wrapper.address_ref(),
+        &rust_biguint!(BASE_TICKET_COST + NFT_TICKET_COST),
+    );
+    lp_setup
+        .b_mock
+        .check_egld_balance(&lp_setup.owner_address, &rust_biguint!(0));
+
+    // owner claim nft ticket payment
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert_eq!(
+                sc.claimable_nft_payment().get(),
+                managed_biguint!(NFT_TICKET_COST),
+            );
+        })
+        .assert_ok();
+
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.claim_nft_payment();
+            },
+        )
+        .assert_ok();
+
+    lp_setup.b_mock.check_egld_balance(
+        &lp_setup.lp_wrapper.address_ref(),
+        &rust_biguint!(BASE_TICKET_COST),
+    );
+    lp_setup
+        .b_mock
+        .check_egld_balance(&lp_setup.owner_address, &rust_biguint!(NFT_TICKET_COST));
+
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert!(sc.claimable_nft_payment().is_empty());
+        })
+        .assert_ok();
 }
