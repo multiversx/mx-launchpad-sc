@@ -22,6 +22,13 @@ impl MysterySftTypes {
     }
 }
 
+#[derive(TopEncode, TopDecode)]
+pub struct SftSetupSteps {
+    pub issued_token: bool,
+    pub created_initial_tokens: bool,
+    pub set_transfer_role: bool,
+}
+
 #[elrond_wasm::module]
 pub trait MysterySftModule:
     elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -47,10 +54,14 @@ pub trait MysterySftModule:
     fn create_initial_sfts(&self) {
         self.require_extended_permissions();
 
-        let token_id = self.mystery_sft().get_token_id();
-        let current_balance = self.blockchain().get_sc_balance(&token_id, 1);
-        require!(current_balance == 0, "Initial SFTs already created");
+        let steps_mapper = self.sft_setup_steps();
+        let mut steps = steps_mapper.get();
+        require!(
+            !steps.created_initial_tokens,
+            "Initial SFTs already created"
+        );
 
+        let token_id = self.mystery_sft().get_token_id();
         let initial_amount = BigUint::from(NFT_AMOUNT);
         let api = self.send();
         for sft_name in SFT_NAMES {
@@ -61,6 +72,9 @@ pub trait MysterySftModule:
                 &Empty,
             );
         }
+
+        steps.created_initial_tokens = true;
+        steps_mapper.set(&steps);
     }
 
     #[endpoint]
@@ -69,12 +83,28 @@ pub trait MysterySftModule:
 
         let addr = match opt_addr_to_set {
             OptionalValue::Some(addr) => addr,
-            OptionalValue::None => self.blockchain().get_sc_address(),
+            OptionalValue::None => {
+                self.sft_setup_steps()
+                    .update(|steps| steps.set_transfer_role = true);
+
+                self.blockchain().get_sc_address()
+            }
         };
         self.mystery_sft()
             .set_local_roles_for_address(&addr, &[EsdtLocalRole::Transfer], None);
     }
 
+    fn require_all_sft_setup_steps_complete(&self) {
+        let steps = self.sft_setup_steps().get();
+        require!(
+            steps.issued_token && steps.created_initial_tokens && steps.set_transfer_role,
+            "SFT setup not complete"
+        );
+    }
+
     #[storage_mapper("mysterySftTokenId")]
     fn mystery_sft(&self) -> NonFungibleTokenMapper<Self::Api>;
+
+    #[storage_mapper("sftSetupSteps")]
+    fn sft_setup_steps(&self) -> SingleValueMapper<SftSetupSteps>;
 }

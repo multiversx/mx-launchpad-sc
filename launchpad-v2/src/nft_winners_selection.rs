@@ -16,7 +16,10 @@ pub trait NftWinnersSelectionModule:
     + launchpad_common::config::ConfigModule
     + launchpad_common::ongoing_operation::OngoingOperationModule
     + launchpad_common::tickets::TicketsModule
+    + launchpad_common::permissions::PermissionsModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::confirm_nft::ConfirmNftModule
+    + crate::mystery_sft::MysterySftModule
 {
     #[endpoint(selectNftWinners)]
     fn select_nft_winners(&self) -> OperationCompletionStatus {

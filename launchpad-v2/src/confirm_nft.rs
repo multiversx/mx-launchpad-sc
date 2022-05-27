@@ -7,11 +7,15 @@ pub trait ConfirmNftModule:
     launchpad_common::launch_stage::LaunchStageModule
     + launchpad_common::config::ConfigModule
     + launchpad_common::tickets::TicketsModule
+    + launchpad_common::permissions::PermissionsModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + crate::mystery_sft::MysterySftModule
 {
     #[payable("*")]
     #[endpoint(confirmNft)]
     fn confirm_nft(&self) {
         self.require_confirmation_period();
+        self.require_all_sft_setup_steps_complete();
 
         let caller = self.blockchain().get_caller();
         let nr_base_launchpad_confirmed = self.nr_confirmed_tickets(&caller).get();

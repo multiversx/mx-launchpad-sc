@@ -3,13 +3,15 @@
 
 use launchpad_common::launch_stage::Flags;
 
+use crate::mystery_sft::SftSetupSteps;
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-mod claim_nft;
-mod confirm_nft;
-mod mystery_sft;
-mod nft_winners_selection;
+pub mod claim_nft;
+pub mod confirm_nft;
+pub mod mystery_sft;
+pub mod nft_winners_selection;
 
 #[elrond_wasm::contract]
 pub trait Launchpad:
@@ -62,6 +64,11 @@ pub trait Launchpad:
 
         self.nft_cost().set(&nft_cost);
         self.total_available_nfts().set(total_available_nfts);
+        self.sft_setup_steps().set_if_empty(&SftSetupSteps {
+            issued_token: false,
+            created_initial_tokens: false,
+            set_transfer_role: false,
+        });
     }
 
     fn require_valid_cost(&self, cost: &EsdtTokenPayment<Self::Api>) {
