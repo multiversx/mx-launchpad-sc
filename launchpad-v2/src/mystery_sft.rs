@@ -20,10 +20,6 @@ impl MysterySftTypes {
             MysterySftTypes::NotConfirmed => 3,
         }
     }
-
-    pub const fn total_instances() -> usize {
-        3
-    }
 }
 
 #[elrond_wasm::module]
@@ -57,11 +53,11 @@ pub trait MysterySftModule:
 
         let initial_amount = BigUint::from(NFT_AMOUNT);
         let api = self.send();
-        for i in 0..MysterySftTypes::total_instances() {
+        for sft_name in SFT_NAMES {
             api.esdt_nft_create_compact_named(
                 &token_id,
                 &initial_amount,
-                &ManagedBuffer::new_from_bytes(SFT_NAMES[i]),
+                &ManagedBuffer::new_from_bytes(sft_name),
                 &Empty,
             );
         }
