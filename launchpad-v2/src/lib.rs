@@ -83,4 +83,15 @@ pub trait Launchpad:
 
         require!(cost.amount > 0, "Cost may not be 0");
     }
+
+    #[view(hasUserConfirmedNft)]
+    fn has_user_confirmed_nft(&self, user: ManagedAddress) -> bool {
+        self.confirmed_nft_user_list().contains(&user)
+            || self.nft_selection_winners().contains(&user)
+    }
+
+    #[view(hasUserWonNft)]
+    fn has_user_won_nft(&self, user: ManagedAddress) -> bool {
+        self.nft_selection_winners().contains(&user)
+    }
 }

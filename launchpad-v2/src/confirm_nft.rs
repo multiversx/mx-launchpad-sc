@@ -70,6 +70,7 @@ pub trait ConfirmNftModule:
     #[storage_mapper("confirmedNftUserList")]
     fn confirmed_nft_user_list(&self) -> UnorderedSetMapper<ManagedAddress>;
 
+    #[view(getNftCost)]
     #[storage_mapper("nftCost")]
     fn nft_cost(&self) -> SingleValueMapper<EsdtTokenPayment<Self::Api>>;
 
