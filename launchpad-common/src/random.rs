@@ -1,4 +1,5 @@
 elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 const USIZE_BYTES: usize = 4;
 pub const HASH_LEN: usize = 32;
@@ -6,6 +7,7 @@ static FAILED_COPY_ERR_MSG: &[u8] = b"Failed copy to/from managed buffer";
 
 pub type Hash<M> = ManagedByteArray<M, HASH_LEN>;
 
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
 pub struct Random<M: ManagedTypeApi + CryptoApi> {
     pub seed: ManagedBuffer<M>,
     pub index: usize,

@@ -9,16 +9,13 @@ pub trait SetupModule:
     #[only_owner]
     #[payable("*")]
     #[endpoint(depositLaunchpadTokens)]
-    fn deposit_launchpad_tokens(
-        &self,
-        #[payment_token] payment_token: TokenIdentifier,
-        #[payment_amount] payment_amount: BigUint,
-    ) {
+    fn deposit_launchpad_tokens(&self) {
         require!(
             !self.were_launchpad_tokens_deposited(),
             "Tokens already deposited"
         );
 
+        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
         let launchpad_token_id = self.launchpad_token_id().get();
         require!(payment_token == launchpad_token_id, "Wrong token");
 

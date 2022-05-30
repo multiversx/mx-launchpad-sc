@@ -50,4 +50,9 @@ pub trait Launchpad:
             flags,
         );
     }
+
+    #[endpoint(claimLaunchpadTokens)]
+    fn claim_launchpad_tokens_endpoint(&self) {
+        self.claim_launchpad_tokens();
+    }
 }

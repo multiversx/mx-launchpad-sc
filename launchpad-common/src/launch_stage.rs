@@ -11,7 +11,7 @@ pub enum LaunchStage {
     Claim,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, Default)]
 pub struct Flags {
     pub has_winner_selection_process_started: bool,
     pub were_tickets_filtered: bool,

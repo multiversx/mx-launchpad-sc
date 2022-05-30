@@ -3,4 +3,6 @@ members = [
   "launchpad-common",
   "launchpad",
   "launchpad/meta",
+  "launchpad-v2",
+  "launchpad-v2/meta",
 ]

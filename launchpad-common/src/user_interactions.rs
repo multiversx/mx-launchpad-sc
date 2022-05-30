@@ -47,7 +47,6 @@ pub trait UserInteractionsModule:
         self.nr_confirmed_tickets(&caller).set(&total_confirmed);
     }
 
-    #[endpoint(claimLaunchpadTokens)]
     fn claim_launchpad_tokens(&self) {
         self.require_claim_period();
 
