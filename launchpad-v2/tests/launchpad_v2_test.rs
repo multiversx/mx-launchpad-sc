@@ -1,11 +1,11 @@
 mod launchpad_v2_setup;
 
-use elrond_wasm::elrond_codec::Empty;
+use elrond_wasm::{elrond_codec::Empty, types::MultiValueEncoded};
 use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint};
 use launchpad_common::tickets::{TicketsModule, WINNING_TICKET};
 use launchpad_v2::{
     confirm_nft::ConfirmNftModule, mystery_sft::MysterySftTypes,
-    nft_winners_selection::NftWinnersSelectionModule,
+    nft_winners_selection::NftWinnersSelectionModule, Launchpad,
 };
 use launchpad_v2_setup::*;
 
@@ -196,4 +196,35 @@ fn claim_test() {
             assert!(sc.claimable_nft_payment().is_empty());
         })
         .assert_ok();
+}
+
+#[test]
+fn blacklist_refund_test() {
+    let mut lp_setup = LaunchpadSetup::new(launchpad_v2::contract_obj);
+
+    // confirm ok
+    let users = lp_setup.participants.clone();
+    for user in &users {
+        lp_setup.confirm_nft(user).assert_ok();
+    }
+
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut args = MultiValueEncoded::new();
+                args.push(managed_address!(&users[0]));
+
+                sc.add_users_to_blacklist_endpoint(args);
+            },
+        )
+        .assert_ok();
+
+    lp_setup.b_mock.check_egld_balance(
+        &users[0],
+        &rust_biguint!(BASE_TICKET_COST + NFT_TICKET_COST),
+    );
 }
