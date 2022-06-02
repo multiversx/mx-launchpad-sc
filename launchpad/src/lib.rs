@@ -55,4 +55,9 @@ pub trait Launchpad:
     fn claim_launchpad_tokens_endpoint(&self) {
         self.claim_launchpad_tokens();
     }
+
+    #[endpoint(addUsersToBlacklist)]
+    fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
+        self.add_users_to_blacklist(&users_list.to_vec());
+    }
 }

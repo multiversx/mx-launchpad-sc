@@ -22,6 +22,7 @@ elrond_wasm_node::wasm_endpoints! {
         getLaunchStageFlags
         getLaunchpadTokenId
         getLaunchpadTokensPerWinningTicket
+        getNftCost
         getNumberOfConfirmedTicketsForAddress
         getNumberOfWinningTickets
         getNumberOfWinningTicketsForAddress
@@ -32,6 +33,8 @@ elrond_wasm_node::wasm_endpoints! {
         getTotalNumberOfTicketsForAddress
         getWinningTicketIdsForAddress
         hasUserClaimedTokens
+        hasUserConfirmedNft
+        hasUserWonNft
         isUserBlacklisted
         issueMysterySft
         removeUsersFromBlacklist

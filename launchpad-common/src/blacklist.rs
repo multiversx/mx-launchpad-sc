@@ -8,8 +8,7 @@ pub trait BlacklistModule:
     + crate::token_send::TokenSendModule
     + crate::config::ConfigModule
 {
-    #[endpoint(addUsersToBlacklist)]
-    fn add_users_to_blacklist(&self, users_list: MultiValueEncoded<ManagedAddress>) {
+    fn add_users_to_blacklist(&self, users_list: &ManagedVec<ManagedAddress>) {
         self.require_extended_permissions();
         self.require_before_winner_selection();
 

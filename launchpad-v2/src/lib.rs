@@ -84,6 +84,26 @@ pub trait Launchpad:
         require!(cost.amount > 0, "Cost may not be 0");
     }
 
+    #[endpoint(addUsersToBlacklist)]
+    fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
+        let users_list_vec = users_list.to_vec();
+        self.add_users_to_blacklist(&users_list_vec);
+
+        let nft_cost = self.nft_cost().get();
+        for user in &users_list_vec {
+            let did_user_confirm = self.confirmed_nft_user_list().swap_remove(&user);
+            if did_user_confirm {
+                self.send().direct(
+                    &user,
+                    &nft_cost.token_identifier,
+                    nft_cost.token_nonce,
+                    &nft_cost.amount,
+                    &[],
+                );
+            }
+        }
+    }
+
     #[view(hasUserConfirmedNft)]
     fn has_user_confirmed_nft(&self, user: ManagedAddress) -> bool {
         self.confirmed_nft_user_list().contains(&user)
