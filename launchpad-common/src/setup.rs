@@ -15,7 +15,7 @@ pub trait SetupModule:
             "Tokens already deposited"
         );
 
-        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
+        let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
         let launchpad_token_id = self.launchpad_token_id().get();
         require!(payment_token == launchpad_token_id, "Wrong token");
 
@@ -27,7 +27,7 @@ pub trait SetupModule:
 
     #[only_owner]
     #[endpoint(setTicketPrice)]
-    fn set_ticket_price(&self, token_id: TokenIdentifier, amount: BigUint) {
+    fn set_ticket_price(&self, token_id: EgldOrEsdtTokenIdentifier, amount: BigUint) {
         self.require_add_tickets_period();
         self.try_set_ticket_price(token_id, amount);
     }
@@ -87,7 +87,7 @@ pub trait SetupModule:
         amount_per_ticket * (total_winning_tickets as u32)
     }
 
-    fn try_set_ticket_price(&self, token_id: TokenIdentifier, amount: BigUint) {
+    fn try_set_ticket_price(&self, token_id: EgldOrEsdtTokenIdentifier, amount: BigUint) {
         require!(
             token_id.is_egld() || token_id.is_valid_esdt_identifier(),
             "Invalid token ID"

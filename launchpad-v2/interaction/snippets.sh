@@ -163,7 +163,7 @@ createInitialSfts() {
 setInitialTransferRole() {
 
     erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
-    --gas-limit=100000000 --function="set_transfer_role" \
+    --gas-limit=100000000 --function="setTransferRole" \
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 } 
 
@@ -173,7 +173,7 @@ setTransferRole() {
     local ADDRESS_HEX="0x$(erdpy wallet bech32 --decode $1)"
 
     erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
-    --gas-limit=100000000 --function="set_transfer_role" \
+    --gas-limit=100000000 --function="setTransferRole" \
     --arguments ${ADDRESS_HEX} \
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 } 

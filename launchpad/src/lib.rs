@@ -25,7 +25,7 @@ pub trait Launchpad:
         &self,
         launchpad_token_id: TokenIdentifier,
         launchpad_tokens_per_winning_ticket: BigUint,
-        ticket_payment_token: TokenIdentifier,
+        ticket_payment_token: EgldOrEsdtTokenIdentifier,
         ticket_price: BigUint,
         nr_winning_tickets: usize,
         confirmation_period_start_epoch: u64,

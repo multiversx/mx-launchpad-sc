@@ -14,7 +14,7 @@ pub trait UserInteractionsModule:
     #[payable("*")]
     #[endpoint(confirmTickets)]
     fn confirm_tickets(&self, nr_tickets_to_confirm: usize) {
-        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
+        let (payment_token, payment_amount) = self.call_value().egld_or_single_fungible_esdt();
 
         self.require_confirmation_period();
         require!(

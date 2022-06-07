@@ -45,7 +45,7 @@ elrond_wasm_node::wasm_endpoints! {
         setLaunchpadTokensPerWinningTicket
         setSupportAddress
         setTicketPrice
+        setTransferRole
         setWinnerSelectionStartEpoch
-        set_transfer_role
     )
 }
