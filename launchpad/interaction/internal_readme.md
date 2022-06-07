@@ -12,7 +12,10 @@ This document provides a description of the Launchpad Smart Contract setup, depl
 - Clone the launchpad smart contract repo:
 https://github.com/ElrondNetwork/sc-launchpad-rs
 
-- Clone temp-mex-indexing repo:
+- Clone launchpad-scripts repo:
+https://github.com/ElrondNetwork/launchpad-scripts
+
+- (if previous repo not used) Clone temp-mex-indexing repo:
 https://github.com/ElrondNetwork/temp-mex-indexing
 
 - We have an “Owner’s Launchpad Smart Contract control guide” for the startups to prepare their prerequisites.
@@ -102,11 +105,11 @@ ESDTTransfer@[token_id_in_hex]@[token_amount_in_hex]@6465706F7369744C61756E63687
 
 23. After ticket confirm epoch is reached, if blacklisting is needed, counterpart should execute it by snippet via:
 ```
-$ addAddressToBlacklist user_address
+$ addUsersToBlacklist user_address
 ```
 Or via normal tx towards the contract address with Gas Limit: `7000000` and data:
 ```
-addAddressToBlacklist@[user_address_in_hex]
+addUsersToBlacklist@[user_address_in_hex]@[user_address_in_hex]...
 ```
 
 #### Winners selection
