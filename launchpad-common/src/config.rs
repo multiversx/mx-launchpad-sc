@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct TokenAmountPair<M: ManagedTypeApi> {
-    pub token_id: TokenIdentifier<M>,
+    pub token_id: EgldOrEsdtTokenIdentifier<M>,
     pub amount: BigUint<M>,
 }
 

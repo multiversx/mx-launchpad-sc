@@ -97,7 +97,7 @@ pub trait MysterySftModule:
         steps_mapper.set(&steps);
     }
 
-    #[endpoint]
+    #[endpoint(setTransferRole)]
     fn set_transfer_role(&self, opt_addr_to_set: OptionalValue<ManagedAddress>) {
         self.require_extended_permissions();
 

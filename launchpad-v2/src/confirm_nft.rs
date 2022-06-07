@@ -27,7 +27,7 @@ pub trait ConfirmNftModule:
         let new_user = self.confirmed_nft_user_list().insert(caller);
         require!(new_user, "Already confirmed NFT");
 
-        let payment = self.call_value().payment();
+        let payment = self.call_value().egld_or_single_esdt();
         self.require_exact_nft_cost(&payment);
     }
 
@@ -53,7 +53,7 @@ pub trait ConfirmNftModule:
         }
     }
 
-    fn require_exact_nft_cost(&self, payment: &EsdtTokenPayment<Self::Api>) {
+    fn require_exact_nft_cost(&self, payment: &EgldOrEsdtTokenPayment<Self::Api>) {
         let nft_cost = self.nft_cost().get();
         require!(
             payment.token_identifier == nft_cost.token_identifier
@@ -72,7 +72,7 @@ pub trait ConfirmNftModule:
 
     #[view(getNftCost)]
     #[storage_mapper("nftCost")]
-    fn nft_cost(&self) -> SingleValueMapper<EsdtTokenPayment<Self::Api>>;
+    fn nft_cost(&self) -> SingleValueMapper<EgldOrEsdtTokenPayment<Self::Api>>;
 
     #[storage_mapper("totalAvailableNfts")]
     fn total_available_nfts(&self) -> SingleValueMapper<usize>;

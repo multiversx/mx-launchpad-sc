@@ -1,8 +1,8 @@
 use elrond_wasm::{
     storage::mappers::StorageTokenWrapper,
     types::{
-        Address, EsdtLocalRole, EsdtTokenPayment, MultiValueEncoded, OperationCompletionStatus,
-        TokenIdentifier,
+        Address, EgldOrEsdtTokenIdentifier, EgldOrEsdtTokenPayment, EsdtLocalRole,
+        MultiValueEncoded, OperationCompletionStatus,
     },
 };
 use elrond_wasm_debug::{
@@ -81,14 +81,14 @@ where
                 sc.init(
                     managed_token_id!(LAUNCHPAD_TOKEN_ID),
                     managed_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
-                    TokenIdentifier::egld(),
+                    EgldOrEsdtTokenIdentifier::egld(),
                     managed_biguint!(BASE_TICKET_COST),
                     NR_WINNING_TICKETS,
                     CONFIRM_START_EPOCH,
                     WINNER_SELECTION_START_EPOCH,
                     CLAIM_START_EPOCH,
-                    EsdtTokenPayment::new(
-                        TokenIdentifier::egld(),
+                    EgldOrEsdtTokenPayment::new(
+                        EgldOrEsdtTokenIdentifier::egld(),
                         0,
                         managed_biguint!(NFT_TICKET_COST),
                     ),

@@ -38,7 +38,7 @@ pub trait LaunchpadMain:
         &self,
         launchpad_token_id: TokenIdentifier,
         launchpad_tokens_per_winning_ticket: BigUint,
-        ticket_payment_token: TokenIdentifier,
+        ticket_payment_token: EgldOrEsdtTokenIdentifier,
         ticket_price: BigUint,
         nr_winning_tickets: usize,
         confirmation_period_start_epoch: u64,
@@ -89,11 +89,15 @@ pub trait LaunchpadMain:
 
         let launchpad_token_id = self.launchpad_token_id().get();
         let launchpad_tokens_needed = self.get_exact_launchpad_tokens_needed();
-        let launchpad_tokens_balance = self.blockchain().get_sc_balance(&launchpad_token_id, 0);
+        let launchpad_tokens_balance = self.blockchain().get_esdt_balance(
+            &self.blockchain().get_sc_address(),
+            &launchpad_token_id,
+            0,
+        );
         let extra_launchpad_tokens = launchpad_tokens_balance - launchpad_tokens_needed;
         if extra_launchpad_tokens > 0 {
             self.send()
-                .direct(&owner, &launchpad_token_id, 0, &extra_launchpad_tokens, &[]);
+                .direct_esdt(&owner, &launchpad_token_id, 0, &extra_launchpad_tokens, &[]);
         }
     }
 }

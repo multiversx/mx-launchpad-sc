@@ -38,13 +38,13 @@ pub trait Launchpad:
         &self,
         launchpad_token_id: TokenIdentifier,
         launchpad_tokens_per_winning_ticket: BigUint,
-        ticket_payment_token: TokenIdentifier,
+        ticket_payment_token: EgldOrEsdtTokenIdentifier,
         ticket_price: BigUint,
         nr_winning_tickets: usize,
         confirmation_period_start_epoch: u64,
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
-        nft_cost: EsdtTokenPayment<Self::Api>,
+        nft_cost: EgldOrEsdtTokenPayment<Self::Api>,
         total_available_nfts: usize,
     ) {
         self.require_valid_cost(&nft_cost);
@@ -71,7 +71,7 @@ pub trait Launchpad:
         });
     }
 
-    fn require_valid_cost(&self, cost: &EsdtTokenPayment<Self::Api>) {
+    fn require_valid_cost(&self, cost: &EgldOrEsdtTokenPayment<Self::Api>) {
         if cost.token_identifier.is_egld() {
             require!(cost.token_nonce == 0, "EGLD token has no nonce");
         } else {

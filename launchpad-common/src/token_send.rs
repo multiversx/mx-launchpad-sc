@@ -30,7 +30,7 @@ pub trait TokenSendModule: crate::config::ConfigModule {
         let launchpad_tokens_amount_to_send =
             BigUint::from(nr_claimed_tickets as u32) * tokens_per_winning_ticket;
 
-        self.send().direct(
+        self.send().direct_esdt(
             address,
             &launchpad_token_id,
             0,
