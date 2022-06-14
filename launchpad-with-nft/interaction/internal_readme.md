@@ -18,7 +18,7 @@ It contains only a superseding specification over the internal_readme.md of the 
 
 1. Get a wallet with pem file & mnemonic available, some EGLD for fees/gas
 
-2. Go to `sc-launchpad-rs/launchpad-v2/interaction` and copy the wallet .pem file in here
+2. Go to `sc-launchpad-rs/launchpad-with-nft/interaction` and copy the wallet .pem file in here
 
 3. Edit `snippets.sh` with all launchpad contract details for deployment - this will be the “control panel” on Elrond’s side. Care for the NFT_COST parameter, as it is a merged formats input.
 

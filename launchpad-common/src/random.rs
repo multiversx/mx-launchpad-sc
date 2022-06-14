@@ -58,11 +58,9 @@ impl<M: ManagedTypeApi + CryptoApi> Random<M> {
     }
 
     fn hash_seed(&mut self) {
-        let mut prev_seed_bytes = [0u8; HASH_LEN];
-        let prev_seed_slice = self.seed.load_to_byte_array(&mut prev_seed_bytes);
-        let new_seed_bytes = M::crypto_api_impl().sha256_legacy(prev_seed_slice);
+        let handle = self.seed.get_raw_handle();
+        M::crypto_api_impl().sha256_managed(handle, handle);
 
-        self.seed.overwrite(&new_seed_bytes[..]);
         self.index = 0;
     }
 }

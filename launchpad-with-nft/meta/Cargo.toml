@@ -1,11 +1,11 @@
 [package]
-name = "launchpad-v2-meta"
+name = "launchpad-with-nft-meta"
 version = "0.0.0"
 authors = ["Dorin Iancu <dorin.iancu@elrond.com>"]
 edition = "2018"
 publish = false
 
-[dependencies.launchpad-v2]
+[dependencies.launchpad-with-nft]
 path = ".."
 
 [dependencies.elrond-wasm]

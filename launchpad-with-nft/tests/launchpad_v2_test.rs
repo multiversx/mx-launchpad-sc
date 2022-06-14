@@ -1,22 +1,22 @@
-mod launchpad_v2_setup;
+mod launchpad_with_nft_setup;
 
 use elrond_wasm::{elrond_codec::Empty, types::MultiValueEncoded};
 use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint};
 use launchpad_common::tickets::{TicketsModule, WINNING_TICKET};
-use launchpad_v2::{
+use launchpad_with_nft::{
     confirm_nft::ConfirmNftModule, mystery_sft::MysterySftTypes,
     nft_winners_selection::NftWinnersSelectionModule, Launchpad,
 };
-use launchpad_v2_setup::*;
+use launchpad_with_nft_setup::*;
 
 #[test]
 fn init_test() {
-    let _ = LaunchpadSetup::new(launchpad_v2::contract_obj);
+    let _ = LaunchpadSetup::new(launchpad_with_nft::contract_obj);
 }
 
 #[test]
 fn confirm_test() {
-    let mut lp_setup = LaunchpadSetup::new(launchpad_v2::contract_obj);
+    let mut lp_setup = LaunchpadSetup::new(launchpad_with_nft::contract_obj);
 
     // confirm ok
     let users = lp_setup.participants.clone();
@@ -47,7 +47,7 @@ fn confirm_test() {
 
 #[test]
 fn select_winners_test() {
-    let mut lp_setup = LaunchpadSetup::new(launchpad_v2::contract_obj);
+    let mut lp_setup = LaunchpadSetup::new(launchpad_with_nft::contract_obj);
     let users = lp_setup.participants.clone();
 
     lp_setup.confirm_nft(&users[0]).assert_ok();
@@ -97,7 +97,7 @@ fn select_winners_test() {
 
 #[test]
 fn claim_test() {
-    let mut lp_setup = LaunchpadSetup::new(launchpad_v2::contract_obj);
+    let mut lp_setup = LaunchpadSetup::new(launchpad_with_nft::contract_obj);
     let users = lp_setup.participants.clone();
 
     lp_setup.confirm_nft(&users[0]).assert_ok();
@@ -200,7 +200,7 @@ fn claim_test() {
 
 #[test]
 fn blacklist_refund_test() {
-    let mut lp_setup = LaunchpadSetup::new(launchpad_v2::contract_obj);
+    let mut lp_setup = LaunchpadSetup::new(launchpad_with_nft::contract_obj);
 
     // confirm ok
     let users = lp_setup.participants.clone();

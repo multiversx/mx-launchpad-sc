@@ -27,7 +27,7 @@ deploy() {
     local TICKET_PAYMENT_TOKEN_HEX="0x$(echo -n ${TICKET_PAYMENT_TOKEN} | xxd -p -u | tr -d '\n')"
     local LAUNCHPAD_TOKEN_ID_HEX="0x$(echo -n ${LAUNCHPAD_TOKEN_ID} | xxd -p -u | tr -d '\n')"
 
-    erdpy --verbose contract deploy --bytecode="../output/launchpad-v2.wasm" --recall-nonce --pem=${OWNER_PEM_PATH} \
+    erdpy --verbose contract deploy --bytecode="../output/launchpad-with-nft.wasm" --recall-nonce --pem=${OWNER_PEM_PATH} \
     --gas-limit=200000000 \
     --arguments ${LAUNCHPAD_TOKEN_ID_HEX} ${LAUNCHPAD_TOKENS_PER_WINNING_TICKET} \
     ${TICKET_PAYMENT_TOKEN_HEX} ${TICKET_PRICE} ${NR_WINNING_TICKETS} \
@@ -300,7 +300,7 @@ upgrade_old() {
     local LAUNCHPAD_TOKEN_ID_HEX="0x$(echo -n ${LAUNCHPAD_TOKEN_ID} | xxd -p -u | tr -d '\n')"
 
     erdpy --verbose contract upgrade ${ADDRESS} \
-    --bytecode="../output/launchpad-v2.wasm" --recall-nonce --pem=${OWNER_PEM_PATH} \
+    --bytecode="../output/launchpad-with-nft.wasm" --recall-nonce --pem=${OWNER_PEM_PATH} \
     --gas-limit=200000000 \
     --arguments ${LAUNCHPAD_TOKEN_ID_HEX} ${LAUNCHPAD_TOKENS_PER_WINNING_TICKET} \
     ${TICKET_PAYMENT_TOKEN_HEX} ${TICKET_PRICE} ${NR_WINNING_TICKETS} \

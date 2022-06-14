@@ -15,7 +15,7 @@ use launchpad_common::{
     setup::SetupModule, tickets::TicketsModule, user_interactions::UserInteractionsModule,
     winner_selection::WinnerSelectionModule,
 };
-use launchpad_v2::{
+use launchpad_with_nft::{
     claim_nft::ClaimNftModule,
     confirm_nft::ConfirmNftModule,
     mystery_sft::{MysterySftModule, SftSetupSteps},
@@ -39,17 +39,17 @@ pub static SFT_TOKEN_ID: &[u8] = b"MYSTERY-123456";
 
 pub struct LaunchpadSetup<LaunchpadBuilder>
 where
-    LaunchpadBuilder: 'static + Copy + Fn() -> launchpad_v2::ContractObj<DebugApi>,
+    LaunchpadBuilder: 'static + Copy + Fn() -> launchpad_with_nft::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner_address: Address,
     pub participants: Vec<Address>,
-    pub lp_wrapper: ContractObjWrapper<launchpad_v2::ContractObj<DebugApi>, LaunchpadBuilder>,
+    pub lp_wrapper: ContractObjWrapper<launchpad_with_nft::ContractObj<DebugApi>, LaunchpadBuilder>,
 }
 
 impl<LaunchpadBuilder> LaunchpadSetup<LaunchpadBuilder>
 where
-    LaunchpadBuilder: 'static + Copy + Fn() -> launchpad_v2::ContractObj<DebugApi>,
+    LaunchpadBuilder: 'static + Copy + Fn() -> launchpad_with_nft::ContractObj<DebugApi>,
 {
     pub fn new(lp_builder: LaunchpadBuilder) -> Self {
         let rust_zero = rust_biguint!(0u64);
@@ -72,7 +72,7 @@ where
             &rust_zero,
             Some(&owner_address),
             lp_builder,
-            "launchpad_v2.wasm",
+            "launchpad_with_nft.wasm",
         );
 
         // init launchpad
