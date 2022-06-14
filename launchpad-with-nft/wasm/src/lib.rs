@@ -5,7 +5,7 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    launchpad_v2
+    launchpad_with_nft
     (
         callBack
         addTickets

@@ -3,6 +3,6 @@ members = [
   "launchpad-common",
   "launchpad",
   "launchpad/meta",
-  "launchpad-v2",
-  "launchpad-v2/meta",
+  "launchpad-with-nft",
+  "launchpad-with-nft/meta",
 ]
