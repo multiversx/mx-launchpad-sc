@@ -14,6 +14,8 @@ const VEC_MAPPER_START_INDEX: usize = 1;
 pub struct GuaranteedTicketsSelectionOperation<M: ManagedTypeApi + CryptoApi> {
     pub rng: Random<M>,
     pub leftover_tickets: usize,
+    pub leftover_ticket_pos_offset: usize,
+    pub total_additional_winning_tickets: usize,
 }
 
 impl<M: ManagedTypeApi + CryptoApi> Default for GuaranteedTicketsSelectionOperation<M> {
@@ -21,6 +23,8 @@ impl<M: ManagedTypeApi + CryptoApi> Default for GuaranteedTicketsSelectionOperat
         Self {
             rng: Random::default(),
             leftover_tickets: 0,
+            leftover_ticket_pos_offset: 1,
+            total_additional_winning_tickets: 0,
         }
     }
 }
@@ -49,6 +53,8 @@ pub trait GuaranteedTicketWinnersModule:
 
         let mut current_operation: GuaranteedTicketsSelectionOperation<Self::Api> =
             self.load_additional_selection_operation();
+        let total_additional_winning_tickets =
+            &mut current_operation.total_additional_winning_tickets;
         let leftover_tickets = &mut current_operation.leftover_tickets;
         let max_tier_tickets = self.max_tier_tickets().get();
 
@@ -68,6 +74,8 @@ pub trait GuaranteedTicketWinnersModule:
                     if !self.has_any_winning_tickets(&ticket_range) {
                         self.ticket_status(ticket_range.first_id)
                             .set(WINNING_TICKET);
+
+                        *total_additional_winning_tickets += 1;
                     } else {
                         *leftover_tickets += 1;
                     }
@@ -86,17 +94,57 @@ pub trait GuaranteedTicketWinnersModule:
         };
 
         if run_result == OperationCompletionStatus::InterruptedBeforeOutOfGas {
-            let mut encoded_data = ManagedBuffer::new();
-            let _ = current_operation.top_encode(&mut encoded_data);
-            self.save_progress(&OngoingOperationType::AdditionalSelection { encoded_data });
+            self.save_custom_operation(&current_operation);
 
             return run_result;
         }
 
-        // let rng = &mut current_operation.rng;
-        // let nr_original_winning_tickets = self.nr_winning_tickets().get();
+        let rng = &mut current_operation.rng;
+        let leftover_ticket_pos_offset = &mut current_operation.leftover_ticket_pos_offset;
+        let nr_original_winning_tickets = self.nr_winning_tickets().get();
+        let last_ticket_pos = self.get_total_tickets();
 
-        run_result
+        let second_op_run_result = self.run_while_it_has_gas(|| {
+            if *leftover_tickets == 0 {
+                return STOP_OP;
+            }
+
+            let current_ticket_pos = nr_original_winning_tickets + *leftover_ticket_pos_offset;
+            *leftover_ticket_pos_offset += 1;
+
+            let current_ticket_id = self.ticket_pos_to_id(current_ticket_pos).get();
+            let current_ticket_status = self.ticket_status(current_ticket_id).get();
+            if current_ticket_status == WINNING_TICKET {
+                return CONTINUE_OP;
+            }
+
+            let selected_ticket_ok =
+                self.try_select_winning_ticket(rng, current_ticket_pos, last_ticket_pos);
+            if selected_ticket_ok {
+                *leftover_tickets -= 1;
+                *total_additional_winning_tickets += 1;
+            }
+
+            CONTINUE_OP
+        });
+
+        match second_op_run_result {
+            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
+                self.save_custom_operation(&current_operation);
+            }
+            OperationCompletionStatus::Completed => {
+                flags.was_additional_step_completed = true;
+                flags_mapper.set(&flags);
+
+                let ticket_price = self.ticket_price().get();
+                let claimable_ticket_payment =
+                    ticket_price.amount * (*total_additional_winning_tickets as u32);
+                self.claimable_ticket_payment()
+                    .update(|claim_amt| *claim_amt += claimable_ticket_payment);
+            }
+        };
+
+        second_op_run_result
     }
 
     fn has_any_winning_tickets(&self, ticket_range: &TicketRange) -> bool {
@@ -108,6 +156,39 @@ pub trait GuaranteedTicketWinnersModule:
         }
 
         false
+    }
+
+    fn try_select_winning_ticket(
+        &self,
+        rng: &mut Random<Self::Api>,
+        current_ticket_position: usize,
+        last_ticket_position: usize,
+    ) -> bool {
+        let rand_pos = rng.next_usize_in_range(current_ticket_position, last_ticket_position + 1);
+
+        let winning_ticket_id = self.get_ticket_id_from_pos(rand_pos);
+        let current_ticket_id = self.get_ticket_id_from_pos(current_ticket_position);
+        if self.is_already_winning_ticket(winning_ticket_id)
+            || self.is_already_winning_ticket(current_ticket_id)
+        {
+            return false;
+        }
+
+        self.ticket_pos_to_id(rand_pos).set(current_ticket_id);
+        self.ticket_status(winning_ticket_id).set(WINNING_TICKET);
+
+        true
+    }
+
+    #[inline]
+    fn is_already_winning_ticket(&self, ticket_id: usize) -> bool {
+        self.ticket_status(ticket_id).get() == WINNING_TICKET
+    }
+
+    fn save_custom_operation(&self, op: &GuaranteedTicketsSelectionOperation<Self::Api>) {
+        let mut encoded_data = ManagedBuffer::new();
+        let _ = op.top_encode(&mut encoded_data);
+        self.save_progress(&OngoingOperationType::AdditionalSelection { encoded_data });
     }
 
     #[inline]
