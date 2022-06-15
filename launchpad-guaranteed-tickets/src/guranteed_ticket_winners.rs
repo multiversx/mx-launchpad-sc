@@ -112,12 +112,6 @@ pub trait GuaranteedTicketWinnersModule:
             let current_ticket_pos = nr_original_winning_tickets + *leftover_ticket_pos_offset;
             *leftover_ticket_pos_offset += 1;
 
-            let current_ticket_id = self.ticket_pos_to_id(current_ticket_pos).get();
-            let current_ticket_status = self.ticket_status(current_ticket_id).get();
-            if current_ticket_status == WINNING_TICKET {
-                return CONTINUE_OP;
-            }
-
             let selected_ticket_ok =
                 self.try_select_winning_ticket(rng, current_ticket_pos, last_ticket_pos);
             if selected_ticket_ok {
