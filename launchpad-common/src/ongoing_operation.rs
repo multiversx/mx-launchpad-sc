@@ -56,7 +56,6 @@ pub trait OngoingOperationModule {
         OperationCompletionStatus::Completed
     }
 
-    #[inline]
     fn can_continue_operation(&self, operation_cost: u64) -> bool {
         let gas_left = self.blockchain().get_gas_left();
 

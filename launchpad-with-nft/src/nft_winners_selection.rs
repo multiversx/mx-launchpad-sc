@@ -3,7 +3,6 @@ elrond_wasm::derive_imports!();
 
 use elrond_wasm::elrond_codec::TopEncode;
 use launchpad_common::{
-    launch_stage::Flags,
     ongoing_operation::{OngoingOperationType, CONTINUE_OP, STOP_OP},
     random::Random,
 };
@@ -26,7 +25,7 @@ pub trait NftWinnersSelectionModule:
         self.require_winner_selection_period();
 
         let flags_mapper = self.flags();
-        let mut flags: Flags = flags_mapper.get();
+        let mut flags = flags_mapper.get();
         require!(
             flags.were_winners_selected,
             "Must select winners for base launchpad first"
