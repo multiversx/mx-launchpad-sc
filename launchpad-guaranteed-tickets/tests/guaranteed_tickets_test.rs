@@ -8,7 +8,6 @@ use guaranteed_tickets_setup::{
 };
 use launchpad_common::{
     config::ConfigModule,
-    random::Random,
     tickets::{TicketsModule, WINNING_TICKET},
     winner_selection::WinnerSelectionModule,
 };
@@ -284,12 +283,7 @@ fn combined_scenario_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut op = GuaranteedTicketsSelectionOperation {
-                    rng: Random::default(),
-                    leftover_tickets: 0,
-                    total_additional_winning_tickets: 0,
-                    leftover_ticket_pos_offset: 1,
-                };
+                let mut op = GuaranteedTicketsSelectionOperation::default();
 
                 // first step
                 sc.select_guaranteed_tickets(&mut op);
