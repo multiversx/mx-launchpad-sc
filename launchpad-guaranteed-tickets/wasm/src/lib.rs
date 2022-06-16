@@ -5,7 +5,7 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    launchpad
+    launchpad_guaranteed_tickets
     (
         addTickets
         addUsersToBlacklist
@@ -13,6 +13,7 @@ elrond_wasm_node::wasm_endpoints! {
         claimTicketPayment
         confirmTickets
         depositLaunchpadTokens
+        distributeGuaranteedTickets
         filterTickets
         getConfiguration
         getLaunchStageFlags
