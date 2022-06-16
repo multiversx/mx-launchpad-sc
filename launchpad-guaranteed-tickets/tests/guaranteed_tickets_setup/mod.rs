@@ -153,13 +153,13 @@ where
         )
     }
 
-    pub fn select_base_winners_mock(&mut self) -> TxResult {
+    pub fn select_base_winners_mock(&mut self, nr_whales: usize) -> TxResult {
         self.b_mock.execute_tx(
             &self.owner_address,
             &self.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let base_winning = NR_WINNING_TICKETS - 1;
+                let base_winning = NR_WINNING_TICKETS - nr_whales;
                 for ticket_id in 1..=base_winning {
                     sc.ticket_status(ticket_id).set(WINNING_TICKET);
                 }
