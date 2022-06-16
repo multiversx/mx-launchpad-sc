@@ -92,13 +92,9 @@ pub trait GuaranteedTicketWinnersModule:
 
     fn select_guaranteed_tickets(
         &self,
-        current_operation: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
+        op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
     ) -> OperationCompletionStatus {
-        let total_additional_winning_tickets =
-            &mut current_operation.total_additional_winning_tickets;
-        let leftover_tickets = &mut current_operation.leftover_tickets;
         let max_tier_tickets = self.max_tier_tickets().get();
-
         let mut users_whitelist = self.max_tier_users();
         let users_list_vec = self.get_users_list_vec_mapper();
         let mut users_left = users_list_vec.len();
@@ -119,12 +115,12 @@ pub trait GuaranteedTicketWinnersModule:
                     self.ticket_status(ticket_range.first_id)
                         .set(WINNING_TICKET);
 
-                    *total_additional_winning_tickets += 1;
+                    op.total_additional_winning_tickets += 1;
                 } else {
-                    *leftover_tickets += 1;
+                    op.leftover_tickets += 1;
                 }
             } else {
-                *leftover_tickets += 1;
+                op.leftover_tickets += 1;
             }
 
             CONTINUE_OP
@@ -133,33 +129,27 @@ pub trait GuaranteedTicketWinnersModule:
 
     fn distribute_leftover_tickets(
         &self,
-        current_operation: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
+        op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
     ) -> OperationCompletionStatus {
-        let total_additional_winning_tickets =
-            &mut current_operation.total_additional_winning_tickets;
-        let leftover_tickets = &mut current_operation.leftover_tickets;
-
-        let rng = &mut current_operation.rng;
-        let leftover_ticket_pos_offset = &mut current_operation.leftover_ticket_pos_offset;
         let nr_original_winning_tickets = self.nr_winning_tickets().get();
         let last_ticket_pos = self.get_total_tickets();
 
         self.run_while_it_has_gas(|| {
-            if *leftover_tickets == 0 {
+            if op.leftover_tickets == 0 {
                 return STOP_OP;
             }
 
-            let current_ticket_pos = nr_original_winning_tickets + *leftover_ticket_pos_offset;
+            let current_ticket_pos = nr_original_winning_tickets + op.leftover_ticket_pos_offset;
 
             let selection_result =
-                self.try_select_winning_ticket(rng, current_ticket_pos, last_ticket_pos);
+                self.try_select_winning_ticket(&mut op.rng, current_ticket_pos, last_ticket_pos);
             match selection_result {
                 AdditionalSelectionTryResult::Ok => {
-                    *leftover_tickets -= 1;
-                    *total_additional_winning_tickets += 1;
+                    op.leftover_tickets -= 1;
+                    op.total_additional_winning_tickets += 1;
                 }
                 AdditionalSelectionTryResult::CurrentAlreadyWinning => {
-                    *leftover_ticket_pos_offset += 1;
+                    op.leftover_ticket_pos_offset += 1;
                 }
                 AdditionalSelectionTryResult::NewlySelectedAlreadyWinning => {}
             }
