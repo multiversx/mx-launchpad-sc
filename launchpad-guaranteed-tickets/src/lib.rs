@@ -66,7 +66,7 @@ pub trait LaunchpadGuaranteedTickets:
 
         for multi_arg in address_number_pairs {
             let (buyer, nr_tickets) = multi_arg.into_tuple();
-            require!(nr_tickets < max_tier_tickets, "Too many tickets for user");
+            require!(nr_tickets <= max_tier_tickets, "Too many tickets for user");
 
             self.try_create_tickets(buyer.clone(), nr_tickets);
 
@@ -79,6 +79,20 @@ pub trait LaunchpadGuaranteedTickets:
         }
 
         self.nr_winning_tickets().set(total_winning_tickets);
+    }
+
+    #[only_owner]
+    #[payable("*")]
+    #[endpoint(depositLaunchpadTokens)]
+    fn deposit_launchpad_tokens_endpoint(&self) {
+        // temporarily set the storage to the "correct" value to allow successful deposit
+        let nr_winning_tickets_mapper = self.nr_winning_tickets();
+        let initial_value = nr_winning_tickets_mapper.get();
+        let reserved_tickets = self.max_tier_users().len();
+
+        nr_winning_tickets_mapper.set(initial_value + reserved_tickets);
+        self.deposit_launchpad_tokens();
+        nr_winning_tickets_mapper.set(initial_value);
     }
 
     #[endpoint(claimLaunchpadTokens)]

@@ -93,6 +93,13 @@ pub trait Launchpad:
         self.add_tickets(address_number_pairs);
     }
 
+    #[only_owner]
+    #[payable("*")]
+    #[endpoint(depositLaunchpadTokens)]
+    fn deposit_launchpad_tokens_endpoint(&self) {
+        self.deposit_launchpad_tokens();
+    }
+
     #[endpoint(addUsersToBlacklist)]
     fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
         let users_list_vec = users_list.to_vec();

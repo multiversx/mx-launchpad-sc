@@ -6,9 +6,6 @@ use crate::config::{EpochsConfig, TokenAmountPair};
 pub trait SetupModule:
     crate::launch_stage::LaunchStageModule + crate::config::ConfigModule
 {
-    #[only_owner]
-    #[payable("*")]
-    #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens(&self) {
         require!(
             !self.were_launchpad_tokens_deposited(),
