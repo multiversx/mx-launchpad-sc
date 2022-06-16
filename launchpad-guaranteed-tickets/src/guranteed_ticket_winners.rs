@@ -147,6 +147,7 @@ pub trait GuaranteedTicketWinnersModule:
                 AdditionalSelectionTryResult::Ok => {
                     op.leftover_tickets -= 1;
                     op.total_additional_winning_tickets += 1;
+                    op.leftover_ticket_pos_offset += 1;
                 }
                 AdditionalSelectionTryResult::CurrentAlreadyWinning => {
                     op.leftover_ticket_pos_offset += 1;

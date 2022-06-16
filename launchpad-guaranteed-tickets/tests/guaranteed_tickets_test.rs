@@ -1,16 +1,23 @@
 mod guaranteed_tickets_setup;
 
+use elrond_wasm::types::MultiValueEncoded;
 use elrond_wasm_debug::{managed_address, rust_biguint};
 use guaranteed_tickets_setup::{
-    LaunchpadSetup, CLAIM_START_EPOCH, LAUNCHPAD_TOKENS_PER_TICKET, LAUNCHPAD_TOKEN_ID,
-    MAX_TIER_TICKETS, TICKET_COST, WINNER_SELECTION_START_EPOCH,
+    LaunchpadSetup, CLAIM_START_EPOCH, CONFIRM_START_EPOCH, LAUNCHPAD_TOKENS_PER_TICKET,
+    LAUNCHPAD_TOKEN_ID, MAX_TIER_TICKETS, TICKET_COST, WINNER_SELECTION_START_EPOCH,
 };
 use launchpad_common::{
     config::ConfigModule,
+    random::Random,
     tickets::{TicketsModule, WINNING_TICKET},
     winner_selection::WinnerSelectionModule,
 };
-use launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketWinnersModule;
+use launchpad_guaranteed_tickets::{
+    guranteed_ticket_winners::{
+        GuaranteedTicketWinnersModule, GuaranteedTicketsSelectionOperation,
+    },
+    LaunchpadGuaranteedTickets,
+};
 
 use crate::guaranteed_tickets_setup::NR_WINNING_TICKETS;
 
@@ -203,5 +210,119 @@ fn redistribute_test() {
             assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS);
             assert_eq!(sc.max_tier_users().len(), 0);
         })
+        .assert_ok();
+}
+
+#[test]
+fn combined_scenario_test() {
+    let mut lp_setup = LaunchpadSetup::new(launchpad_guaranteed_tickets::contract_obj);
+    let mut participants = lp_setup.participants.clone();
+
+    let new_participant = lp_setup
+        .b_mock
+        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64));
+    participants.push(new_participant.clone());
+
+    let second_new_participant = lp_setup
+        .b_mock
+        .create_user_account(&rust_biguint!(TICKET_COST));
+    participants.push(second_new_participant.clone());
+
+    // add another "whale"
+    lp_setup.b_mock.set_block_epoch(CONFIRM_START_EPOCH - 1);
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut args = MultiValueEncoded::new();
+                args.push((managed_address!(&new_participant), MAX_TIER_TICKETS).into());
+                args.push((managed_address!(&second_new_participant), 1).into());
+
+                sc.add_tickets_endpoint(args);
+            },
+        )
+        .assert_ok();
+
+    lp_setup.b_mock.set_block_epoch(CONFIRM_START_EPOCH);
+
+    // user[0] and user[1] will not confirm, so they get filtered
+    lp_setup.confirm(&participants[2], 3).assert_ok();
+    lp_setup.confirm(&participants[3], 3).assert_ok();
+    lp_setup.confirm(&participants[4], 1).assert_ok();
+
+    lp_setup
+        .b_mock
+        .set_block_epoch(WINNER_SELECTION_START_EPOCH);
+
+    lp_setup.filter_tickets().assert_ok();
+    lp_setup.select_base_winners_mock(2).assert_ok();
+
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert_eq!(sc.ticket_status(1).get(), WINNING_TICKET);
+            assert_eq!(sc.ticket_status(2).get(), false);
+            assert_eq!(sc.ticket_status(3).get(), false);
+            assert_eq!(sc.ticket_status(4).get(), false);
+            assert_eq!(sc.ticket_status(5).get(), false);
+            assert_eq!(sc.ticket_status(6).get(), false);
+            assert_eq!(sc.ticket_status(7).get(), false);
+
+            assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS - 2);
+            assert_eq!(sc.max_tier_users().len(), 2);
+        })
+        .assert_ok();
+
+    // distribute by steps, to isolate each step's effect
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut op = GuaranteedTicketsSelectionOperation {
+                    rng: Random::default(),
+                    leftover_tickets: 0,
+                    total_additional_winning_tickets: 0,
+                    leftover_ticket_pos_offset: 1,
+                };
+
+                // first step
+                sc.select_guaranteed_tickets(&mut op);
+
+                // user[3]'s first ticket was selected
+                assert_eq!(sc.ticket_status(1).get(), WINNING_TICKET);
+                assert_eq!(sc.ticket_status(2).get(), false);
+                assert_eq!(sc.ticket_status(3).get(), false);
+                assert_eq!(sc.ticket_status(4).get(), WINNING_TICKET);
+                assert_eq!(sc.ticket_status(5).get(), false);
+                assert_eq!(sc.ticket_status(6).get(), false);
+                assert_eq!(sc.ticket_status(7).get(), false);
+
+                assert_eq!(op.leftover_tickets, 1);
+                assert_eq!(op.total_additional_winning_tickets, 1);
+                assert_eq!(op.leftover_ticket_pos_offset, 1);
+
+                // second step
+                sc.distribute_leftover_tickets(&mut op);
+
+                // ticket ID 2 was selected as winner
+                assert_eq!(sc.ticket_status(1).get(), WINNING_TICKET);
+                assert_eq!(sc.ticket_status(2).get(), WINNING_TICKET);
+                assert_eq!(sc.ticket_status(3).get(), false);
+                assert_eq!(sc.ticket_status(4).get(), WINNING_TICKET);
+                assert_eq!(sc.ticket_status(5).get(), false);
+                assert_eq!(sc.ticket_status(6).get(), false);
+                assert_eq!(sc.ticket_status(7).get(), false);
+
+                assert_eq!(op.leftover_tickets, 0);
+                assert_eq!(op.total_additional_winning_tickets, 2);
+                assert_eq!(op.leftover_ticket_pos_offset, 2);
+            },
+        )
         .assert_ok();
 }
