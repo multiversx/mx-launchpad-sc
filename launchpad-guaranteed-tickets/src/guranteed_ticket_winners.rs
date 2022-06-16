@@ -29,6 +29,12 @@ impl<M: ManagedTypeApi + CryptoApi> Default for GuaranteedTicketsSelectionOperat
     }
 }
 
+pub enum AdditionalSelectionTryResult {
+    Ok,
+    CurrentAlreadyWinning,
+    NewlySelectedAlreadyWinning,
+}
+
 #[elrond_wasm::module]
 pub trait GuaranteedTicketWinnersModule:
     launchpad_common::launch_stage::LaunchStageModule
@@ -110,13 +116,18 @@ pub trait GuaranteedTicketWinnersModule:
             }
 
             let current_ticket_pos = nr_original_winning_tickets + *leftover_ticket_pos_offset;
-            *leftover_ticket_pos_offset += 1;
 
-            let selected_ticket_ok =
+            let selection_result =
                 self.try_select_winning_ticket(rng, current_ticket_pos, last_ticket_pos);
-            if selected_ticket_ok {
-                *leftover_tickets -= 1;
-                *total_additional_winning_tickets += 1;
+            match selection_result {
+                AdditionalSelectionTryResult::Ok => {
+                    *leftover_tickets -= 1;
+                    *total_additional_winning_tickets += 1;
+                }
+                AdditionalSelectionTryResult::CurrentAlreadyWinning => {
+                    *leftover_ticket_pos_offset += 1;
+                }
+                AdditionalSelectionTryResult::NewlySelectedAlreadyWinning => {}
             }
 
             CONTINUE_OP
@@ -135,6 +146,9 @@ pub trait GuaranteedTicketWinnersModule:
                     ticket_price.amount * (*total_additional_winning_tickets as u32);
                 self.claimable_ticket_payment()
                     .update(|claim_amt| *claim_amt += claimable_ticket_payment);
+
+                self.nr_winning_tickets()
+                    .update(|nr_winning| *nr_winning += *total_additional_winning_tickets);
             }
         };
 
@@ -157,21 +171,22 @@ pub trait GuaranteedTicketWinnersModule:
         rng: &mut Random<Self::Api>,
         current_ticket_position: usize,
         last_ticket_position: usize,
-    ) -> bool {
-        let rand_pos = rng.next_usize_in_range(current_ticket_position, last_ticket_position + 1);
-
-        let winning_ticket_id = self.get_ticket_id_from_pos(rand_pos);
+    ) -> AdditionalSelectionTryResult {
         let current_ticket_id = self.get_ticket_id_from_pos(current_ticket_position);
-        if self.is_already_winning_ticket(winning_ticket_id)
-            || self.is_already_winning_ticket(current_ticket_id)
-        {
-            return false;
+        if self.is_already_winning_ticket(current_ticket_id) {
+            return AdditionalSelectionTryResult::CurrentAlreadyWinning;
+        }
+
+        let rand_pos = rng.next_usize_in_range(current_ticket_position, last_ticket_position + 1);
+        let winning_ticket_id = self.get_ticket_id_from_pos(rand_pos);
+        if self.is_already_winning_ticket(winning_ticket_id) {
+            return AdditionalSelectionTryResult::NewlySelectedAlreadyWinning;
         }
 
         self.ticket_pos_to_id(rand_pos).set(current_ticket_id);
         self.ticket_status(winning_ticket_id).set(WINNING_TICKET);
 
-        true
+        AdditionalSelectionTryResult::Ok
     }
 
     #[inline]
