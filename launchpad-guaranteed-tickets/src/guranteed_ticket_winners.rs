@@ -103,36 +103,32 @@ pub trait GuaranteedTicketWinnersModule:
         let users_list_vec = self.get_users_list_vec_mapper();
         let mut users_left = users_list_vec.len();
 
-        if users_left > 0 {
-            self.run_while_it_has_gas(|| {
-                let current_user = users_list_vec.get(VEC_MAPPER_START_INDEX);
-                let _ = users_whitelist.swap_remove(&current_user);
-                users_left -= 1;
+        self.run_while_it_has_gas(|| {
+            if users_left == 0 {
+                return STOP_OP;
+            }
 
-                let user_confirmed_tickets = self.nr_confirmed_tickets(&current_user).get();
-                if user_confirmed_tickets == max_tier_tickets {
-                    let ticket_range = self.ticket_range_for_address(&current_user).get();
-                    if !self.has_any_winning_tickets(&ticket_range) {
-                        self.ticket_status(ticket_range.first_id)
-                            .set(WINNING_TICKET);
+            let current_user = users_list_vec.get(VEC_MAPPER_START_INDEX);
+            let _ = users_whitelist.swap_remove(&current_user);
+            users_left -= 1;
 
-                        *total_additional_winning_tickets += 1;
-                    } else {
-                        *leftover_tickets += 1;
-                    }
+            let user_confirmed_tickets = self.nr_confirmed_tickets(&current_user).get();
+            if user_confirmed_tickets == max_tier_tickets {
+                let ticket_range = self.ticket_range_for_address(&current_user).get();
+                if !self.has_any_winning_tickets(&ticket_range) {
+                    self.ticket_status(ticket_range.first_id)
+                        .set(WINNING_TICKET);
+
+                    *total_additional_winning_tickets += 1;
                 } else {
                     *leftover_tickets += 1;
                 }
+            } else {
+                *leftover_tickets += 1;
+            }
 
-                if users_left == 0 {
-                    STOP_OP
-                } else {
-                    CONTINUE_OP
-                }
-            })
-        } else {
-            OperationCompletionStatus::Completed
-        }
+            CONTINUE_OP
+        })
     }
 
     fn distribute_leftover_tickets(
