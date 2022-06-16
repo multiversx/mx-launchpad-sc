@@ -323,7 +323,6 @@ fn combined_scenario_test() {
                 assert_eq!(op.total_additional_winning_tickets, 2);
                 assert_eq!(op.leftover_ticket_pos_offset, 2);
 
-                assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS);
                 assert_eq!(sc.max_tier_users().len(), 0);
             },
         )
