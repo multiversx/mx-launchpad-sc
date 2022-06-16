@@ -59,6 +59,41 @@ pub trait GuaranteedTicketWinnersModule:
 
         let mut current_operation: GuaranteedTicketsSelectionOperation<Self::Api> =
             self.load_additional_selection_operation();
+        let first_op_run_result = self.select_guaranteed_tickets(&mut current_operation);
+        if first_op_run_result == OperationCompletionStatus::InterruptedBeforeOutOfGas {
+            self.save_custom_operation(&current_operation);
+
+            return first_op_run_result;
+        }
+
+        let second_op_run_result = self.distribute_leftover_tickets(&mut current_operation);
+        match second_op_run_result {
+            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
+                self.save_custom_operation(&current_operation);
+            }
+            OperationCompletionStatus::Completed => {
+                flags.was_additional_step_completed = true;
+                flags_mapper.set(&flags);
+
+                let ticket_price = self.ticket_price().get();
+                let claimable_ticket_payment = ticket_price.amount
+                    * (current_operation.total_additional_winning_tickets as u32);
+                self.claimable_ticket_payment()
+                    .update(|claim_amt| *claim_amt += claimable_ticket_payment);
+
+                self.nr_winning_tickets().update(|nr_winning| {
+                    *nr_winning += current_operation.total_additional_winning_tickets
+                });
+            }
+        };
+
+        second_op_run_result
+    }
+
+    fn select_guaranteed_tickets(
+        &self,
+        current_operation: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
+    ) -> OperationCompletionStatus {
         let total_additional_winning_tickets =
             &mut current_operation.total_additional_winning_tickets;
         let leftover_tickets = &mut current_operation.leftover_tickets;
@@ -68,7 +103,7 @@ pub trait GuaranteedTicketWinnersModule:
         let users_list_vec = self.get_users_list_vec_mapper();
         let mut users_left = users_list_vec.len();
 
-        let run_result = if users_left > 0 {
+        if users_left > 0 {
             self.run_while_it_has_gas(|| {
                 let current_user = users_list_vec.get(VEC_MAPPER_START_INDEX);
                 let _ = users_whitelist.swap_remove(&current_user);
@@ -97,20 +132,23 @@ pub trait GuaranteedTicketWinnersModule:
             })
         } else {
             OperationCompletionStatus::Completed
-        };
-
-        if run_result == OperationCompletionStatus::InterruptedBeforeOutOfGas {
-            self.save_custom_operation(&current_operation);
-
-            return run_result;
         }
+    }
+
+    fn distribute_leftover_tickets(
+        &self,
+        current_operation: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
+    ) -> OperationCompletionStatus {
+        let total_additional_winning_tickets =
+            &mut current_operation.total_additional_winning_tickets;
+        let leftover_tickets = &mut current_operation.leftover_tickets;
 
         let rng = &mut current_operation.rng;
         let leftover_ticket_pos_offset = &mut current_operation.leftover_ticket_pos_offset;
         let nr_original_winning_tickets = self.nr_winning_tickets().get();
         let last_ticket_pos = self.get_total_tickets();
 
-        let second_op_run_result = self.run_while_it_has_gas(|| {
+        self.run_while_it_has_gas(|| {
             if *leftover_tickets == 0 {
                 return STOP_OP;
             }
@@ -131,28 +169,7 @@ pub trait GuaranteedTicketWinnersModule:
             }
 
             CONTINUE_OP
-        });
-
-        match second_op_run_result {
-            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
-                self.save_custom_operation(&current_operation);
-            }
-            OperationCompletionStatus::Completed => {
-                flags.was_additional_step_completed = true;
-                flags_mapper.set(&flags);
-
-                let ticket_price = self.ticket_price().get();
-                let claimable_ticket_payment =
-                    ticket_price.amount * (*total_additional_winning_tickets as u32);
-                self.claimable_ticket_payment()
-                    .update(|claim_amt| *claim_amt += claimable_ticket_payment);
-
-                self.nr_winning_tickets()
-                    .update(|nr_winning| *nr_winning += *total_additional_winning_tickets);
-            }
-        };
-
-        second_op_run_result
+        })
     }
 
     fn has_any_winning_tickets(&self, ticket_range: &TicketRange) -> bool {

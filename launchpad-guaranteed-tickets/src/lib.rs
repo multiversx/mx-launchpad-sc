@@ -91,8 +91,9 @@ pub trait LaunchpadGuaranteedTickets:
         let users_vec = users_list.to_vec();
         self.add_users_to_blacklist(&users_vec);
 
+        let mut max_tier_whitelist = self.max_tier_users();
         for user in &users_vec {
-            let _ = self.max_tier_users().swap_remove(&user);
+            let _ = max_tier_whitelist.swap_remove(&user);
         }
     }
 }
