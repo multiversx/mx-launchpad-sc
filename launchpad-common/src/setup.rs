@@ -6,7 +6,7 @@ use crate::config::{EpochsConfig, TokenAmountPair};
 pub trait SetupModule:
     crate::launch_stage::LaunchStageModule + crate::config::ConfigModule
 {
-    fn deposit_launchpad_tokens(&self) {
+    fn deposit_launchpad_tokens(&self, total_winning_tickets: usize) {
         require!(
             !self.were_launchpad_tokens_deposited(),
             "Tokens already deposited"
@@ -16,7 +16,8 @@ pub trait SetupModule:
         let launchpad_token_id = self.launchpad_token_id().get();
         require!(payment_token == launchpad_token_id, "Wrong token");
 
-        let amount_needed = self.get_exact_launchpad_tokens_needed();
+        let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
+        let amount_needed = amount_per_ticket * (total_winning_tickets as u32);
         require!(payment_amount == amount_needed, "Wrong amount");
 
         self.launchpad_tokens_deposited().set(&true);
@@ -73,15 +74,6 @@ pub trait SetupModule:
             config.claim_start_epoch = new_start_epoch;
             self.require_valid_time_periods(config);
         });
-    }
-
-    // private
-
-    fn get_exact_launchpad_tokens_needed(&self) -> BigUint {
-        let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
-        let total_winning_tickets = self.nr_winning_tickets().get();
-
-        amount_per_ticket * (total_winning_tickets as u32)
     }
 
     fn try_set_ticket_price(&self, token_id: EgldOrEsdtTokenIdentifier, amount: BigUint) {

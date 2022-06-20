@@ -97,7 +97,8 @@ pub trait Launchpad:
     #[payable("*")]
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens_endpoint(&self) {
-        self.deposit_launchpad_tokens();
+        let nr_winning_tickets = self.nr_winning_tickets().get();
+        self.deposit_launchpad_tokens(nr_winning_tickets);
     }
 
     #[endpoint(addUsersToBlacklist)]

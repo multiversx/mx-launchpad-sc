@@ -88,12 +88,16 @@ pub trait LaunchpadMain:
         }
 
         let launchpad_token_id = self.launchpad_token_id().get();
-        let launchpad_tokens_needed = self.get_exact_launchpad_tokens_needed();
         let launchpad_tokens_balance = self.blockchain().get_esdt_balance(
             &self.blockchain().get_sc_address(),
             &launchpad_token_id,
             0,
         );
+
+        let nr_winning_tickets = self.nr_winning_tickets().get();
+        let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
+        let launchpad_tokens_needed = amount_per_ticket * (nr_winning_tickets as u32);
+
         let extra_launchpad_tokens = launchpad_tokens_balance - launchpad_tokens_needed;
         if extra_launchpad_tokens > 0 {
             self.send()

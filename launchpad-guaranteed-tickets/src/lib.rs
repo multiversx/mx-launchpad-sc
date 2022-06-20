@@ -85,14 +85,11 @@ pub trait LaunchpadGuaranteedTickets:
     #[payable("*")]
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens_endpoint(&self) {
-        // temporarily set the storage to the "correct" value to allow successful deposit
-        let nr_winning_tickets_mapper = self.nr_winning_tickets();
-        let initial_value = nr_winning_tickets_mapper.get();
+        let base_selection_winning_tickets = self.nr_winning_tickets().get();
         let reserved_tickets = self.max_tier_users().len();
+        let total_tickets = base_selection_winning_tickets + reserved_tickets;
 
-        nr_winning_tickets_mapper.set(initial_value + reserved_tickets);
-        self.deposit_launchpad_tokens();
-        nr_winning_tickets_mapper.set(initial_value);
+        self.deposit_launchpad_tokens(total_tickets);
     }
 
     #[endpoint(claimLaunchpadTokens)]
