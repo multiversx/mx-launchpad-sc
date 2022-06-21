@@ -38,10 +38,9 @@ pub trait NftWinnersSelectionModule:
         let mut rng: Random<Self::Api> = self.load_additional_selection_operation();
 
         let mut all_users_mapper = self.confirmed_nft_user_list();
-        let users_mapper_vec = self.confirmed_list_to_vec_mapper();
         let mut nft_winners_mapper = self.nft_selection_winners();
 
-        let mut users_left = users_mapper_vec.len();
+        let mut users_left = all_users_mapper.len();
         let mut winners_selected = nft_winners_mapper.len();
         let total_available_nfts = self.total_available_nfts().get();
 
@@ -51,7 +50,7 @@ pub trait NftWinnersSelectionModule:
             }
 
             let rand_index = rng.next_usize_in_range(VEC_MAPPER_START_INDEX, users_left + 1);
-            let winner_addr = users_mapper_vec.get(rand_index);
+            let winner_addr = all_users_mapper.get_by_index(rand_index);
 
             all_users_mapper.swap_remove(&winner_addr);
             let _ = nft_winners_mapper.insert(winner_addr);

@@ -1,7 +1,5 @@
 elrond_wasm::imports!();
 
-use elrond_wasm::storage::StorageKey;
-
 #[elrond_wasm::module]
 pub trait ConfirmNftModule:
     launchpad_common::launch_stage::LaunchStageModule
@@ -46,7 +44,6 @@ pub trait ConfirmNftModule:
                 &payment.token_identifier,
                 payment.token_nonce,
                 &payment.amount,
-                &[],
             );
 
             mapper.clear();
@@ -61,10 +58,6 @@ pub trait ConfirmNftModule:
                 && payment.amount == nft_cost.amount,
             "Invalid payment"
         );
-    }
-
-    fn confirmed_list_to_vec_mapper(&self) -> VecMapper<ManagedAddress> {
-        VecMapper::new(StorageKey::new(b"confirmedNftUserList"))
     }
 
     #[storage_mapper("confirmedNftUserList")]

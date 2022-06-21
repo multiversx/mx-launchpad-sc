@@ -43,7 +43,6 @@ pub trait ClaimNftModule:
                 &nft_cost.token_identifier,
                 nft_cost.token_nonce,
                 &nft_cost.amount,
-                &[],
             );
         }
     }

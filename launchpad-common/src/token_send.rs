@@ -16,7 +16,6 @@ pub trait TokenSendModule: crate::config::ConfigModule {
             &ticket_price.token_id,
             0,
             &ticket_payment_refund_amount,
-            &[],
         );
     }
 
@@ -35,7 +34,6 @@ pub trait TokenSendModule: crate::config::ConfigModule {
             &launchpad_token_id,
             0,
             &launchpad_tokens_amount_to_send,
-            &[],
         );
     }
 }
