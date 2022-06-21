@@ -40,6 +40,10 @@ pub trait OngoingOperationModule {
             loop_op = process();
             let gas_after = self.blockchain().get_gas_left();
 
+            if loop_op == STOP_OP {
+                break;
+            }
+
             let current_iteration_cost = gas_before - gas_after;
             if current_iteration_cost > gas_per_iteration {
                 gas_per_iteration = current_iteration_cost;
