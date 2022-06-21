@@ -32,13 +32,11 @@ pub trait OngoingOperationModule {
     where
         Process: FnMut() -> LoopOp,
     {
-        let mut loop_op = CONTINUE_OP;
         let mut gas_per_iteration = 0;
-
-        while loop_op == CONTINUE_OP {
+        loop {
             let gas_before = self.blockchain().get_gas_left();
 
-            loop_op = process();
+            let loop_op = process();
             if loop_op == STOP_OP {
                 break;
             }
