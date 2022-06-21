@@ -78,13 +78,8 @@ pub trait LaunchpadMain:
             ticket_payment_mapper.clear();
 
             let ticket_price: TokenAmountPair<Self::Api> = self.ticket_price().get();
-            self.send().direct(
-                &owner,
-                &ticket_price.token_id,
-                0,
-                &claimable_ticket_payment,
-                &[],
-            );
+            self.send()
+                .direct(&owner, &ticket_price.token_id, 0, &claimable_ticket_payment);
         }
 
         let launchpad_token_id = self.launchpad_token_id().get();
@@ -101,7 +96,7 @@ pub trait LaunchpadMain:
         let extra_launchpad_tokens = launchpad_tokens_balance - launchpad_tokens_needed;
         if extra_launchpad_tokens > 0 {
             self.send()
-                .direct_esdt(&owner, &launchpad_token_id, 0, &extra_launchpad_tokens, &[]);
+                .direct_esdt(&owner, &launchpad_token_id, 0, &extra_launchpad_tokens);
         }
     }
 }

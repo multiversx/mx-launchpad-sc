@@ -77,10 +77,7 @@ pub trait SetupModule:
     }
 
     fn try_set_ticket_price(&self, token_id: EgldOrEsdtTokenIdentifier, amount: BigUint) {
-        require!(
-            token_id.is_egld() || token_id.is_valid_esdt_identifier(),
-            "Invalid token ID"
-        );
+        require!(token_id.is_valid(), "Invalid token ID");
         require!(amount > 0, "Ticket price must be higher than 0");
 
         self.ticket_price()

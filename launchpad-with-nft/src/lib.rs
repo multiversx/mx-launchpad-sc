@@ -75,10 +75,7 @@ pub trait Launchpad:
         if cost.token_identifier.is_egld() {
             require!(cost.token_nonce == 0, "EGLD token has no nonce");
         } else {
-            require!(
-                cost.token_identifier.is_valid_esdt_identifier(),
-                "Invalid ESDT token ID"
-            );
+            require!(cost.token_identifier.is_valid(), "Invalid ESDT token ID");
         }
 
         require!(cost.amount > 0, "Cost may not be 0");
@@ -115,7 +112,6 @@ pub trait Launchpad:
                     &nft_cost.token_identifier,
                     nft_cost.token_nonce,
                     &nft_cost.amount,
-                    &[],
                 );
             }
         }
