@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::{elrond_codec::TopEncode, storage::StorageKey};
+use elrond_wasm::elrond_codec::TopEncode;
 use launchpad_common::{
     ongoing_operation::{OngoingOperationType, CONTINUE_OP, STOP_OP},
     random::Random,
@@ -96,15 +96,14 @@ pub trait GuaranteedTicketWinnersModule:
     ) -> OperationCompletionStatus {
         let max_tier_tickets = self.max_tier_tickets().get();
         let mut users_whitelist = self.max_tier_users();
-        let users_list_vec = self.get_users_list_vec_mapper();
-        let mut users_left = users_list_vec.len();
+        let mut users_left = users_whitelist.len();
 
         self.run_while_it_has_gas(|| {
             if users_left == 0 {
                 return STOP_OP;
             }
 
-            let current_user = users_list_vec.get(VEC_MAPPER_START_INDEX);
+            let current_user = users_whitelist.get_by_index(VEC_MAPPER_START_INDEX);
             let _ = users_whitelist.swap_remove(&current_user);
             users_left -= 1;
 
@@ -202,11 +201,6 @@ pub trait GuaranteedTicketWinnersModule:
         let mut encoded_data = ManagedBuffer::new();
         let _ = op.top_encode(&mut encoded_data);
         self.save_progress(&OngoingOperationType::AdditionalSelection { encoded_data });
-    }
-
-    #[inline]
-    fn get_users_list_vec_mapper(&self) -> VecMapper<ManagedAddress> {
-        VecMapper::new(StorageKey::new(b"maxTierUsers"))
     }
 
     #[storage_mapper("maxTierTickets")]
