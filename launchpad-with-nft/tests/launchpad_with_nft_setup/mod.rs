@@ -12,7 +12,7 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 use launchpad_common::{
-    setup::SetupModule, tickets::TicketsModule, user_interactions::UserInteractionsModule,
+    tickets::TicketsModule, user_interactions::UserInteractionsModule,
     winner_selection::WinnerSelectionModule,
 };
 use launchpad_with_nft::{
@@ -142,7 +142,7 @@ where
                 0,
                 &total_launchpad_tokens,
                 |sc| {
-                    sc.deposit_launchpad_tokens();
+                    sc.deposit_launchpad_tokens_endpoint();
                 },
             )
             .assert_ok();

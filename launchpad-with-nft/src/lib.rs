@@ -84,6 +84,23 @@ pub trait Launchpad:
         require!(cost.amount > 0, "Cost may not be 0");
     }
 
+    #[only_owner]
+    #[endpoint(addTickets)]
+    fn add_tickets_endpoint(
+        &self,
+        address_number_pairs: MultiValueEncoded<MultiValue2<ManagedAddress, usize>>,
+    ) {
+        self.add_tickets(address_number_pairs);
+    }
+
+    #[only_owner]
+    #[payable("*")]
+    #[endpoint(depositLaunchpadTokens)]
+    fn deposit_launchpad_tokens_endpoint(&self) {
+        let nr_winning_tickets = self.nr_winning_tickets().get();
+        self.deposit_launchpad_tokens(nr_winning_tickets);
+    }
+
     #[endpoint(addUsersToBlacklist)]
     fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
         let users_list_vec = users_list.to_vec();

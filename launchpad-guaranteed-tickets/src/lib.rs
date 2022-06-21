@@ -5,8 +5,10 @@ elrond_wasm::derive_imports!();
 
 use launchpad_common::{launch_stage::Flags, *};
 
+pub mod guranteed_ticket_winners;
+
 #[elrond_wasm::contract]
-pub trait Launchpad:
+pub trait LaunchpadGuaranteedTickets:
     launchpad_common::LaunchpadMain
     + launch_stage::LaunchStageModule
     + config::ConfigModule
@@ -18,6 +20,7 @@ pub trait Launchpad:
     + blacklist::BlacklistModule
     + token_send::TokenSendModule
     + user_interactions::UserInteractionsModule
+    + guranteed_ticket_winners::GuaranteedTicketWinnersModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
@@ -31,13 +34,8 @@ pub trait Launchpad:
         confirmation_period_start_epoch: u64,
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
+        max_tier_tickets: usize,
     ) {
-        let flags = Flags {
-            has_winner_selection_process_started: false,
-            were_tickets_filtered: false,
-            were_winners_selected: false,
-            was_additional_step_completed: true, // we have no additional step in basic launchpad
-        };
         self.init_base(
             launchpad_token_id,
             launchpad_tokens_per_winning_ticket,
@@ -47,8 +45,11 @@ pub trait Launchpad:
             confirmation_period_start_epoch,
             winner_selection_start_epoch,
             claim_start_epoch,
-            flags,
+            Flags::default(),
         );
+
+        require!(max_tier_tickets > 0, "Invalid max tier ticket number");
+        self.max_tier_tickets().set(max_tier_tickets);
     }
 
     #[only_owner]
@@ -57,15 +58,38 @@ pub trait Launchpad:
         &self,
         address_number_pairs: MultiValueEncoded<MultiValue2<ManagedAddress, usize>>,
     ) {
-        self.add_tickets(address_number_pairs);
+        self.require_add_tickets_period();
+
+        let max_tier_tickets = self.max_tier_tickets().get();
+        let mut max_tier_whitelist = self.max_tier_users();
+        let mut total_winning_tickets = self.nr_winning_tickets().get();
+
+        for multi_arg in address_number_pairs {
+            let (buyer, nr_tickets) = multi_arg.into_tuple();
+            require!(nr_tickets <= max_tier_tickets, "Too many tickets for user");
+
+            self.try_create_tickets(buyer.clone(), nr_tickets);
+
+            if nr_tickets == max_tier_tickets {
+                require!(total_winning_tickets > 0, "Too many max tier users");
+
+                let _ = max_tier_whitelist.insert(buyer);
+                total_winning_tickets -= 1;
+            }
+        }
+
+        self.nr_winning_tickets().set(total_winning_tickets);
     }
 
     #[only_owner]
     #[payable("*")]
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens_endpoint(&self) {
-        let nr_winning_tickets = self.nr_winning_tickets().get();
-        self.deposit_launchpad_tokens(nr_winning_tickets);
+        let base_selection_winning_tickets = self.nr_winning_tickets().get();
+        let reserved_tickets = self.max_tier_users().len();
+        let total_tickets = base_selection_winning_tickets + reserved_tickets;
+
+        self.deposit_launchpad_tokens(total_tickets);
     }
 
     #[endpoint(claimLaunchpadTokens)]
@@ -75,6 +99,12 @@ pub trait Launchpad:
 
     #[endpoint(addUsersToBlacklist)]
     fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
-        self.add_users_to_blacklist(&users_list.to_vec());
+        let users_vec = users_list.to_vec();
+        self.add_users_to_blacklist(&users_vec);
+
+        let mut max_tier_whitelist = self.max_tier_users();
+        for user in &users_vec {
+            let _ = max_tier_whitelist.swap_remove(&user);
+        }
     }
 }

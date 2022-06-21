@@ -22,8 +22,6 @@ pub struct TicketBatch<M: ManagedTypeApi> {
 pub trait TicketsModule:
     crate::launch_stage::LaunchStageModule + crate::config::ConfigModule
 {
-    #[only_owner]
-    #[endpoint(addTickets)]
     fn add_tickets(
         &self,
         address_number_pairs: MultiValueEncoded<MultiValue2<ManagedAddress, usize>>,

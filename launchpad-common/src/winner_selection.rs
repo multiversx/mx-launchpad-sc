@@ -1,7 +1,6 @@
 elrond_wasm::imports!();
 
 use crate::{
-    config::TokenAmountPair,
     launch_stage::Flags,
     ongoing_operation::{OngoingOperationType, CONTINUE_OP, STOP_OP},
     random::Random,
@@ -130,7 +129,7 @@ pub trait WinnerSelectionModule:
             OperationCompletionStatus::Completed => {
                 flags.were_winners_selected = true;
 
-                let ticket_price: TokenAmountPair<Self::Api> = self.ticket_price().get();
+                let ticket_price = self.ticket_price().get();
                 let claimable_ticket_payment = ticket_price.amount * (nr_winning_tickets as u32);
                 self.claimable_ticket_payment()
                     .set(&claimable_ticket_payment);
