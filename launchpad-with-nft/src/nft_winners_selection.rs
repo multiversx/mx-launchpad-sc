@@ -46,6 +46,10 @@ pub trait NftWinnersSelectionModule:
         let total_available_nfts = self.total_available_nfts().get();
 
         let run_result = self.run_while_it_has_gas(|| {
+            if users_left == 0 || winners_selected == total_available_nfts {
+                return STOP_OP;
+            }
+
             let rand_index = rng.next_usize_in_range(VEC_MAPPER_START_INDEX, users_left + 1);
             let winner_addr = users_mapper_vec.get(rand_index);
 
@@ -55,11 +59,7 @@ pub trait NftWinnersSelectionModule:
             users_left -= 1;
             winners_selected += 1;
 
-            if users_left == 0 || winners_selected == total_available_nfts {
-                STOP_OP
-            } else {
-                CONTINUE_OP
-            }
+            CONTINUE_OP
         });
 
         match run_result {
