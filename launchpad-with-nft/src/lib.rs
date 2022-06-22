@@ -1,7 +1,10 @@
 #![no_std]
 #![feature(trait_alias)]
 
-use launchpad_common::launch_stage::Flags;
+use elrond_wasm::elrond_codec::TopEncode;
+use launchpad_common::{
+    launch_stage::Flags, ongoing_operation::OngoingOperationType, random::Random,
+};
 
 use crate::mystery_sft::SftSetupSteps;
 
@@ -11,6 +14,7 @@ elrond_wasm::derive_imports!();
 pub mod claim_nft;
 pub mod confirm_nft;
 pub mod mystery_sft;
+pub mod nft_blacklist;
 pub mod nft_winners_selection;
 
 #[elrond_wasm::contract]
@@ -27,6 +31,7 @@ pub trait Launchpad:
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + nft_blacklist::NftBlacklistModule
     + mystery_sft::MysterySftModule
     + confirm_nft::ConfirmNftModule
     + nft_winners_selection::NftWinnersSelectionModule
@@ -71,16 +76,6 @@ pub trait Launchpad:
         });
     }
 
-    fn require_valid_cost(&self, cost: &EgldOrEsdtTokenPayment<Self::Api>) {
-        if cost.token_identifier.is_egld() {
-            require!(cost.token_nonce == 0, "EGLD token has no nonce");
-        } else {
-            require!(cost.token_identifier.is_valid(), "Invalid ESDT token ID");
-        }
-
-        require!(cost.amount > 0, "Cost may not be 0");
-    }
-
     #[only_owner]
     #[endpoint(addTickets)]
     fn add_tickets_endpoint(
@@ -102,29 +97,53 @@ pub trait Launchpad:
     fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
         let users_list_vec = users_list.to_vec();
         self.add_users_to_blacklist(&users_list_vec);
+        self.refund_nft_cost_after_blacklist(&users_list_vec);
+    }
 
-        let nft_cost = self.nft_cost().get();
-        for user in &users_list_vec {
-            let did_user_confirm = self.confirmed_nft_user_list().swap_remove(&user);
-            if did_user_confirm {
-                self.send().direct(
-                    &user,
-                    &nft_cost.token_identifier,
-                    nft_cost.token_nonce,
-                    &nft_cost.amount,
-                );
+    #[endpoint(selectNftWinners)]
+    fn select_nft_winners_endpoint(&self) -> OperationCompletionStatus {
+        self.require_winner_selection_period();
+
+        let flags_mapper = self.flags();
+        let mut flags = flags_mapper.get();
+        require!(
+            flags.were_winners_selected,
+            "Must select winners for base launchpad first"
+        );
+        require!(
+            !flags.was_additional_step_completed,
+            "Already selected NFT winners"
+        );
+
+        let mut rng: Random<Self::Api> = self.load_additional_selection_operation();
+        let run_result = self.select_nft_winners(&mut rng);
+
+        match run_result {
+            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
+                let mut encoded_rng = ManagedBuffer::new();
+                let _ = rng.top_encode(&mut encoded_rng);
+
+                self.save_progress(&OngoingOperationType::AdditionalSelection {
+                    encoded_data: encoded_rng,
+                });
             }
-        }
+            OperationCompletionStatus::Completed => {
+                flags.was_additional_step_completed = true;
+                flags_mapper.set(&flags);
+
+                let winners_selected = self.nft_selection_winners().len();
+                let nft_cost = self.nft_cost().get();
+                let claimable_nft_payment = nft_cost.amount * winners_selected as u32;
+                self.claimable_nft_payment().set(&claimable_nft_payment);
+            }
+        };
+
+        run_result
     }
 
-    #[view(hasUserConfirmedNft)]
-    fn has_user_confirmed_nft(&self, user: ManagedAddress) -> bool {
-        self.confirmed_nft_user_list().contains(&user)
-            || self.nft_selection_winners().contains(&user)
-    }
-
-    #[view(hasUserWonNft)]
-    fn has_user_won_nft(&self, user: ManagedAddress) -> bool {
-        self.nft_selection_winners().contains(&user)
+    #[endpoint(claimLaunchpadTokens)]
+    fn claim_launchpad_tokens_endpoint(&self) {
+        self.claim_launchpad_tokens();
+        self.claim_nft();
     }
 }

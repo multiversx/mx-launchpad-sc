@@ -3,23 +3,27 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use launchpad_common::{launch_stage::Flags, *};
+use launchpad_common::launch_stage::Flags;
 
+use crate::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
+
+pub mod guaranteed_tickets_init;
 pub mod guranteed_ticket_winners;
 
 #[elrond_wasm::contract]
 pub trait LaunchpadGuaranteedTickets:
     launchpad_common::LaunchpadMain
-    + launch_stage::LaunchStageModule
-    + config::ConfigModule
-    + setup::SetupModule
-    + tickets::TicketsModule
-    + winner_selection::WinnerSelectionModule
-    + ongoing_operation::OngoingOperationModule
-    + permissions::PermissionsModule
-    + blacklist::BlacklistModule
-    + token_send::TokenSendModule
-    + user_interactions::UserInteractionsModule
+    + launchpad_common::launch_stage::LaunchStageModule
+    + launchpad_common::config::ConfigModule
+    + launchpad_common::setup::SetupModule
+    + launchpad_common::tickets::TicketsModule
+    + launchpad_common::winner_selection::WinnerSelectionModule
+    + launchpad_common::ongoing_operation::OngoingOperationModule
+    + launchpad_common::permissions::PermissionsModule
+    + launchpad_common::blacklist::BlacklistModule
+    + launchpad_common::token_send::TokenSendModule
+    + launchpad_common::user_interactions::UserInteractionsModule
+    + guaranteed_tickets_init::GuaranteedTicketsInitModule
     + guranteed_ticket_winners::GuaranteedTicketWinnersModule
 {
     #[allow(clippy::too_many_arguments)]
@@ -58,27 +62,7 @@ pub trait LaunchpadGuaranteedTickets:
         &self,
         address_number_pairs: MultiValueEncoded<MultiValue2<ManagedAddress, usize>>,
     ) {
-        self.require_add_tickets_period();
-
-        let max_tier_tickets = self.max_tier_tickets().get();
-        let mut max_tier_whitelist = self.max_tier_users();
-        let mut total_winning_tickets = self.nr_winning_tickets().get();
-
-        for multi_arg in address_number_pairs {
-            let (buyer, nr_tickets) = multi_arg.into_tuple();
-            require!(nr_tickets <= max_tier_tickets, "Too many tickets for user");
-
-            self.try_create_tickets(buyer.clone(), nr_tickets);
-
-            if nr_tickets == max_tier_tickets {
-                require!(total_winning_tickets > 0, "Too many max tier users");
-
-                let _ = max_tier_whitelist.insert(buyer);
-                total_winning_tickets -= 1;
-            }
-        }
-
-        self.nr_winning_tickets().set(total_winning_tickets);
+        self.add_tickets_with_guaranteed_winners(address_number_pairs);
     }
 
     #[only_owner]
@@ -101,10 +85,54 @@ pub trait LaunchpadGuaranteedTickets:
     fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
         let users_vec = users_list.to_vec();
         self.add_users_to_blacklist(&users_vec);
+        self.clear_max_tier_users_after_blacklist(&users_vec);
+    }
 
-        let mut max_tier_whitelist = self.max_tier_users();
-        for user in &users_vec {
-            let _ = max_tier_whitelist.swap_remove(&user);
+    #[endpoint(distributeGuaranteedTickets)]
+    fn distribute_guaranteed_tickets_endpoint(&self) -> OperationCompletionStatus {
+        self.require_winner_selection_period();
+
+        let flags_mapper = self.flags();
+        let mut flags = flags_mapper.get();
+        require!(
+            flags.were_winners_selected,
+            "Must select winners for base launchpad first"
+        );
+        require!(
+            !flags.was_additional_step_completed,
+            "Already distributed tickets"
+        );
+
+        let mut current_operation: GuaranteedTicketsSelectionOperation<Self::Api> =
+            self.load_additional_selection_operation();
+        let first_op_run_result = self.select_guaranteed_tickets(&mut current_operation);
+        if first_op_run_result == OperationCompletionStatus::InterruptedBeforeOutOfGas {
+            self.save_custom_operation(&current_operation);
+
+            return first_op_run_result;
         }
+
+        let second_op_run_result = self.distribute_leftover_tickets(&mut current_operation);
+        match second_op_run_result {
+            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
+                self.save_custom_operation(&current_operation);
+            }
+            OperationCompletionStatus::Completed => {
+                flags.was_additional_step_completed = true;
+                flags_mapper.set(&flags);
+
+                let ticket_price = self.ticket_price().get();
+                let claimable_ticket_payment = ticket_price.amount
+                    * (current_operation.total_additional_winning_tickets as u32);
+                self.claimable_ticket_payment()
+                    .update(|claim_amt| *claim_amt += claimable_ticket_payment);
+
+                self.nr_winning_tickets().update(|nr_winning| {
+                    *nr_winning += current_operation.total_additional_winning_tickets
+                });
+            }
+        };
+
+        second_op_run_result
     }
 }
