@@ -1,7 +1,10 @@
 #![no_std]
 #![feature(trait_alias)]
 
-use launchpad_common::launch_stage::Flags;
+use elrond_wasm::elrond_codec::TopEncode;
+use launchpad_common::{
+    launch_stage::Flags, ongoing_operation::OngoingOperationType, random::Random,
+};
 
 use crate::mystery_sft::SftSetupSteps;
 
@@ -97,15 +100,45 @@ pub trait Launchpad:
         self.refund_nft_cost_after_blacklist(&users_list_vec);
     }
 
-    #[view(hasUserConfirmedNft)]
-    fn has_user_confirmed_nft(&self, user: ManagedAddress) -> bool {
-        self.confirmed_nft_user_list().contains(&user)
-            || self.nft_selection_winners().contains(&user)
-    }
+    #[endpoint(selectNftWinners)]
+    fn select_nft_winners_endpoint(&self) -> OperationCompletionStatus {
+        self.require_winner_selection_period();
 
-    #[view(hasUserWonNft)]
-    fn has_user_won_nft(&self, user: ManagedAddress) -> bool {
-        self.nft_selection_winners().contains(&user)
+        let flags_mapper = self.flags();
+        let mut flags = flags_mapper.get();
+        require!(
+            flags.were_winners_selected,
+            "Must select winners for base launchpad first"
+        );
+        require!(
+            !flags.was_additional_step_completed,
+            "Already selected NFT winners"
+        );
+
+        let mut rng: Random<Self::Api> = self.load_additional_selection_operation();
+        let run_result = self.select_nft_winners(&mut rng);
+
+        match run_result {
+            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
+                let mut encoded_rng = ManagedBuffer::new();
+                let _ = rng.top_encode(&mut encoded_rng);
+
+                self.save_progress(&OngoingOperationType::AdditionalSelection {
+                    encoded_data: encoded_rng,
+                });
+            }
+            OperationCompletionStatus::Completed => {
+                flags.was_additional_step_completed = true;
+                flags_mapper.set(&flags);
+
+                let winners_selected = self.nft_selection_winners().len();
+                let nft_cost = self.nft_cost().get();
+                let claimable_nft_payment = nft_cost.amount * winners_selected as u32;
+                self.claimable_nft_payment().set(&claimable_nft_payment);
+            }
+        };
+
+        run_result
     }
 
     #[endpoint(claimLaunchpadTokens)]

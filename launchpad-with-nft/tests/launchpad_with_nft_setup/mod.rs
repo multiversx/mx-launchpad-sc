@@ -18,7 +18,6 @@ use launchpad_common::{
 use launchpad_with_nft::{
     confirm_nft::ConfirmNftModule,
     mystery_sft::{MysterySftModule, SftSetupSteps},
-    nft_winners_selection::NftWinnersSelectionModule,
     Launchpad,
 };
 
@@ -206,7 +205,7 @@ where
             &self.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let result = sc.select_nft_winners();
+                let result = sc.select_nft_winners_endpoint();
                 assert!(matches!(result, OperationCompletionStatus::Completed));
             },
         )
