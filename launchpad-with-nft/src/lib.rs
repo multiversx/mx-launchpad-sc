@@ -11,6 +11,7 @@ elrond_wasm::derive_imports!();
 pub mod claim_nft;
 pub mod confirm_nft;
 pub mod mystery_sft;
+pub mod nft_blacklist;
 pub mod nft_winners_selection;
 
 #[elrond_wasm::contract]
@@ -27,6 +28,7 @@ pub trait Launchpad:
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + nft_blacklist::NftBlacklistModule
     + mystery_sft::MysterySftModule
     + confirm_nft::ConfirmNftModule
     + nft_winners_selection::NftWinnersSelectionModule
@@ -71,16 +73,6 @@ pub trait Launchpad:
         });
     }
 
-    fn require_valid_cost(&self, cost: &EgldOrEsdtTokenPayment<Self::Api>) {
-        if cost.token_identifier.is_egld() {
-            require!(cost.token_nonce == 0, "EGLD token has no nonce");
-        } else {
-            require!(cost.token_identifier.is_valid(), "Invalid ESDT token ID");
-        }
-
-        require!(cost.amount > 0, "Cost may not be 0");
-    }
-
     #[only_owner]
     #[endpoint(addTickets)]
     fn add_tickets_endpoint(
@@ -102,19 +94,7 @@ pub trait Launchpad:
     fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
         let users_list_vec = users_list.to_vec();
         self.add_users_to_blacklist(&users_list_vec);
-
-        let nft_cost = self.nft_cost().get();
-        for user in &users_list_vec {
-            let did_user_confirm = self.confirmed_nft_user_list().swap_remove(&user);
-            if did_user_confirm {
-                self.send().direct(
-                    &user,
-                    &nft_cost.token_identifier,
-                    nft_cost.token_nonce,
-                    &nft_cost.amount,
-                );
-            }
-        }
+        self.refund_nft_cost_after_blacklist(&users_list_vec);
     }
 
     #[view(hasUserConfirmedNft)]
@@ -126,5 +106,11 @@ pub trait Launchpad:
     #[view(hasUserWonNft)]
     fn has_user_won_nft(&self, user: ManagedAddress) -> bool {
         self.nft_selection_winners().contains(&user)
+    }
+
+    #[endpoint(claimLaunchpadTokens)]
+    fn claim_launchpad_tokens_endpoint(&self) {
+        self.claim_launchpad_tokens();
+        self.claim_nft();
     }
 }

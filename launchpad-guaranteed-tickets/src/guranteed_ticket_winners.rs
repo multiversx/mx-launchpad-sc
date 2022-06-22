@@ -42,54 +42,6 @@ pub trait GuaranteedTicketWinnersModule:
     + launchpad_common::ongoing_operation::OngoingOperationModule
     + launchpad_common::tickets::TicketsModule
 {
-    #[endpoint(distributeGuaranteedTickets)]
-    fn distribute_guaranteed_tickets(&self) -> OperationCompletionStatus {
-        self.require_winner_selection_period();
-
-        let flags_mapper = self.flags();
-        let mut flags = flags_mapper.get();
-        require!(
-            flags.were_winners_selected,
-            "Must select winners for base launchpad first"
-        );
-        require!(
-            !flags.was_additional_step_completed,
-            "Already distributed tickets"
-        );
-
-        let mut current_operation: GuaranteedTicketsSelectionOperation<Self::Api> =
-            self.load_additional_selection_operation();
-        let first_op_run_result = self.select_guaranteed_tickets(&mut current_operation);
-        if first_op_run_result == OperationCompletionStatus::InterruptedBeforeOutOfGas {
-            self.save_custom_operation(&current_operation);
-
-            return first_op_run_result;
-        }
-
-        let second_op_run_result = self.distribute_leftover_tickets(&mut current_operation);
-        match second_op_run_result {
-            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
-                self.save_custom_operation(&current_operation);
-            }
-            OperationCompletionStatus::Completed => {
-                flags.was_additional_step_completed = true;
-                flags_mapper.set(&flags);
-
-                let ticket_price = self.ticket_price().get();
-                let claimable_ticket_payment = ticket_price.amount
-                    * (current_operation.total_additional_winning_tickets as u32);
-                self.claimable_ticket_payment()
-                    .update(|claim_amt| *claim_amt += claimable_ticket_payment);
-
-                self.nr_winning_tickets().update(|nr_winning| {
-                    *nr_winning += current_operation.total_additional_winning_tickets
-                });
-            }
-        };
-
-        second_op_run_result
-    }
-
     fn select_guaranteed_tickets(
         &self,
         op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,

@@ -16,7 +16,6 @@ use launchpad_common::{
     winner_selection::WinnerSelectionModule,
 };
 use launchpad_with_nft::{
-    claim_nft::ClaimNftModule,
     confirm_nft::ConfirmNftModule,
     mystery_sft::{MysterySftModule, SftSetupSteps},
     nft_winners_selection::NftWinnersSelectionModule,

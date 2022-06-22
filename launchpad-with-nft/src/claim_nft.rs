@@ -17,10 +17,7 @@ pub trait ClaimNftModule:
     + crate::confirm_nft::ConfirmNftModule
     + crate::nft_winners_selection::NftWinnersSelectionModule
 {
-    #[endpoint(claimLaunchpadTokens)]
-    fn claim_launchpad_tokens_endpoint(&self) {
-        self.claim_launchpad_tokens();
-
+    fn claim_nft(&self) {
         let caller = self.blockchain().get_caller();
         let mystery_sft_type = if self.nft_selection_winners().swap_remove(&caller) {
             MysterySftTypes::ConfirmedWon

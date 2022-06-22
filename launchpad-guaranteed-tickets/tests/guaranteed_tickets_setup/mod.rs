@@ -183,7 +183,7 @@ where
             &self.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let result = sc.distribute_guaranteed_tickets();
+                let result = sc.distribute_guaranteed_tickets_endpoint();
                 assert_eq!(result, OperationCompletionStatus::Completed);
             },
         )

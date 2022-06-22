@@ -60,6 +60,16 @@ pub trait ConfirmNftModule:
         );
     }
 
+    fn require_valid_cost(&self, cost: &EgldOrEsdtTokenPayment<Self::Api>) {
+        if cost.token_identifier.is_egld() {
+            require!(cost.token_nonce == 0, "EGLD token has no nonce");
+        } else {
+            require!(cost.token_identifier.is_valid(), "Invalid ESDT token ID");
+        }
+
+        require!(cost.amount > 0, "Cost may not be 0");
+    }
+
     #[storage_mapper("confirmedNftUserList")]
     fn confirmed_nft_user_list(&self) -> UnorderedSetMapper<ManagedAddress>;
 

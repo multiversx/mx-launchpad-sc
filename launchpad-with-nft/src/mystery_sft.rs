@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::{elrond_codec::Empty, hex_literal};
+use elrond_wasm::elrond_codec::Empty;
 
 pub const NFT_AMOUNT: u32 = 1;
 static SFT_NAMES: &[&[u8]] = &[b"Confirmed Won", b"Confirmed Lost", b"Not Confirmed"];
@@ -27,25 +27,6 @@ pub struct SftSetupSteps {
     pub issued_token: bool,
     pub created_initial_tokens: bool,
     pub set_transfer_role: bool,
-}
-
-// temporary until role name is fixed
-static ESDT_TRANSFER_ROLE_NAME: &[u8] = b"ESDTTransferRole";
-static ESDT_SYSTEM_SC_ADDRESS_ARRAY: [u8; 32] =
-    hex_literal::hex!("000000000000000000010000000000000000000000000000000000000002ffff");
-mod esdt_system_sc_proxy {
-    elrond_wasm::imports!();
-
-    #[elrond_wasm::proxy]
-    pub trait EsdtSystemScProxy {
-        #[endpoint(setSpecialRole)]
-        fn set_special_roles(
-            &self,
-            token_id: TokenIdentifier,
-            address: ManagedAddress,
-            role_name: ManagedBuffer,
-        );
-    }
 }
 
 #[elrond_wasm::module]
@@ -111,15 +92,8 @@ pub trait MysterySftModule:
             }
         };
 
-        let token_id = self.mystery_sft().get_token_id();
-        self.system_sc_proxy(ESDT_SYSTEM_SC_ADDRESS_ARRAY.into())
-            .set_special_roles(
-                token_id,
-                addr,
-                ManagedBuffer::new_from_bytes(ESDT_TRANSFER_ROLE_NAME),
-            )
-            .async_call()
-            .call_and_exit();
+        self.mystery_sft()
+            .set_local_roles_for_address(&addr, &[EsdtLocalRole::Transfer], None);
     }
 
     fn require_all_sft_setup_steps_complete(&self) {
@@ -129,10 +103,6 @@ pub trait MysterySftModule:
             "SFT setup not complete"
         );
     }
-
-    #[proxy]
-    fn system_sc_proxy(&self, sc_address: ManagedAddress)
-        -> esdt_system_sc_proxy::Proxy<Self::Api>;
 
     #[storage_mapper("mysterySftTokenId")]
     fn mystery_sft(&self) -> NonFungibleTokenMapper<Self::Api>;
