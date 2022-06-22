@@ -33,9 +33,8 @@ pub trait OngoingOperationModule {
         Process: FnMut() -> LoopOp,
     {
         let mut gas_per_iteration = 0;
+        let mut gas_before = self.blockchain().get_gas_left();
         loop {
-            let gas_before = self.blockchain().get_gas_left();
-
             let loop_op = process();
             if loop_op == STOP_OP {
                 break;
@@ -50,6 +49,8 @@ pub trait OngoingOperationModule {
             if !self.can_continue_operation(gas_per_iteration) {
                 return OperationCompletionStatus::InterruptedBeforeOutOfGas;
             }
+
+            gas_before = gas_after;
         }
 
         self.clear_operation();
