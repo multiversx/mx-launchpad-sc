@@ -76,11 +76,6 @@ pub trait LaunchpadGuaranteedTickets:
         self.deposit_launchpad_tokens(total_tickets);
     }
 
-    #[endpoint(claimLaunchpadTokens)]
-    fn claim_launchpad_tokens_endpoint(&self) {
-        self.claim_launchpad_tokens();
-    }
-
     #[endpoint(addUsersToBlacklist)]
     fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
         let users_vec = users_list.to_vec();
@@ -107,7 +102,7 @@ pub trait LaunchpadGuaranteedTickets:
             self.load_additional_selection_operation();
         let first_op_run_result = self.select_guaranteed_tickets(&mut current_operation);
         if first_op_run_result == OperationCompletionStatus::InterruptedBeforeOutOfGas {
-            self.save_custom_operation(&current_operation);
+            self.save_additional_selection_progress(&current_operation);
 
             return first_op_run_result;
         }
@@ -115,7 +110,7 @@ pub trait LaunchpadGuaranteedTickets:
         let second_op_run_result = self.distribute_leftover_tickets(&mut current_operation);
         match second_op_run_result {
             OperationCompletionStatus::InterruptedBeforeOutOfGas => {
-                self.save_custom_operation(&current_operation);
+                self.save_additional_selection_progress(&current_operation);
             }
             OperationCompletionStatus::Completed => {
                 flags.was_additional_step_completed = true;
@@ -134,5 +129,10 @@ pub trait LaunchpadGuaranteedTickets:
         };
 
         second_op_run_result
+    }
+
+    #[endpoint(claimLaunchpadTokens)]
+    fn claim_launchpad_tokens_endpoint(&self) {
+        self.claim_launchpad_tokens();
     }
 }

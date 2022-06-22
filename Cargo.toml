@@ -6,5 +6,7 @@ members = [
   "launchpad-with-nft",
   "launchpad-with-nft/meta",
   "launchpad-guaranteed-tickets",
-  "launchpad-guaranteed-tickets/meta"
+  "launchpad-guaranteed-tickets/meta",
+  "launchpad-nft-and-guaranteed-tickets",
+  "launchpad-nft-and-guaranteed-tickets/meta"
 ]

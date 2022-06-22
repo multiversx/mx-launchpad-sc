@@ -29,6 +29,16 @@ pub struct SftSetupSteps {
     pub set_transfer_role: bool,
 }
 
+impl Default for SftSetupSteps {
+    fn default() -> Self {
+        Self {
+            issued_token: false,
+            created_initial_tokens: false,
+            set_transfer_role: false,
+        }
+    }
+}
+
 #[elrond_wasm::module]
 pub trait MysterySftModule:
     elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule

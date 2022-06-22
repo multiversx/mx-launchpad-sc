@@ -1,6 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use elrond_wasm::elrond_codec::TopEncode;
 use crate::{random::Random, FIRST_TICKET_ID};
 
 const MIN_GAS_TO_SAVE_PROGRESS: u64 = 10_000_000;
@@ -67,6 +68,12 @@ pub trait OngoingOperationModule {
     #[inline]
     fn save_progress(&self, op: &OngoingOperationType<Self::Api>) {
         self.current_ongoing_operation().set(op);
+    }
+
+    fn save_additional_selection_progress<T: TopEncode>(&self, data: &T) {
+        let mut encoded_data = ManagedBuffer::new();
+        let _ = data.top_encode(&mut encoded_data);
+        self.save_progress(&OngoingOperationType::AdditionalSelection { encoded_data });
     }
 
     #[inline]

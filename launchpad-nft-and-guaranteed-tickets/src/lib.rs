@@ -3,14 +3,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::mystery_sft::SftSetupSteps;
-use launchpad_common::{launch_stage::Flags, random::Random};
+use launchpad_common::launch_stage::Flags;
+use launchpad_with_nft::mystery_sft::SftSetupSteps;
 
-pub mod claim_nft;
-pub mod confirm_nft;
-pub mod mystery_sft;
-pub mod nft_blacklist;
-pub mod nft_winners_selection;
+pub mod combined_selection;
 
 #[elrond_wasm::contract]
 pub trait Launchpad:
@@ -26,11 +22,14 @@ pub trait Launchpad:
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + nft_blacklist::NftBlacklistModule
-    + mystery_sft::MysterySftModule
-    + confirm_nft::ConfirmNftModule
-    + nft_winners_selection::NftWinnersSelectionModule
-    + claim_nft::ClaimNftModule
+    + launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule
+    + launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketWinnersModule
+    + launchpad_with_nft::nft_blacklist::NftBlacklistModule
+    + launchpad_with_nft::mystery_sft::MysterySftModule
+    + launchpad_with_nft::confirm_nft::ConfirmNftModule
+    + launchpad_with_nft::nft_winners_selection::NftWinnersSelectionModule
+    + launchpad_with_nft::claim_nft::ClaimNftModule
+    + combined_selection::CombinedSelectionModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
@@ -46,9 +45,13 @@ pub trait Launchpad:
         claim_start_epoch: u64,
         nft_cost: EgldOrEsdtTokenPayment<Self::Api>,
         total_available_nfts: usize,
+        max_tier_tickets: usize,
     ) {
         self.require_valid_cost(&nft_cost);
         require!(total_available_nfts > 0, "Invalid total_available_nfts");
+
+        require!(max_tier_tickets > 0, "Invalid max tier ticket number");
+        self.max_tier_tickets().set(max_tier_tickets);
 
         self.init_base(
             launchpad_token_id,
@@ -74,58 +77,26 @@ pub trait Launchpad:
         &self,
         address_number_pairs: MultiValueEncoded<MultiValue2<ManagedAddress, usize>>,
     ) {
-        self.add_tickets(address_number_pairs);
+        self.add_tickets_with_guaranteed_winners(address_number_pairs);
     }
 
     #[only_owner]
     #[payable("*")]
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens_endpoint(&self) {
-        let nr_winning_tickets = self.nr_winning_tickets().get();
-        self.deposit_launchpad_tokens(nr_winning_tickets);
+        let base_selection_winning_tickets = self.nr_winning_tickets().get();
+        let reserved_tickets = self.max_tier_users().len();
+        let total_tickets = base_selection_winning_tickets + reserved_tickets;
+
+        self.deposit_launchpad_tokens(total_tickets);
     }
 
     #[endpoint(addUsersToBlacklist)]
     fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
         let users_list_vec = users_list.to_vec();
         self.add_users_to_blacklist(&users_list_vec);
+        self.clear_max_tier_users_after_blacklist(&users_list_vec);
         self.refund_nft_cost_after_blacklist(&users_list_vec);
-    }
-
-    #[endpoint(selectNftWinners)]
-    fn select_nft_winners_endpoint(&self) -> OperationCompletionStatus {
-        self.require_winner_selection_period();
-
-        let flags_mapper = self.flags();
-        let mut flags = flags_mapper.get();
-        require!(
-            flags.were_winners_selected,
-            "Must select winners for base launchpad first"
-        );
-        require!(
-            !flags.was_additional_step_completed,
-            "Already selected NFT winners"
-        );
-
-        let mut rng: Random<Self::Api> = self.load_additional_selection_operation();
-        let run_result = self.select_nft_winners(&mut rng);
-
-        match run_result {
-            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
-                self.save_additional_selection_progress(&rng);
-            }
-            OperationCompletionStatus::Completed => {
-                flags.was_additional_step_completed = true;
-                flags_mapper.set(&flags);
-
-                let winners_selected = self.nft_selection_winners().len();
-                let nft_cost = self.nft_cost().get();
-                let claimable_nft_payment = nft_cost.amount * winners_selected as u32;
-                self.claimable_nft_payment().set(&claimable_nft_payment);
-            }
-        };
-
-        run_result
     }
 
     #[endpoint(claimLaunchpadTokens)]
