@@ -12,6 +12,7 @@ use launchpad_common::{
     winner_selection::WinnerSelectionModule,
 };
 use launchpad_guaranteed_tickets::{
+    guaranteed_tickets_init::GuaranteedTicketsInitModule,
     guranteed_ticket_winners::{
         GuaranteedTicketWinnersModule, GuaranteedTicketsSelectionOperation,
     },

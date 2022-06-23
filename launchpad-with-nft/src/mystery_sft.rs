@@ -22,7 +22,7 @@ impl MysterySftTypes {
     }
 }
 
-#[derive(TopEncode, TopDecode)]
+#[derive(TopEncode, TopDecode, Default)]
 pub struct SftSetupSteps {
     pub issued_token: bool,
     pub created_initial_tokens: bool,

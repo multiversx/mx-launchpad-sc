@@ -5,7 +5,7 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    launchpad_with_nft
+    launchpad_nft_and_guaranteed_tickets
     (
         callBack
         addTickets
@@ -37,7 +37,7 @@ elrond_wasm_node::wasm_endpoints! {
         isUserBlacklisted
         issueMysterySft
         removeUsersFromBlacklist
-        selectNftWinners
+        secondarySelectionStep
         selectWinners
         setClaimStartEpoch
         setConfirmationPeriodStartEpoch

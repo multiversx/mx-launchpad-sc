@@ -1,15 +1,10 @@
 #![no_std]
-#![feature(trait_alias)]
-
-use elrond_wasm::elrond_codec::TopEncode;
-use launchpad_common::{
-    launch_stage::Flags, ongoing_operation::OngoingOperationType, random::Random,
-};
-
-use crate::mystery_sft::SftSetupSteps;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
+
+use crate::mystery_sft::SftSetupSteps;
+use launchpad_common::{launch_stage::Flags, random::Random};
 
 pub mod claim_nft;
 pub mod confirm_nft;
@@ -69,11 +64,8 @@ pub trait Launchpad:
 
         self.nft_cost().set(&nft_cost);
         self.total_available_nfts().set(total_available_nfts);
-        self.sft_setup_steps().set_if_empty(&SftSetupSteps {
-            issued_token: false,
-            created_initial_tokens: false,
-            set_transfer_role: false,
-        });
+        self.sft_setup_steps()
+            .set_if_empty(&SftSetupSteps::default());
     }
 
     #[only_owner]
@@ -120,12 +112,7 @@ pub trait Launchpad:
 
         match run_result {
             OperationCompletionStatus::InterruptedBeforeOutOfGas => {
-                let mut encoded_rng = ManagedBuffer::new();
-                let _ = rng.top_encode(&mut encoded_rng);
-
-                self.save_progress(&OngoingOperationType::AdditionalSelection {
-                    encoded_data: encoded_rng,
-                });
+                self.save_additional_selection_progress(&rng);
             }
             OperationCompletionStatus::Completed => {
                 flags.was_additional_step_completed = true;
@@ -145,5 +132,12 @@ pub trait Launchpad:
     fn claim_launchpad_tokens_endpoint(&self) {
         self.claim_launchpad_tokens();
         self.claim_nft();
+    }
+
+    #[only_owner]
+    #[endpoint(claimTicketPayment)]
+    fn claim_ticket_payment_endpoint(&self) {
+        self.claim_ticket_payment();
+        self.claim_nft_payment();
     }
 }

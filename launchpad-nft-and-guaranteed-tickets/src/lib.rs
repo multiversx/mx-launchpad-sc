@@ -4,14 +4,12 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use launchpad_common::launch_stage::Flags;
+use launchpad_with_nft::mystery_sft::SftSetupSteps;
 
-use crate::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
-
-pub mod guaranteed_tickets_init;
-pub mod guranteed_ticket_winners;
+pub mod combined_selection;
 
 #[elrond_wasm::contract]
-pub trait LaunchpadGuaranteedTickets:
+pub trait Launchpad:
     launchpad_common::LaunchpadMain
     + launchpad_common::launch_stage::LaunchStageModule
     + launchpad_common::config::ConfigModule
@@ -23,8 +21,15 @@ pub trait LaunchpadGuaranteedTickets:
     + launchpad_common::blacklist::BlacklistModule
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
-    + guaranteed_tickets_init::GuaranteedTicketsInitModule
-    + guranteed_ticket_winners::GuaranteedTicketWinnersModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule
+    + launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketWinnersModule
+    + launchpad_with_nft::nft_blacklist::NftBlacklistModule
+    + launchpad_with_nft::mystery_sft::MysterySftModule
+    + launchpad_with_nft::confirm_nft::ConfirmNftModule
+    + launchpad_with_nft::nft_winners_selection::NftWinnersSelectionModule
+    + launchpad_with_nft::claim_nft::ClaimNftModule
+    + combined_selection::CombinedSelectionModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
@@ -38,8 +43,16 @@ pub trait LaunchpadGuaranteedTickets:
         confirmation_period_start_epoch: u64,
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
+        nft_cost: EgldOrEsdtTokenPayment<Self::Api>,
+        total_available_nfts: usize,
         max_tier_tickets: usize,
     ) {
+        self.require_valid_cost(&nft_cost);
+        require!(total_available_nfts > 0, "Invalid total_available_nfts");
+
+        require!(max_tier_tickets > 0, "Invalid max tier ticket number");
+        self.max_tier_tickets().set(max_tier_tickets);
+
         self.init_base(
             launchpad_token_id,
             launchpad_tokens_per_winning_ticket,
@@ -52,8 +65,10 @@ pub trait LaunchpadGuaranteedTickets:
             Flags::default(),
         );
 
-        require!(max_tier_tickets > 0, "Invalid max tier ticket number");
-        self.max_tier_tickets().set(max_tier_tickets);
+        self.nft_cost().set(&nft_cost);
+        self.total_available_nfts().set(total_available_nfts);
+        self.sft_setup_steps()
+            .set_if_empty(&SftSetupSteps::default());
     }
 
     #[only_owner]
@@ -78,67 +93,22 @@ pub trait LaunchpadGuaranteedTickets:
 
     #[endpoint(addUsersToBlacklist)]
     fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
-        let users_vec = users_list.to_vec();
-        self.add_users_to_blacklist(&users_vec);
-        self.clear_max_tier_users_after_blacklist(&users_vec);
-    }
-
-    #[endpoint(distributeGuaranteedTickets)]
-    fn distribute_guaranteed_tickets_endpoint(&self) -> OperationCompletionStatus {
-        self.require_winner_selection_period();
-
-        let flags_mapper = self.flags();
-        let mut flags = flags_mapper.get();
-        require!(
-            flags.were_winners_selected,
-            "Must select winners for base launchpad first"
-        );
-        require!(
-            !flags.was_additional_step_completed,
-            "Already distributed tickets"
-        );
-
-        let mut current_operation: GuaranteedTicketsSelectionOperation<Self::Api> =
-            self.load_additional_selection_operation();
-        let first_op_run_result = self.select_guaranteed_tickets(&mut current_operation);
-        if first_op_run_result == OperationCompletionStatus::InterruptedBeforeOutOfGas {
-            self.save_additional_selection_progress(&current_operation);
-
-            return first_op_run_result;
-        }
-
-        let second_op_run_result = self.distribute_leftover_tickets(&mut current_operation);
-        match second_op_run_result {
-            OperationCompletionStatus::InterruptedBeforeOutOfGas => {
-                self.save_additional_selection_progress(&current_operation);
-            }
-            OperationCompletionStatus::Completed => {
-                flags.was_additional_step_completed = true;
-                flags_mapper.set(&flags);
-
-                let ticket_price = self.ticket_price().get();
-                let claimable_ticket_payment = ticket_price.amount
-                    * (current_operation.total_additional_winning_tickets as u32);
-                self.claimable_ticket_payment()
-                    .update(|claim_amt| *claim_amt += claimable_ticket_payment);
-
-                self.nr_winning_tickets().update(|nr_winning| {
-                    *nr_winning += current_operation.total_additional_winning_tickets
-                });
-            }
-        };
-
-        second_op_run_result
+        let users_list_vec = users_list.to_vec();
+        self.add_users_to_blacklist(&users_list_vec);
+        self.clear_max_tier_users_after_blacklist(&users_list_vec);
+        self.refund_nft_cost_after_blacklist(&users_list_vec);
     }
 
     #[endpoint(claimLaunchpadTokens)]
     fn claim_launchpad_tokens_endpoint(&self) {
         self.claim_launchpad_tokens();
+        self.claim_nft();
     }
 
     #[only_owner]
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment_endpoint(&self) {
         self.claim_ticket_payment();
+        self.claim_nft_payment();
     }
 }

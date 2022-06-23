@@ -13,10 +13,9 @@ use launchpad_common::{
     tickets::{TicketsModule, WINNING_TICKET},
     user_interactions::UserInteractionsModule,
     winner_selection::WinnerSelectionModule,
-    LaunchpadMain,
 };
 use launchpad_guaranteed_tickets::{
-    guranteed_ticket_winners::GuaranteedTicketWinnersModule, LaunchpadGuaranteedTickets,
+    guaranteed_tickets_init::GuaranteedTicketsInitModule, LaunchpadGuaranteedTickets,
 };
 
 pub static LAUNCHPAD_TOKEN_ID: &[u8] = b"LAUNCH-123456";

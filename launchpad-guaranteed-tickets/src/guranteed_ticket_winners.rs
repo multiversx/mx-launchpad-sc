@@ -1,16 +1,15 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::elrond_codec::TopEncode;
 use launchpad_common::{
-    ongoing_operation::{OngoingOperationType, CONTINUE_OP, STOP_OP},
+    ongoing_operation::{CONTINUE_OP, STOP_OP},
     random::Random,
     tickets::{TicketRange, WINNING_TICKET},
 };
 
 const VEC_MAPPER_START_INDEX: usize = 1;
 
-#[derive(TopEncode, TopDecode)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode)]
 pub struct GuaranteedTicketsSelectionOperation<M: ManagedTypeApi + CryptoApi> {
     pub rng: Random<M>,
     pub leftover_tickets: usize,
@@ -41,6 +40,7 @@ pub trait GuaranteedTicketWinnersModule:
     + launchpad_common::config::ConfigModule
     + launchpad_common::ongoing_operation::OngoingOperationModule
     + launchpad_common::tickets::TicketsModule
+    + crate::guaranteed_tickets_init::GuaranteedTicketsInitModule
 {
     fn select_guaranteed_tickets(
         &self,
@@ -148,16 +148,4 @@ pub trait GuaranteedTicketWinnersModule:
     fn is_already_winning_ticket(&self, ticket_id: usize) -> bool {
         self.ticket_status(ticket_id).get() == WINNING_TICKET
     }
-
-    fn save_custom_operation(&self, op: &GuaranteedTicketsSelectionOperation<Self::Api>) {
-        let mut encoded_data = ManagedBuffer::new();
-        let _ = op.top_encode(&mut encoded_data);
-        self.save_progress(&OngoingOperationType::AdditionalSelection { encoded_data });
-    }
-
-    #[storage_mapper("maxTierTickets")]
-    fn max_tier_tickets(&self) -> SingleValueMapper<usize>;
-
-    #[storage_mapper("maxTierUsers")]
-    fn max_tier_users(&self) -> UnorderedSetMapper<ManagedAddress>;
 }

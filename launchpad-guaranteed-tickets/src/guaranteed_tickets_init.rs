@@ -6,7 +6,6 @@ pub trait GuaranteedTicketsInitModule:
     + launchpad_common::config::ConfigModule
     + launchpad_common::ongoing_operation::OngoingOperationModule
     + launchpad_common::tickets::TicketsModule
-    + crate::guranteed_ticket_winners::GuaranteedTicketWinnersModule
 {
     fn add_tickets_with_guaranteed_winners(
         &self,
@@ -50,4 +49,10 @@ pub trait GuaranteedTicketsInitModule:
                 .update(|nr_winning| *nr_winning += nr_max_tier_removed);
         }
     }
+
+    #[storage_mapper("maxTierTickets")]
+    fn max_tier_tickets(&self) -> SingleValueMapper<usize>;
+
+    #[storage_mapper("maxTierUsers")]
+    fn max_tier_users(&self) -> UnorderedSetMapper<ManagedAddress>;
 }
