@@ -11,7 +11,6 @@ elrond_wasm_node::wasm_endpoints! {
         addTickets
         addUsersToBlacklist
         claimLaunchpadTokens
-        claimNftPayment
         claimTicketPayment
         confirmNft
         confirmTickets
