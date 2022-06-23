@@ -104,4 +104,11 @@ pub trait Launchpad:
         self.claim_launchpad_tokens();
         self.claim_nft();
     }
+
+    #[only_owner]
+    #[endpoint(claimTicketPayment)]
+    fn claim_ticket_payment_endpoint(&self) {
+        self.claim_ticket_payment();
+        self.claim_nft_payment();
+    }
 }

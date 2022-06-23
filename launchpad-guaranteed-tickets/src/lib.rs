@@ -135,4 +135,10 @@ pub trait LaunchpadGuaranteedTickets:
     fn claim_launchpad_tokens_endpoint(&self) {
         self.claim_launchpad_tokens();
     }
+
+    #[only_owner]
+    #[endpoint(claimTicketPayment)]
+    fn claim_ticket_payment_endpoint(&self) {
+        self.claim_ticket_payment();
+    }
 }

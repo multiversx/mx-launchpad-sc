@@ -40,6 +40,7 @@ pub trait GuaranteedTicketWinnersModule:
     + launchpad_common::config::ConfigModule
     + launchpad_common::ongoing_operation::OngoingOperationModule
     + launchpad_common::tickets::TicketsModule
+    + crate::guaranteed_tickets_init::GuaranteedTicketsInitModule
 {
     fn select_guaranteed_tickets(
         &self,
@@ -147,10 +148,4 @@ pub trait GuaranteedTicketWinnersModule:
     fn is_already_winning_ticket(&self, ticket_id: usize) -> bool {
         self.ticket_status(ticket_id).get() == WINNING_TICKET
     }
-
-    #[storage_mapper("maxTierTickets")]
-    fn max_tier_tickets(&self) -> SingleValueMapper<usize>;
-
-    #[storage_mapper("maxTierUsers")]
-    fn max_tier_users(&self) -> UnorderedSetMapper<ManagedAddress>;
 }

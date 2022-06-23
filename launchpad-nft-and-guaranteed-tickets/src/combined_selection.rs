@@ -33,6 +33,7 @@ pub trait CombinedSelectionModule:
     + launchpad_common::tickets::TicketsModule
     + launchpad_common::permissions::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule
     + launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketWinnersModule
     + launchpad_with_nft::nft_winners_selection::NftWinnersSelectionModule
     + launchpad_with_nft::confirm_nft::ConfirmNftModule
@@ -56,16 +57,24 @@ pub trait CombinedSelectionModule:
         let mut current_operation: CombinedSelectionStep<Self::Api> =
             self.load_additional_selection_operation();
 
-        let mut first_op_run_result = OperationCompletionStatus::Completed;
+        let mut opt_first_op_run_result = None;
         if let CombinedSelectionStep::GuaranteedTicketsDistribution { op } = &mut current_operation
         {
-            first_op_run_result = self.select_guaranteed_tickets_substep(op);
+            opt_first_op_run_result = Some(self.select_guaranteed_tickets_substep(op));
         }
-        if first_op_run_result == OperationCompletionStatus::InterruptedBeforeOutOfGas {
-            self.save_additional_selection_progress(&current_operation);
+        match opt_first_op_run_result {
+            Some(OperationCompletionStatus::Completed) => {
+                current_operation = CombinedSelectionStep::NftSelection {
+                    rng: Random::default(),
+                };
+            }
+            Some(OperationCompletionStatus::InterruptedBeforeOutOfGas) => {
+                self.save_additional_selection_progress(&current_operation);
 
-            return first_op_run_result;
-        }
+                return OperationCompletionStatus::InterruptedBeforeOutOfGas;
+            }
+            None => {}
+        };
 
         let mut second_op_run_result = OperationCompletionStatus::Completed;
         if let CombinedSelectionStep::NftSelection { rng } = &mut current_operation {

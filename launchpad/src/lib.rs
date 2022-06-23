@@ -73,6 +73,12 @@ pub trait Launchpad:
         self.claim_launchpad_tokens();
     }
 
+    #[only_owner]
+    #[endpoint(claimTicketPayment)]
+    fn claim_ticket_payment_endpoint(&self) {
+        self.claim_ticket_payment();
+    }
+
     #[endpoint(addUsersToBlacklist)]
     fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
         self.add_users_to_blacklist(&users_list.to_vec());

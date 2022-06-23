@@ -29,9 +29,9 @@ pub trait ConfirmNftModule:
         self.require_exact_nft_cost(&payment);
     }
 
-    #[only_owner]
-    #[endpoint(claimNftPayment)]
     fn claim_nft_payment(&self) {
+        self.require_claim_period();
+
         let mapper = self.claimable_nft_payment();
         let claimable_amount = mapper.get();
         if claimable_amount > 0 {

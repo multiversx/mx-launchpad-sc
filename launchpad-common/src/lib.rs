@@ -16,7 +16,7 @@ pub mod token_send;
 pub mod user_interactions;
 pub mod winner_selection;
 
-use config::{EpochsConfig, TokenAmountPair};
+use config::EpochsConfig;
 use launch_stage::Flags;
 use tickets::FIRST_TICKET_ID;
 
@@ -63,40 +63,5 @@ pub trait LaunchpadMain:
 
         let caller = self.blockchain().get_caller();
         self.support_address().set_if_empty(&caller);
-    }
-
-    #[only_owner]
-    #[endpoint(claimTicketPayment)]
-    fn claim_ticket_payment(&self) {
-        self.require_claim_period();
-
-        let owner = self.blockchain().get_caller();
-
-        let ticket_payment_mapper = self.claimable_ticket_payment();
-        let claimable_ticket_payment = ticket_payment_mapper.get();
-        if claimable_ticket_payment > 0 {
-            ticket_payment_mapper.clear();
-
-            let ticket_price: TokenAmountPair<Self::Api> = self.ticket_price().get();
-            self.send()
-                .direct(&owner, &ticket_price.token_id, 0, &claimable_ticket_payment);
-        }
-
-        let launchpad_token_id = self.launchpad_token_id().get();
-        let launchpad_tokens_balance = self.blockchain().get_esdt_balance(
-            &self.blockchain().get_sc_address(),
-            &launchpad_token_id,
-            0,
-        );
-
-        let nr_winning_tickets = self.nr_winning_tickets().get();
-        let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
-        let launchpad_tokens_needed = amount_per_ticket * (nr_winning_tickets as u32);
-
-        let extra_launchpad_tokens = launchpad_tokens_balance - launchpad_tokens_needed;
-        if extra_launchpad_tokens > 0 {
-            self.send()
-                .direct_esdt(&owner, &launchpad_token_id, 0, &extra_launchpad_tokens);
-        }
     }
 }

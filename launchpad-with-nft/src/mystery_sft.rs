@@ -22,21 +22,11 @@ impl MysterySftTypes {
     }
 }
 
-#[derive(TopEncode, TopDecode)]
+#[derive(TopEncode, TopDecode, Default)]
 pub struct SftSetupSteps {
     pub issued_token: bool,
     pub created_initial_tokens: bool,
     pub set_transfer_role: bool,
-}
-
-impl Default for SftSetupSteps {
-    fn default() -> Self {
-        Self {
-            issued_token: false,
-            created_initial_tokens: false,
-            set_transfer_role: false,
-        }
-    }
 }
 
 #[elrond_wasm::module]
