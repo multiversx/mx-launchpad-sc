@@ -29,7 +29,7 @@ Ask the counterpart to prepare the tokens in an account onto which we’ll trans
 
 1. Get a wallet with pem file (& mnemonic available if using temp-mex-indexing), some EGLD for fees/gas
 
-2. Go to `sc-launchpad-rs/launchpad/interaction` and copy the wallet .pem file in here
+2. Go to `sc-launchpad-rs/launchpad-nft-guaranteed-tickets/interaction` and copy the wallet .pem file in here
 
 3. Edit `snippets.sh` with all launchpad contract details for deployment - this will be the “control panel” on Elrond’s side
 
@@ -46,8 +46,15 @@ $ source snippets.sh
 ```
 $ deploy
 ```
+Copy the deployed contract address in `snippets.sh` then continue executing:
+```
+$ source snippets.sh
+$ issueMysterySft $SFT_NAME $SFT_TICKER
+$ createInitialSfts
+$ setInitialTransferRole
+```
 
-8. Check contract deployment tx & contract sanity
+8. Check contract deployment tx & contract sanity (crosscheck with parameters config)
 
 9. **Link contract address to frontend & whitelist the contract address for payments**
 
@@ -78,21 +85,21 @@ If averaged snapshotting is needed (even though non-averaged can be handled simi
 
 #### Final adjustments & ownership change
 
-20. Adjust the final ticket price if required by executing from the snippets:
+16. Adjust the final ticket price if required by executing from the snippets:
 ```
 $ setTicketPrice new_price_in_hex
 ```
  - **Set final ticket price in web interface config - careful not to cause the ticket dividing issue**
 
 
-21. Change ownership of the contract by executing:
+17. Change ownership of the contract by executing:
 ```
 $ changeSCOwner counterpart_address
 ```
 
 #### Counterpart actions
 
-22. Ask the counterpart to deposit tokens after ownership transfer. For this, they should execute from snippet:
+18. Ask the counterpart to deposit tokens after ownership transfer. For this, they should execute from snippet:
 ```
 $ depositLaunchpadTokens
 ```
@@ -103,7 +110,7 @@ ESDTTransfer@[token_id_in_hex]@[token_amount_in_hex]@6465706F7369744C61756E63687
 
 *Time to have a good sleep.*
 
-23. After ticket confirm epoch is reached, if blacklisting is needed, counterpart should execute it by snippet via:
+19. After ticket confirm epoch is reached, if blacklisting is needed, counterpart/initial owner should execute it by snippet via:
 ```
 $ addUsersToBlacklist user_address
 ```
@@ -111,33 +118,47 @@ Or via normal tx towards the contract address with Gas Limit: `7000000` and data
 ```
 addUsersToBlacklist@[user_address_in_hex]@[user_address_in_hex]...
 ```
+If bulk blacklisting is needed, check out the launchpad-scripts repo for a proper tool.
 
 #### Winners selection
 
-24. Call the following functions several times each until completed:
+20. Call the following functions several times each until completed:
 ```
 $ filterTickets
 ```
 ```
 $ selectWinners
 ```
-Or via normal tx towards the contract address with Gas Limit: `7000000` and data:
+```
+$ secondarySelectionStep
+```
+Or via normal tx towards the contract address with Gas Limit: `300000000` and data:
 ```
 filterTickets
 ```
 ```
 selectWinners
 ```
+```
+secondarySelectionStep
+```
 
 #### Claim
 
-25. Ask the counterpart to claim by executing:
+21. Ask the counterpart to claim by executing:
 ```
 $ claimTicketPayment
 ```
 Or via normal tx towards the contract address with Gas Limit: `7000000` and data:
 ```
 claimTicketPayment
+```
+
+#### SFT Transfer role update
+
+22. When the SFT handling contract for mistery box is available, the transfer role can be assigned via the launchpad contract to this new contract address by executing:
+```
+$ setTransferRole [SFT_handling_contract_address]
 ```
 
 All done.
