@@ -43,10 +43,18 @@ pub trait Launchpad:
         confirmation_period_start_epoch: u64,
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
-        nft_cost: EgldOrEsdtTokenPayment<Self::Api>,
+        nft_cost_token_id: EgldOrEsdtTokenIdentifier,
+        nft_cost_token_nonce: u64,
+        nft_cost_token_amount: BigUint,
         total_available_nfts: usize,
         max_tier_tickets: usize,
     ) {
+        let nft_cost = EgldOrEsdtTokenPayment::new(
+            nft_cost_token_id,
+            nft_cost_token_nonce,
+            nft_cost_token_amount,
+        );
+
         self.require_valid_cost(&nft_cost);
         require!(total_available_nfts > 0, "Invalid total_available_nfts");
 
