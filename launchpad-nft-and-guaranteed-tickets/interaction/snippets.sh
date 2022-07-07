@@ -1,18 +1,25 @@
-OWNER_PEM_PATH="elrondOwner.pem"
+OWNER_PEM_PATH="~/Documents/split/1.pem"
 
-ADDRESS=$(erdpy data load --key=address-sc)
-PROXY=https://devnet-gateway.elrond.com
-CHAIN_ID="D"
+ADDRESS="erd1qqqqqqqqqqqqqpgqptlxkvh3djyq2x3adf00pgtlrdl4czmrad7qmleqfs"
+PROXY=https://testnet-gateway.elrond.com
+CHAIN_ID="T"
 
-LAUNCHPAD_TOKEN_ID="DLNTK-79679c"
-LAUNCHPAD_TOKENS_PER_WINNING_TICKET=5000
+LAUNCHPAD_TOKEN_ID="LNCHTKMY8M-aef94a"
+LAUNCHPAD_TOKENS_PER_WINNING_TICKET=5000000000000000000
 TICKET_PAYMENT_TOKEN="EGLD"
-TICKET_PRICE=100000000000000000 # 0.1 EGLD
-NR_WINNING_TICKETS=10000
-LAUNCHPAD_TOKENS_AMOUNT_TO_DEPOSIT_HEX=0x02faf080   # Amount should be equal to NR_WINNING_TICKETS * LAUNCHPAD_TOKENS_PER_WINNING_TICKET
-CONFIRMATION_PERIOD_START_EPOCH=1895
-WINNER_SELECTION_START_EPOCH=1896
-CLAIM_START_EPOCH=1896
+TICKET_PRICE=1000000000000000 # 0.01
+NR_WINNING_TICKETS=40
+LAUNCHPAD_TOKENS_AMOUNT_TO_DEPOSIT_HEX=0x02b5e3af16b1880000   # Amount should be equal to NR_WINNING_TICKETS * LAUNCHPAD_TOKENS_PER_WINNING_TICKET
+CONFIRMATION_PERIOD_START_EPOCH=536
+WINNER_SELECTION_START_EPOCH=537
+CLAIM_START_EPOCH=537
+NFT_PAYMENT_TOKEN="EGLD"
+NFT_COST_DEC=20000000000000000
+TOTAL_NFTS=2
+MAX_TIER_TICKETS=64
+
+SFT_NAME="CNTMBLT"
+SFT_TICKER="CNTMBLT"
 
 
 build() {
@@ -22,13 +29,15 @@ build() {
 
 deploy() {
     local TICKET_PAYMENT_TOKEN_HEX="0x$(echo -n ${TICKET_PAYMENT_TOKEN} | xxd -p -u | tr -d '\n')"
+    local NFT_PAYMENT_TOKEN_HEX="0x$(echo -n ${NFT_PAYMENT_TOKEN} | xxd -p -u | tr -d '\n')"
     local LAUNCHPAD_TOKEN_ID_HEX="0x$(echo -n ${LAUNCHPAD_TOKEN_ID} | xxd -p -u | tr -d '\n')"
 
-    erdpy --verbose contract deploy --bytecode="../output/launchpad.wasm" --recall-nonce --pem=${OWNER_PEM_PATH} \
+    erdpy --verbose contract deploy --bytecode="../output/launchpad-nft-and-guaranteed-tickets.wasm" --recall-nonce --pem=${OWNER_PEM_PATH} \
     --gas-limit=200000000 \
     --arguments ${LAUNCHPAD_TOKEN_ID_HEX} ${LAUNCHPAD_TOKENS_PER_WINNING_TICKET} \
     ${TICKET_PAYMENT_TOKEN_HEX} ${TICKET_PRICE} ${NR_WINNING_TICKETS} \
     ${CONFIRMATION_PERIOD_START_EPOCH} ${WINNER_SELECTION_START_EPOCH} ${CLAIM_START_EPOCH} \
+    ${NFT_PAYMENT_TOKEN_HEX} 0 ${NFT_COST_DEC} ${TOTAL_NFTS} ${MAX_TIER_TICKETS} \
     --send --outfile="deploy-testnet.interaction.json" --proxy=${PROXY} --chain=${CHAIN_ID} || return
 
     TRANSACTION=$(erdpy data parse --file="deploy-testnet.interaction.json" --expression="data['emitted_tx']['hash']")
@@ -55,6 +64,18 @@ addTickets() {
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 }
 
+# params
+#   $1 = User pem
+#   $2 = Amount in hex
+addTicketsPEM() {
+    local USER_ADDRESS_HEX="0x$(erdpy wallet pem-address-hex $1)"
+
+    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
+    --gas-limit=20000000 --function="addTickets" \
+    --arguments ${USER_ADDRESS_HEX} $2 \
+    --send --proxy=${PROXY} --chain=${CHAIN_ID}
+}
+
 depositLaunchpadTokens() {
     local ENDPOINT_NAME_HEX="0x$(echo -n 'depositLaunchpadTokens' | xxd -p -u | tr -d '\n')"
     local LAUNCHPAD_TOKEN_ID_HEX="0x$(echo -n ${LAUNCHPAD_TOKEN_ID} | xxd -p -u | tr -d '\n')"
@@ -73,16 +94,6 @@ setTicketPrice() {
     erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
     --gas-limit=20000000 --function="setTicketPrice" \
     --arguments ${TICKET_PAYMENT_TOKEN_HEX} $1 \
-    --send --proxy=${PROXY} --chain=${CHAIN_ID}
-}
-
-# params
-#   $1 = New ticket payment token id
-setTicketPaymentToken() {
-    local PAYMENT_TOKEN_ID_HEX="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
-    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
-    --gas-limit=20000000 --function="setTicketPaymentToken" \
-    --arguments PAYMENT_TOKEN_ID_HEX \
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 }
 
@@ -122,6 +133,49 @@ setClaimStartEpoch() {
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 } 
 
+# params
+#   $1 = Token name
+#   $2 = Token ticker
+issueMysterySft() {
+    TOKEN_NAME_HEX="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
+    TOKEN_TICKER_HEX="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
+
+    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
+    --gas-limit=100000000 --function="issueMysterySft" --value=50000000000000000\
+    --arguments $TOKEN_NAME_HEX $TOKEN_TICKER_HEX \
+    --send --proxy=${PROXY} --chain=${CHAIN_ID}
+} 
+
+# params
+createInitialSfts() {
+    TOKEN_NAME_HEX="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
+    TOKEN_TICKER_HEX="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
+
+    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
+    --gas-limit=20000000 --function="createInitialSfts" \
+    --send --proxy=${PROXY} --chain=${CHAIN_ID}
+} 
+
+# params
+setInitialTransferRole() {
+
+    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
+    --gas-limit=100000000 --function="setTransferRole" \
+    --send --proxy=${PROXY} --chain=${CHAIN_ID}
+} 
+
+# params
+#   $1 = Address
+setTransferRole() {
+    local ADDRESS_HEX="0x$(erdpy wallet bech32 --decode $1)"
+
+    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
+    --gas-limit=100000000 --function="setTransferRole" \
+    --arguments ${ADDRESS_HEX} \
+    --send --proxy=${PROXY} --chain=${CHAIN_ID}
+} 
+
+
 # "CONFIRM TICKETS" STAGE ENDPOINTS BELOW
 
 # params
@@ -146,6 +200,7 @@ removeUsersFromBlacklist() {
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 }
 
+
 # "SELECT WINNING TICKETS" STAGE ACTIONS BELOW
 
 filterTickets() {
@@ -159,6 +214,13 @@ selectWinners() {
     # no arguments needed
     erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
     --gas-limit=550000000 --function="selectWinners" \
+    --send --proxy=${PROXY} --chain=${CHAIN_ID}
+}
+
+secondarySelectionStep() {
+    # no arguments needed
+    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
+    --gas-limit=550000000 --function="secondarySelectionStep" \
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 }
 
@@ -191,6 +253,18 @@ confirmTicketsUser() {
 # params
 #   $1 = User pem file path
 #   $2 = User pem index
+confirmNftUser() {
+    local PADDING="0x"
+    local PAYMENT_AMOUNT=$NFT_COST_DEC
+
+    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=$1 --pem-index=$2\
+    --gas-limit=20000000 --function="confirmNft" --value=${PAYMENT_AMOUNT} \
+    --send --proxy=${PROXY} --chain=${CHAIN_ID}
+}
+
+# params
+#   $1 = User pem file path
+#   $2 = User pem index
 claimLaunchpadTokensUser() {
     # no arguments needed
     erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=$1\
@@ -198,6 +272,25 @@ claimLaunchpadTokensUser() {
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 }
 
+upgrade() {
+    local TICKET_PAYMENT_TOKEN_HEX="0x$(echo -n ${TICKET_PAYMENT_TOKEN} | xxd -p -u | tr -d '\n')"
+    local LAUNCHPAD_TOKEN_ID_HEX="0x$(echo -n ${LAUNCHPAD_TOKEN_ID} | xxd -p -u | tr -d '\n')"
+
+    erdpy --verbose contract upgrade ${ADDRESS} \
+    --bytecode="../output/launchpad-v2.wasm" --recall-nonce --pem=${OWNER_PEM_PATH} \
+    --gas-limit=200000000 \
+    --arguments ${LAUNCHPAD_TOKEN_ID_HEX} ${LAUNCHPAD_TOKENS_PER_WINNING_TICKET} \
+    ${TICKET_PAYMENT_TOKEN_HEX} ${TICKET_PRICE} ${NR_WINNING_TICKETS} \
+    ${CONFIRMATION_PERIOD_START_EPOCH} ${WINNER_SELECTION_START_EPOCH} ${CLAIM_START_EPOCH} \
+    ${NFT_COST} ${TOTAL_NFTS} ${MAX_TIER_TICKETS}\
+    --send --outfile="upgrade-testnet.interaction.json" --proxy=${PROXY} --chain=${CHAIN_ID} || return
+
+    TRANSACTION=$(erdpy data parse --file="deploy-testnet.interaction.json" --expression="data['emitted_tx']['hash']")
+    ADDRESS=$(erdpy data parse --file="deploy-testnet.interaction.json" --expression="data['emitted_tx']['address']")
+
+    echo ""
+    echo "Smart contract address: ${ADDRESS}"
+}
 
 # ADMIN
 
