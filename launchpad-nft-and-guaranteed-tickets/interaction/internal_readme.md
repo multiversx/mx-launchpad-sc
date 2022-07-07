@@ -46,14 +46,15 @@ $ source snippets.sh
 ```
 $ deploy
 ```
-Copy the deployed contract address in snippets.sh and source it again
+Copy the deployed contract address in `snippets.sh` then continue executing:
 ```
+$ source snippets.sh
 $ issueMysterySft $SFT_NAME $SFT_TICKER
 $ createInitialSfts
 $ setInitialTransferRole
 ```
 
-8. Check contract deployment tx & contract sanity
+8. Check contract deployment tx & contract sanity (crosscheck with parameters config)
 
 9. **Link contract address to frontend & whitelist the contract address for payments**
 
@@ -117,6 +118,7 @@ Or via normal tx towards the contract address with Gas Limit: `7000000` and data
 ```
 addUsersToBlacklist@[user_address_in_hex]@[user_address_in_hex]...
 ```
+If bulk blacklisting is needed, check out the launchpad-scripts repo for a proper tool.
 
 #### Winners selection
 
