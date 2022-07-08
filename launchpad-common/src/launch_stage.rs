@@ -38,7 +38,7 @@ pub trait LaunchStageModule: crate::config::ConfigModule {
         if flags.has_winner_selection_process_started && !both_selection_steps_completed {
             return LaunchStage::WinnerSelection;
         }
-        
+
         if config.winner_selection_start_epoch == config.claim_start_epoch
             && current_epoch == config.winner_selection_start_epoch
         {

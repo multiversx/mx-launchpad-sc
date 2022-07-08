@@ -38,7 +38,7 @@ pub trait LaunchpadGuaranteedTickets:
         confirmation_period_start_epoch: u64,
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
-        max_tier_tickets: usize,
+        min_confirmed_for_guaranteed_ticket: usize,
     ) {
         self.init_base(
             launchpad_token_id,
@@ -52,8 +52,12 @@ pub trait LaunchpadGuaranteedTickets:
             Flags::default(),
         );
 
-        require!(max_tier_tickets > 0, "Invalid max tier ticket number");
-        self.max_tier_tickets().set(max_tier_tickets);
+        require!(
+            min_confirmed_for_guaranteed_ticket > 0,
+            "Invalid minimum tickets confirmed for guaranteed winning ticket"
+        );
+        self.min_confirmed_for_guaranteed_ticket()
+            .set(min_confirmed_for_guaranteed_ticket);
     }
 
     #[only_owner]
@@ -70,7 +74,7 @@ pub trait LaunchpadGuaranteedTickets:
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens_endpoint(&self) {
         let base_selection_winning_tickets = self.nr_winning_tickets().get();
-        let reserved_tickets = self.max_tier_users().len();
+        let reserved_tickets = self.users_with_guaranteed_ticket().len();
         let total_tickets = base_selection_winning_tickets + reserved_tickets;
 
         self.deposit_launchpad_tokens(total_tickets);
@@ -80,7 +84,7 @@ pub trait LaunchpadGuaranteedTickets:
     fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
         let users_vec = users_list.to_vec();
         self.add_users_to_blacklist(&users_vec);
-        self.clear_max_tier_users_after_blacklist(&users_vec);
+        self.clear_users_with_guaranteed_ticket_after_blacklist(&users_vec);
     }
 
     #[endpoint(distributeGuaranteedTickets)]

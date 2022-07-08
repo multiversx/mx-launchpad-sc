@@ -98,9 +98,9 @@ where
 
                 // 1 ticket for the max tier gets removed
                 assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS - 1);
-                assert_eq!(sc.max_tier_users().len(), 1);
+                assert_eq!(sc.users_with_guaranteed_ticket().len(), 1);
                 assert!(sc
-                    .max_tier_users()
+                    .users_with_guaranteed_ticket()
                     .contains(&managed_address!(participants.last().unwrap())));
             })
             .assert_ok();
