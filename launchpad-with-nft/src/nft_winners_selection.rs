@@ -15,6 +15,9 @@ pub trait NftWinnersSelectionModule:
     + launchpad_common::ongoing_operation::OngoingOperationModule
     + launchpad_common::tickets::TicketsModule
     + launchpad_common::permissions::PermissionsModule
+    + launchpad_common::user_interactions::UserInteractionsModule
+    + launchpad_common::blacklist::BlacklistModule
+    + launchpad_common::token_send::TokenSendModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::confirm_nft::ConfirmNftModule
     + crate::mystery_sft::MysterySftModule

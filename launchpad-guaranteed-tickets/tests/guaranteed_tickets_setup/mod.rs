@@ -135,7 +135,7 @@ where
             &self.lp_wrapper,
             &rust_biguint!(TICKET_COST * nr_tickets as u64),
             |sc| {
-                sc.confirm_tickets(nr_tickets);
+                sc.confirm_tickets_endpoint(nr_tickets);
             },
         )
     }

@@ -1,11 +1,16 @@
 elrond_wasm::imports!();
 
+const NR_TICKETS_BUNDLED_WITH_NFT_BUY: usize = 1;
+
 #[elrond_wasm::module]
 pub trait ConfirmNftModule:
     launchpad_common::launch_stage::LaunchStageModule
     + launchpad_common::config::ConfigModule
     + launchpad_common::tickets::TicketsModule
     + launchpad_common::permissions::PermissionsModule
+    + launchpad_common::user_interactions::UserInteractionsModule
+    + launchpad_common::blacklist::BlacklistModule
+    + launchpad_common::token_send::TokenSendModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::mystery_sft::MysterySftModule
 {
@@ -22,11 +27,27 @@ pub trait ConfirmNftModule:
             "Must confirm launchpad tickets before entering NFT draw"
         );
 
-        let new_user = self.confirmed_nft_user_list().insert(caller);
+        let new_user = self.confirmed_nft_user_list().insert(caller.clone());
         require!(new_user, "Already confirmed NFT");
 
         let payment = self.call_value().egld_or_single_esdt();
-        self.require_exact_nft_cost(&payment);
+        let nft_cost = self.nft_cost().get();
+        require!(
+            payment.token_identifier == nft_cost.token_identifier
+                && payment.token_nonce == nft_cost.token_nonce
+                && payment.amount >= nft_cost.amount,
+            "Invalid payment"
+        );
+
+        let payment_amount_for_extra_ticket = &payment.amount - &nft_cost.amount;
+        if payment_amount_for_extra_ticket > 0 {
+            self.confirm_tickets(
+                &caller,
+                &payment.token_identifier,
+                &payment_amount_for_extra_ticket,
+                NR_TICKETS_BUNDLED_WITH_NFT_BUY,
+            );
+        }
     }
 
     fn claim_nft_payment(&self) {
@@ -48,16 +69,6 @@ pub trait ConfirmNftModule:
 
             mapper.clear();
         }
-    }
-
-    fn require_exact_nft_cost(&self, payment: &EgldOrEsdtTokenPayment<Self::Api>) {
-        let nft_cost = self.nft_cost().get();
-        require!(
-            payment.token_identifier == nft_cost.token_identifier
-                && payment.token_nonce == nft_cost.token_nonce
-                && payment.amount == nft_cost.amount,
-            "Invalid payment"
-        );
     }
 
     fn require_valid_cost(&self, cost: &EgldOrEsdtTokenPayment<Self::Api>) {
