@@ -57,7 +57,7 @@ pub trait UserInteractionsModule:
         );
         require!(payment_amount == &total_ticket_price, "Wrong amount sent");
 
-        self.nr_confirmed_tickets(&caller).set(&total_confirmed);
+        self.nr_confirmed_tickets(caller).set(&total_confirmed);
     }
 
     fn claim_launchpad_tokens(&self) {
