@@ -151,7 +151,7 @@ where
         for p in &participants {
             b_mock
                 .execute_tx(p, &lp_wrapper, &rust_biguint!(BASE_TICKET_COST), |sc| {
-                    sc.confirm_tickets(1);
+                    sc.confirm_tickets_endpoint(1);
                 })
                 .assert_ok();
         }

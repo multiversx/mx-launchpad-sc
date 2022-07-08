@@ -164,7 +164,7 @@ where
                     &lp_wrapper,
                     &rust_biguint!(nr_tickets as u64 * BASE_TICKET_COST),
                     |sc| {
-                        sc.confirm_tickets(nr_tickets);
+                        sc.confirm_tickets_endpoint(nr_tickets);
                     },
                 )
                 .assert_ok();
