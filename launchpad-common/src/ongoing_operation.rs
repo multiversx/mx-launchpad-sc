@@ -1,8 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::elrond_codec::TopEncode;
 use crate::{random::Random, FIRST_TICKET_ID};
+use elrond_wasm::elrond_codec::TopEncode;
 
 const MIN_GAS_TO_SAVE_PROGRESS: u64 = 10_000_000;
 static ANOTHER_OP_ERR_MSG: &[u8] = b"Another ongoing operation is in progress";

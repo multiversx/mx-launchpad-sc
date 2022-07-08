@@ -27,10 +27,13 @@ fn setup_test() {
         .b_mock
         .execute_query(&lp_setup.lp_wrapper, |sc| {
             assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS - 1);
-            assert_eq!(sc.max_tier_tickets().get(), MAX_TIER_TICKETS);
-            assert_eq!(sc.max_tier_users().len(), 1);
+            assert_eq!(
+                sc.min_confirmed_for_guaranteed_ticket().get(),
+                MAX_TIER_TICKETS
+            );
+            assert_eq!(sc.users_with_guaranteed_ticket().len(), 1);
             assert!(sc
-                .max_tier_users()
+                .users_with_guaranteed_ticket()
                 .contains(&managed_address!(&part.last().unwrap())));
 
             assert_eq!(sc.total_available_nfts().get(), TOTAL_NFTS);

@@ -47,7 +47,7 @@ pub trait Launchpad:
         nft_cost_token_nonce: u64,
         nft_cost_token_amount: BigUint,
         total_available_nfts: usize,
-        max_tier_tickets: usize,
+        min_confirmed_for_guaranteed_ticket: usize,
     ) {
         let nft_cost = EgldOrEsdtTokenPayment::new(
             nft_cost_token_id,
@@ -58,8 +58,12 @@ pub trait Launchpad:
         self.require_valid_cost(&nft_cost);
         require!(total_available_nfts > 0, "Invalid total_available_nfts");
 
-        require!(max_tier_tickets > 0, "Invalid max tier ticket number");
-        self.max_tier_tickets().set(max_tier_tickets);
+        require!(
+            min_confirmed_for_guaranteed_ticket > 0,
+            "Invalid minimum tickets confirmed for guaranteed winning ticket"
+        );
+        self.min_confirmed_for_guaranteed_ticket()
+            .set(min_confirmed_for_guaranteed_ticket);
 
         self.init_base(
             launchpad_token_id,
@@ -93,7 +97,7 @@ pub trait Launchpad:
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens_endpoint(&self) {
         let base_selection_winning_tickets = self.nr_winning_tickets().get();
-        let reserved_tickets = self.max_tier_users().len();
+        let reserved_tickets = self.users_with_guaranteed_ticket().len();
         let total_tickets = base_selection_winning_tickets + reserved_tickets;
 
         self.deposit_launchpad_tokens(total_tickets);
@@ -103,7 +107,7 @@ pub trait Launchpad:
     fn add_users_to_blacklist_endpoint(&self, users_list: MultiValueEncoded<ManagedAddress>) {
         let users_list_vec = users_list.to_vec();
         self.add_users_to_blacklist(&users_list_vec);
-        self.clear_max_tier_users_after_blacklist(&users_list_vec);
+        self.clear_users_with_guaranteed_ticket_after_blacklist(&users_list_vec);
         self.refund_nft_cost_after_blacklist(&users_list_vec);
     }
 

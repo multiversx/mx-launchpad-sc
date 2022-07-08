@@ -178,7 +178,7 @@ fn redistribute_test() {
             );
 
             assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS - 1);
-            assert_eq!(sc.max_tier_users().len(), 1);
+            assert_eq!(sc.users_with_guaranteed_ticket().len(), 1);
         })
         .assert_ok();
 
@@ -208,7 +208,7 @@ fn redistribute_test() {
             );
 
             assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS);
-            assert_eq!(sc.max_tier_users().len(), 0);
+            assert_eq!(sc.users_with_guaranteed_ticket().len(), 0);
         })
         .assert_ok();
 }
@@ -272,7 +272,7 @@ fn combined_scenario_test() {
             assert_eq!(sc.ticket_status(7).get(), false);
 
             assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS - 2);
-            assert_eq!(sc.max_tier_users().len(), 2);
+            assert_eq!(sc.users_with_guaranteed_ticket().len(), 2);
         })
         .assert_ok();
 
@@ -318,7 +318,7 @@ fn combined_scenario_test() {
                 assert_eq!(op.total_additional_winning_tickets, 2);
                 assert_eq!(op.leftover_ticket_pos_offset, 2);
 
-                assert_eq!(sc.max_tier_users().len(), 0);
+                assert_eq!(sc.users_with_guaranteed_ticket().len(), 0);
             },
         )
         .assert_ok();
