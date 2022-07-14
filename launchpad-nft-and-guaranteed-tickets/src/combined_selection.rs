@@ -35,6 +35,7 @@ pub trait CombinedSelectionModule:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule
     + launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketWinnersModule
+    + launchpad_with_nft::nft_config::NftConfigModule
     + launchpad_with_nft::nft_winners_selection::NftWinnersSelectionModule
     + launchpad_with_nft::confirm_nft::ConfirmNftModule
     + launchpad_with_nft::mystery_sft::MysterySftModule

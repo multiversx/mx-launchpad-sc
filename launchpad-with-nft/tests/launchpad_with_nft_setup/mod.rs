@@ -1,8 +1,8 @@
 use elrond_wasm::{
     storage::mappers::StorageTokenWrapper,
     types::{
-        Address, EgldOrEsdtTokenIdentifier, EgldOrEsdtTokenPayment, EsdtLocalRole,
-        MultiValueEncoded, OperationCompletionStatus,
+        Address, EgldOrEsdtTokenIdentifier, EsdtLocalRole, MultiValueEncoded,
+        OperationCompletionStatus,
     },
 };
 use elrond_wasm_debug::{
@@ -85,11 +85,9 @@ where
                     CONFIRM_START_EPOCH,
                     WINNER_SELECTION_START_EPOCH,
                     CLAIM_START_EPOCH,
-                    EgldOrEsdtTokenPayment::new(
-                        EgldOrEsdtTokenIdentifier::egld(),
-                        0,
-                        managed_biguint!(NFT_TICKET_COST),
-                    ),
+                    EgldOrEsdtTokenIdentifier::egld(),
+                    0,
+                    managed_biguint!(NFT_TICKET_COST),
                     TOTAL_NFTS,
                 );
             })

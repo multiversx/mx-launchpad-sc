@@ -7,6 +7,7 @@ pub trait ConfirmNftModule:
     + launchpad_common::tickets::TicketsModule
     + launchpad_common::permissions::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + crate::nft_config::NftConfigModule
     + crate::mystery_sft::MysterySftModule
 {
     #[payable("*")]
@@ -60,22 +61,8 @@ pub trait ConfirmNftModule:
         );
     }
 
-    fn require_valid_cost(&self, cost: &EgldOrEsdtTokenPayment<Self::Api>) {
-        if cost.token_identifier.is_egld() {
-            require!(cost.token_nonce == 0, "EGLD token has no nonce");
-        } else {
-            require!(cost.token_identifier.is_valid(), "Invalid ESDT token ID");
-        }
-
-        require!(cost.amount > 0, "Cost may not be 0");
-    }
-
     #[storage_mapper("confirmedNftUserList")]
     fn confirmed_nft_user_list(&self) -> UnorderedSetMapper<ManagedAddress>;
-
-    #[view(getNftCost)]
-    #[storage_mapper("nftCost")]
-    fn nft_cost(&self) -> SingleValueMapper<EgldOrEsdtTokenPayment<Self::Api>>;
 
     #[storage_mapper("totalAvailableNfts")]
     fn total_available_nfts(&self) -> SingleValueMapper<usize>;
