@@ -10,9 +10,9 @@ TICKET_PAYMENT_TOKEN="EGLD"
 TICKET_PRICE=100000000000000000 # 0.1 EGLD
 NR_WINNING_TICKETS=10000
 LAUNCHPAD_TOKENS_AMOUNT_TO_DEPOSIT_HEX=0x02faf080   # Amount should be equal to NR_WINNING_TICKETS * LAUNCHPAD_TOKENS_PER_WINNING_TICKET
-CONFIRMATION_PERIOD_START_EPOCH=1895
-WINNER_SELECTION_START_EPOCH=1896
-CLAIM_START_EPOCH=1896
+CONFIRMATION_PERIOD_START_BLOCK=1895
+WINNER_SELECTION_START_BLOCK=1896
+CLAIM_START_BLOCK=1896
 
 
 build() {
@@ -28,7 +28,7 @@ deploy() {
     --gas-limit=200000000 \
     --arguments ${LAUNCHPAD_TOKEN_ID_HEX} ${LAUNCHPAD_TOKENS_PER_WINNING_TICKET} \
     ${TICKET_PAYMENT_TOKEN_HEX} ${TICKET_PRICE} ${NR_WINNING_TICKETS} \
-    ${CONFIRMATION_PERIOD_START_EPOCH} ${WINNER_SELECTION_START_EPOCH} ${CLAIM_START_EPOCH} \
+    ${CONFIRMATION_PERIOD_START_BLOCK} ${WINNER_SELECTION_START_BLOCK} ${CLAIM_START_BLOCK} \
     --send --outfile="deploy-testnet.interaction.json" --proxy=${PROXY} --chain=${CHAIN_ID} || return
 
     TRANSACTION=$(erdpy data parse --file="deploy-testnet.interaction.json" --expression="data['emitted_tx']['hash']")
@@ -96,28 +96,28 @@ setLaunchpadTokensPerWinningTicket() {
 }
 
 # params
-#   $1 = New confirm epoch in hex
-setConfirmationPeriodStartEpoch() {
+#   $1 = New confirm block in hex
+setConfirmationPeriodStartBlock() {
     erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
-    --gas-limit=20000000 --function="setConfirmationPeriodStartEpoch" \
+    --gas-limit=20000000 --function="setConfirmationPeriodStartBlock" \
     --arguments $1 \
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 } 
 
 # params
-#   $1 = New winner selection epoch in hex
-setWinnerSelectionStartEpoch() {
+#   $1 = New winner selection block in hex
+setWinnerSelectionStartBlock() {
     erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
-    --gas-limit=20000000 --function="setWinnerSelectionStartEpoch" \
+    --gas-limit=20000000 --function="setWinnerSelectionStartBlock" \
     --arguments $1 \
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 } 
 
 # params
-#   $1 = New claim epoch in hex
-setClaimStartEpoch() {
+#   $1 = New claim block in hex
+setClaimStartBlock() {
     erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
-    --gas-limit=20000000 --function="setClaimStartEpoch" \
+    --gas-limit=20000000 --function="setClaimStartBlock" \
     --arguments $1 \
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 } 

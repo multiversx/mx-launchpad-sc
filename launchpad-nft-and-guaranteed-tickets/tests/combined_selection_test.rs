@@ -1,6 +1,6 @@
 use combined_selection_setup::{
-    LaunchpadSetup, BASE_TICKET_COST, CLAIM_START_EPOCH, LAUNCHPAD_TOKENS_PER_TICKET,
-    LAUNCHPAD_TOKEN_ID, NFT_TICKET_COST, SFT_TOKEN_ID, WINNER_SELECTION_START_EPOCH,
+    LaunchpadSetup, BASE_TICKET_COST, CLAIM_START_BLOCK, LAUNCHPAD_TOKENS_PER_TICKET,
+    LAUNCHPAD_TOKEN_ID, NFT_TICKET_COST, SFT_TOKEN_ID, WINNER_SELECTION_START_BLOCK,
 };
 use elrond_wasm::elrond_codec::Empty;
 use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint};
@@ -81,7 +81,7 @@ fn combined_selection_test() {
 
     lp_setup
         .b_mock
-        .set_block_epoch(WINNER_SELECTION_START_EPOCH);
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
     lp_setup.select_base_launchpad_winners().assert_ok();
 
     lp_setup
@@ -142,7 +142,7 @@ fn combined_selection_test() {
         })
         .assert_ok();
 
-    lp_setup.b_mock.set_block_epoch(CLAIM_START_EPOCH);
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
 
     for p in &part {
         lp_setup.claim(p).assert_ok();

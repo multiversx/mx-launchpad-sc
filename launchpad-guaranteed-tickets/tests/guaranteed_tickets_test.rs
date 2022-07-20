@@ -3,8 +3,8 @@ mod guaranteed_tickets_setup;
 use elrond_wasm::types::MultiValueEncoded;
 use elrond_wasm_debug::{managed_address, rust_biguint};
 use guaranteed_tickets_setup::{
-    LaunchpadSetup, CLAIM_START_EPOCH, CONFIRM_START_EPOCH, LAUNCHPAD_TOKENS_PER_TICKET,
-    LAUNCHPAD_TOKEN_ID, MAX_TIER_TICKETS, TICKET_COST, WINNER_SELECTION_START_EPOCH,
+    LaunchpadSetup, CLAIM_START_BLOCK, CONFIRM_START_BLOCK, LAUNCHPAD_TOKENS_PER_TICKET,
+    LAUNCHPAD_TOKEN_ID, MAX_TIER_TICKETS, TICKET_COST, WINNER_SELECTION_START_BLOCK,
 };
 use launchpad_common::{
     config::ConfigModule,
@@ -37,7 +37,7 @@ fn confirm_all_test() {
 
     lp_setup
         .b_mock
-        .set_block_epoch(WINNER_SELECTION_START_EPOCH);
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
 
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_base_winners_mock(1).assert_ok();
@@ -99,7 +99,7 @@ fn confirm_all_test() {
         })
         .assert_ok();
 
-    lp_setup.b_mock.set_block_epoch(CLAIM_START_EPOCH);
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
 
     // check balances before
     let base_user_balance = rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64);
@@ -150,7 +150,7 @@ fn redistribute_test() {
 
     lp_setup
         .b_mock
-        .set_block_epoch(WINNER_SELECTION_START_EPOCH);
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
 
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_base_winners_mock(1).assert_ok();
@@ -229,7 +229,7 @@ fn combined_scenario_test() {
     participants.push(second_new_participant.clone());
 
     // add another "whale"
-    lp_setup.b_mock.set_block_epoch(CONFIRM_START_EPOCH - 1);
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
     lp_setup
         .b_mock
         .execute_tx(
@@ -246,7 +246,7 @@ fn combined_scenario_test() {
         )
         .assert_ok();
 
-    lp_setup.b_mock.set_block_epoch(CONFIRM_START_EPOCH);
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
 
     // user[0] and user[1] will not confirm, so they get filtered
     lp_setup.confirm(&participants[2], 3).assert_ok();
@@ -255,7 +255,7 @@ fn combined_scenario_test() {
 
     lp_setup
         .b_mock
-        .set_block_epoch(WINNER_SELECTION_START_EPOCH);
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
 
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_base_winners_mock(2).assert_ok();

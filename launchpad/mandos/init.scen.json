@@ -88,9 +88,9 @@
                             "2-amount": "biguint:100"
                         },
                         "str:configuration": {
-                            "1-confirmation_period_start_epoch": "u64:25",
-                            "2-winner_selection_start_epoch": "u64:50",
-                            "3-claim_start_epoch": "u64:100"
+                            "1-confirmation_period_start_block": "u64:25",
+                            "2-winner_selection_start_block": "u64:50",
+                            "3-claim_start_block": "u64:100"
                         },
                         "str:flags": "u8:0|u8:0|u8:0|u8:1",
                         "str:supportAddress": "address:owner"

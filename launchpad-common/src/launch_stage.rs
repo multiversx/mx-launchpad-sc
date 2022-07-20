@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::config::EpochsConfig;
+use crate::config::TimelineConfig;
 
 #[derive(PartialEq, PartialOrd)]
 pub enum LaunchStage {
@@ -22,14 +22,14 @@ pub struct Flags {
 #[elrond_wasm::module]
 pub trait LaunchStageModule: crate::config::ConfigModule {
     fn get_launch_stage(&self) -> LaunchStage {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let config: EpochsConfig = self.configuration().get();
+        let current_block = self.blockchain().get_block_nonce();
+        let config: TimelineConfig = self.configuration().get();
         let flags: Flags = self.flags().get();
 
-        if current_epoch < config.confirmation_period_start_epoch {
+        if current_block < config.confirmation_period_start_block {
             return LaunchStage::AddTickets;
         }
-        if current_epoch < config.winner_selection_start_epoch {
+        if current_block < config.winner_selection_start_block {
             return LaunchStage::Confirm;
         }
 
@@ -39,8 +39,8 @@ pub trait LaunchStageModule: crate::config::ConfigModule {
             return LaunchStage::WinnerSelection;
         }
 
-        if config.winner_selection_start_epoch == config.claim_start_epoch
-            && current_epoch == config.winner_selection_start_epoch
+        if config.winner_selection_start_block == config.claim_start_block
+            && current_block == config.winner_selection_start_block
         {
             if flags.were_winners_selected {
                 return LaunchStage::Claim;
@@ -48,8 +48,8 @@ pub trait LaunchStageModule: crate::config::ConfigModule {
 
             return LaunchStage::WinnerSelection;
         }
-        if current_epoch >= config.winner_selection_start_epoch
-            && current_epoch < config.claim_start_epoch
+        if current_block >= config.winner_selection_start_block
+            && current_block < config.claim_start_block
         {
             return LaunchStage::WinnerSelection;
         }

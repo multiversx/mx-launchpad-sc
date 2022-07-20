@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use crate::config::{EpochsConfig, TokenAmountPair};
+use crate::config::{TimelineConfig, TokenAmountPair};
 
 #[elrond_wasm::module]
 pub trait SetupModule:
@@ -38,40 +38,40 @@ pub trait SetupModule:
     }
 
     #[only_owner]
-    #[endpoint(setConfirmationPeriodStartEpoch)]
-    fn set_confirmation_period_start_epoch(&self, new_start_epoch: u64) {
+    #[endpoint(setConfirmationPeriodStartBlock)]
+    fn set_confirmation_period_start_block(&self, new_start_block: u64) {
         self.configuration().update(|config| {
-            self.require_valid_config_epoch_change(
-                config.confirmation_period_start_epoch,
-                new_start_epoch,
+            self.require_valid_config_timeline_change(
+                config.confirmation_period_start_block,
+                new_start_block,
             );
 
-            config.confirmation_period_start_epoch = new_start_epoch;
+            config.confirmation_period_start_block = new_start_block;
             self.require_valid_time_periods(config);
         });
     }
 
     #[only_owner]
-    #[endpoint(setWinnerSelectionStartEpoch)]
-    fn set_winner_selection_start_epoch(&self, new_start_epoch: u64) {
+    #[endpoint(setWinnerSelectionStartBlock)]
+    fn set_winner_selection_start_block(&self, new_start_block: u64) {
         self.configuration().update(|config| {
-            self.require_valid_config_epoch_change(
-                config.winner_selection_start_epoch,
-                new_start_epoch,
+            self.require_valid_config_timeline_change(
+                config.winner_selection_start_block,
+                new_start_block,
             );
 
-            config.winner_selection_start_epoch = new_start_epoch;
+            config.winner_selection_start_block = new_start_block;
             self.require_valid_time_periods(config);
         });
     }
 
     #[only_owner]
-    #[endpoint(setClaimStartEpoch)]
-    fn set_claim_start_epoch(&self, new_start_epoch: u64) {
+    #[endpoint(setClaimStartBlock)]
+    fn set_claim_start_block(&self, new_start_block: u64) {
         self.configuration().update(|config| {
-            self.require_valid_config_epoch_change(config.claim_start_epoch, new_start_epoch);
+            self.require_valid_config_timeline_change(config.claim_start_block, new_start_block);
 
-            config.claim_start_epoch = new_start_epoch;
+            config.claim_start_block = new_start_block;
             self.require_valid_time_periods(config);
         });
     }
@@ -102,25 +102,25 @@ pub trait SetupModule:
         self.nr_winning_tickets().set(&nr_winning_tickets);
     }
 
-    fn require_valid_config_epoch_change(&self, old_start_epoch: u64, new_start_epoch: u64) {
-        let current_epoch = self.blockchain().get_block_epoch();
+    fn require_valid_config_timeline_change(&self, old_start_block: u64, new_start_block: u64) {
+        let current_block = self.blockchain().get_block_nonce();
         require!(
-            old_start_epoch > current_epoch,
-            "Cannot change start epoch, it's either in progress or passed already"
+            old_start_block > current_block,
+            "Cannot change start block, it's either in progress or passed already"
         );
         require!(
-            new_start_epoch > current_epoch,
-            "Start epoch cannot be in the past"
+            new_start_block > current_block,
+            "Start block cannot be in the past"
         );
     }
 
-    fn require_valid_time_periods(&self, config: &EpochsConfig) {
+    fn require_valid_time_periods(&self, config: &TimelineConfig) {
         require!(
-            config.confirmation_period_start_epoch < config.winner_selection_start_epoch,
-            "Winner selection start epoch must be after confirm start epoch"
+            config.confirmation_period_start_block < config.winner_selection_start_block,
+            "Winner selection start block must be after confirm start block"
         );
         require!(
-            config.winner_selection_start_epoch <= config.claim_start_epoch,
+            config.winner_selection_start_block <= config.claim_start_block,
             "Claim period must be after winner selection"
         );
     }

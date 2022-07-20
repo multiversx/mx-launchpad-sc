@@ -62,4 +62,4 @@ for i from 0 to n−2 do
 At every step, the contract verifies if it has enough gas to continue the next operation, if not, it will save the current index in order to start the selection process from that moment onwards on the next call
 After finishing the shuffle of all the elements, the contract will have a waiting period before the winners can claim their launchpad tokens and any payment for non-winning tickets.
 
-6) After X epochs a new endpoint is activated. claimLaunchpadTokens - this can be called only by those winners who confirmed their tickets by depositing eGLD/bUSD. This endpoint will give the actual launchpad tokens to the users and refund the losing tickets.
+6) After X blocks a new endpoint is activated. claimLaunchpadTokens - this can be called only by those winners who confirmed their tickets by depositing eGLD/bUSD. This endpoint will give the actual launchpad tokens to the users and refund the losing tickets.
