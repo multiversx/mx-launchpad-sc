@@ -106,7 +106,7 @@ pub trait SetupModule:
         let current_block = self.blockchain().get_block_nonce();
         require!(
             old_start_block > current_block,
-            "Cannot change start nlock, it's either in progress or passed already"
+            "Cannot change start block, it's either in progress or passed already"
         );
         require!(
             new_start_block > current_block,
