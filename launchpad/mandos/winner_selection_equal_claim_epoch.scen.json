@@ -1,5 +1,5 @@
 {
-    "name": "test for the scenario when winner_selection_start_epoch == claim_start_epoch",
+    "name": "test for the scenario when winner_selection_start_block == claim_start_block",
     "steps": [
         {
             "step": "externalSteps",
@@ -7,12 +7,12 @@
         },
         {
             "step": "scCall",
-            "txId": "owner-set-epochs-equal",
+            "txId": "owner-set-blocks-equal",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:launchpad",
                 "value": "0",
-                "function": "setClaimStartEpoch",
+                "function": "setClaimStartBlock",
                 "arguments": [
                     "50"
                 ],
@@ -36,9 +36,9 @@
                     "esdt": "*",
                     "storage": {
                         "str:configuration": {
-                            "1-confirmation_period_start_epoch": "u64:25",
-                            "2-winner_selection_start_epoch": "u64:50",
-                            "3-claim_start_epoch": "u64:50"
+                            "1-confirmation_period_start_block": "u64:25",
+                            "2-winner_selection_start_block": "u64:50",
+                            "3-claim_start_block": "u64:50"
                         },
                         "+": ""
                     },
@@ -50,7 +50,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockEpoch": "50"
+                "blockNonce": "50"
             }
         },
         {
@@ -78,7 +78,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockEpoch": "70"
+                "blockNonce": "70"
             }
         },
         {

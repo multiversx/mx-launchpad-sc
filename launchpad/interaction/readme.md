@@ -12,21 +12,21 @@ The Launchpad Smart Contract defines a set of parameters under which it operates
 - **Ticket price** - cost to be paid by investors in Ticket Payment tokens per lottery ticket
 - **Number of winning lottery tickets**
 - **Number of Launchpad tokens awarded for winning ticket**
-- **Epochs defining the Launchpad stages** - see next section for details
+- **Blocks defining the Launchpad stages** - see next section for details
 
 
 ## Launchpad Smart Contract stages
-The Launchpad Smart Contract operates in stages, each stage allowing/requiring certain actions to be performed by its owner account or investor accounts. The timing of each stage is configured in epoch numbers. This configuration is done at contract deployment, but can also be changed with some restrictions during the contract’s lifetime.
+The Launchpad Smart Contract operates in stages, each stage allowing/requiring certain actions to be performed by its owner account or investor accounts. The timing of each stage is configured in block numbers. This configuration is done at contract deployment, but can also be changed with some restrictions during the contract’s lifetime.
 
-In detail, the contract is configured with 3 distinct epoch numbers that are defining the stages:
-- “**Confirm tickets**” epoch
-- “**Select winning tickets**” epoch
-- “**Claim**” epoch
+In detail, the contract is configured with 3 distinct block numbers that are defining the stages:
+- “**Confirm tickets**” block
+- “**Select winning tickets**” block
+- “**Claim**” block
 
-Here’s a description of each stage defined by these epoch numbers and what’s expected to happen in each of them:
+Here’s a description of each stage defined by these block numbers and what’s expected to happen in each of them:
 
 ### “Add tickets” stage
-This is the first stage of the contract, happening between the moment the contract is deployed until the configured “Confirmation” epoch is reached. 
+This is the first stage of the contract, happening between the moment the contract is deployed until the configured “Confirmation” block is reached. 
 This stage is dedicated exclusively to give enough time to the owner to set up the initial state of the contract before the “Confirm tickets” stage starts in which investors can confirm and pay their tickets. 
 
 Thus, expected actions on owner’s responsibility in this stage are:
@@ -37,7 +37,7 @@ Thus, expected actions on owner’s responsibility in this stage are:
 If the mandatory actions for this stage are not performed, the contract can switch to the next stages when the time is due, but the expected actions in those stages will be blocked due to missing prerequisites.
 
 ### “Confirm tickets” stage
-This is the second stage of the contract, happening between the “Confirmation” epoch and the “Select winning tickets” epoch. 
+This is the second stage of the contract, happening between the “Confirmation” block and the “Select winning tickets” block. 
 This stage is mainly the potential investors’ time to shine, giving them the chance to confirm and pay any number of lottery tickets from their eligible allocated lot.
 
 Possible actions in this stage for the owner of the Launchpad Smart Contract are:
@@ -47,9 +47,9 @@ Possible actions in this stage for the owner of the Launchpad Smart Contract are
 As it can be observed, there are no mandatory actions to be performed on the owner's responsibility during this stage. Thus, if no blacklisting/whitelisting is necessary during this stage, you can sit back and relax.
 
 ### “Select winning tickets” stage
-This is the third stage of the contract, starting after the “Select winning tickets” epoch is reached.
+This is the third stage of the contract, starting after the “Select winning tickets” block is reached.
 
-Based on the configuration of the “Select winning tickets” epoch and “Claim” epoch, it can last either until the winning tickets were successfully selected (in case the “Claim” epoch is equal to the “Select winners” epoch), or until the “Claim” epoch is reached (when the “Claim” epoch number is greater than the “Select winners” epoch).
+Based on the configuration of the “Select winning tickets” block and “Claim” block, it can last either until the winning tickets were successfully selected (in case the “Claim” block is equal to the “Select winners” block), or until the “Claim” block is reached (when the “Claim” block number is greater than the “Select winners” block).
 
 In this stage, ticket confirmation, blacklisting and whitelisting actions are no longer possible as, from this point on, the entire ticket list should be filtered down to a list of only valid tickets from which the winning tickets are selected.
 
@@ -62,7 +62,7 @@ The entire process is a lengthy one, so it is designed to be performed as much a
 These two actions can be performed by any account, be it the owner of the Launchpad Smart Contract or not. Therefore, anyone can contribute to the advancement to the next stage.
 
 ### “Claim” stage
-This is the fourth and final stage of the Launchpad Smart Contract and it is happening either after the “winning tickets selection” process is successfully finished (when the “Claim” epoch is equal to the “Select winning tickets” epoch) or after the “Claim” epoch is reached (in case the “Claim” epoch number is bigger than the “Select winning tickets” epoch).
+This is the fourth and final stage of the Launchpad Smart Contract and it is happening either after the “winning tickets selection” process is successfully finished (when the “Claim” block is equal to the “Select winning tickets” block) or after the “Claim” block is reached (in case the “Claim” block number is bigger than the “Select winning tickets” block).
 During this stage, all participating accounts can claim their winning tokens and refunds for lottery tickets that didn’t make it.
 
 As the owner of the Launchpad Smart Contract, the possible action in this stage is:
@@ -101,7 +101,7 @@ and then execute your desired action. Here we go:
 
 
 ### Deposit the launchpad tokens
-You will receive the ownership of the Launchpad Smart Contract before the “Confirm tickets” epoch starts. At this point, everything you’re expected to do for the things to go on is to deposit the launchpad tokens. 
+You will receive the ownership of the Launchpad Smart Contract before the “Confirm tickets” block starts. At this point, everything you’re expected to do for the things to go on is to deposit the launchpad tokens. 
 
 To get this action done, write in the prepared terminal the following command:
 ```

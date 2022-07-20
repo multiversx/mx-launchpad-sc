@@ -32,12 +32,12 @@ elrond_wasm_node::wasm_endpoints! {
         isUserBlacklisted
         removeUsersFromBlacklist
         selectWinners
-        setClaimStartEpoch
-        setConfirmationPeriodStartEpoch
+        setClaimStartBlock
+        setConfirmationPeriodStartBlock
         setLaunchpadTokensPerWinningTicket
         setSupportAddress
         setTicketPrice
-        setWinnerSelectionStartEpoch
+        setWinnerSelectionStartBlock
     )
 }
 

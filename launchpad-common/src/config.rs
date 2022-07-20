@@ -8,10 +8,10 @@ pub struct TokenAmountPair<M: ManagedTypeApi> {
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
-pub struct EpochsConfig {
-    pub confirmation_period_start_epoch: u64,
-    pub winner_selection_start_epoch: u64,
-    pub claim_start_epoch: u64,
+pub struct TimelineConfig {
+    pub confirmation_period_start_block: u64,
+    pub winner_selection_start_block: u64,
+    pub claim_start_block: u64,
 }
 
 #[elrond_wasm::module]
@@ -23,7 +23,7 @@ pub trait ConfigModule {
 
     #[view(getConfiguration)]
     #[storage_mapper("configuration")]
-    fn configuration(&self) -> SingleValueMapper<EpochsConfig>;
+    fn configuration(&self) -> SingleValueMapper<TimelineConfig>;
 
     #[view(getLaunchpadTokenId)]
     #[storage_mapper("launchpadTokenId")]

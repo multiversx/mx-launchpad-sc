@@ -16,7 +16,7 @@ pub mod token_send;
 pub mod user_interactions;
 pub mod winner_selection;
 
-use config::EpochsConfig;
+use config::TimelineConfig;
 use launch_stage::Flags;
 use tickets::FIRST_TICKET_ID;
 
@@ -41,9 +41,9 @@ pub trait LaunchpadMain:
         ticket_payment_token: EgldOrEsdtTokenIdentifier,
         ticket_price: BigUint,
         nr_winning_tickets: usize,
-        confirmation_period_start_epoch: u64,
-        winner_selection_start_epoch: u64,
-        claim_start_epoch: u64,
+        confirmation_period_start_block: u64,
+        winner_selection_start_block: u64,
+        claim_start_block: u64,
         flags: Flags,
     ) {
         self.launchpad_token_id().set(&launchpad_token_id);
@@ -52,10 +52,10 @@ pub trait LaunchpadMain:
         self.try_set_ticket_price(ticket_payment_token, ticket_price);
         self.try_set_nr_winning_tickets(nr_winning_tickets);
 
-        let config = EpochsConfig {
-            confirmation_period_start_epoch,
-            winner_selection_start_epoch,
-            claim_start_epoch,
+        let config = TimelineConfig {
+            confirmation_period_start_block,
+            winner_selection_start_block,
+            claim_start_block,
         };
         self.require_valid_time_periods(&config);
         self.configuration().set(&config);

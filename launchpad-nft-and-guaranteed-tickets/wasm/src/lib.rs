@@ -39,13 +39,13 @@ elrond_wasm_node::wasm_endpoints! {
         removeUsersFromBlacklist
         secondarySelectionStep
         selectWinners
-        setClaimStartEpoch
-        setConfirmationPeriodStartEpoch
+        setClaimStartBlock
+        setConfirmationPeriodStartBlock
         setLaunchpadTokensPerWinningTicket
         setNftCost
         setSupportAddress
         setTicketPrice
         setTransferRole
-        setWinnerSelectionStartEpoch
+        setWinnerSelectionStartBlock
     )
 }

@@ -19,7 +19,7 @@ https://github.com/ElrondNetwork/launchpad-scripts
 https://github.com/ElrondNetwork/temp-mex-indexing
 
 - We have an “Owner’s Launchpad Smart Contract control guide” for the startups to prepare their prerequisites.
-Ask the counterpart to prepare the tokens in an account onto which we’ll transfer the contract ownership at some point before entering into the "Confirmation" epoch. They should either have a PEM file prepared for the account if they plan to use the snippets, or issue the necessary transactions from the wallet directly (it's easy).
+Ask the counterpart to prepare the tokens in an account onto which we’ll transfer the contract ownership at some point before entering into the "Confirmation" block. They should either have a PEM file prepared for the account if they plan to use the snippets, or issue the necessary transactions from the wallet directly (it's easy).
 
 - We’ll need the **Token ID** to setup the contract and, in case they plan to use the snippet, the **filename** of the wallet PEM file.
 
@@ -103,7 +103,7 @@ ESDTTransfer@[token_id_in_hex]@[token_amount_in_hex]@6465706F7369744C61756E63687
 
 *Time to have a good sleep.*
 
-23. After ticket confirm epoch is reached, if blacklisting is needed, counterpart should execute it by snippet via:
+23. After ticket confirm block is reached, if blacklisting is needed, counterpart should execute it by snippet via:
 ```
 $ addUsersToBlacklist user_address
 ```

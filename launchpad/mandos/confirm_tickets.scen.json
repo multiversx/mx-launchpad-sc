@@ -11,7 +11,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockEpoch": "20"
+                "blockNonce": "20"
             }
         },
         {
@@ -39,7 +39,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockEpoch": "30"
+                "blockNonce": "30"
             }
         },
         {

@@ -28,9 +28,9 @@ pub trait Launchpad:
         ticket_payment_token: EgldOrEsdtTokenIdentifier,
         ticket_price: BigUint,
         nr_winning_tickets: usize,
-        confirmation_period_start_epoch: u64,
-        winner_selection_start_epoch: u64,
-        claim_start_epoch: u64,
+        confirmation_period_start_block: u64,
+        winner_selection_start_block: u64,
+        claim_start_block: u64,
     ) {
         let flags = Flags {
             has_winner_selection_process_started: false,
@@ -44,9 +44,9 @@ pub trait Launchpad:
             ticket_payment_token,
             ticket_price,
             nr_winning_tickets,
-            confirmation_period_start_epoch,
-            winner_selection_start_epoch,
-            claim_start_epoch,
+            confirmation_period_start_block,
+            winner_selection_start_block,
+            claim_start_block,
             flags,
         );
     }
