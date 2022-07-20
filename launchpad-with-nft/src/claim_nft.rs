@@ -13,6 +13,7 @@ pub trait ClaimNftModule:
     + launchpad_common::user_interactions::UserInteractionsModule
     + launchpad_common::ongoing_operation::OngoingOperationModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + crate::nft_config::NftConfigModule
     + crate::mystery_sft::MysterySftModule
     + crate::confirm_nft::ConfirmNftModule
     + crate::nft_winners_selection::NftWinnersSelectionModule

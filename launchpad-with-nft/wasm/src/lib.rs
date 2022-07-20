@@ -42,6 +42,7 @@ elrond_wasm_node::wasm_endpoints! {
         setClaimStartEpoch
         setConfirmationPeriodStartEpoch
         setLaunchpadTokensPerWinningTicket
+        setNftCost
         setSupportAddress
         setTicketPrice
         setTransferRole

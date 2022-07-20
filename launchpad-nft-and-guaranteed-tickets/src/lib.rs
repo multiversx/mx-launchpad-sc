@@ -24,6 +24,7 @@ pub trait Launchpad:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule
     + launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketWinnersModule
+    + launchpad_with_nft::nft_config::NftConfigModule
     + launchpad_with_nft::nft_blacklist::NftBlacklistModule
     + launchpad_with_nft::mystery_sft::MysterySftModule
     + launchpad_with_nft::confirm_nft::ConfirmNftModule
@@ -49,13 +50,6 @@ pub trait Launchpad:
         total_available_nfts: usize,
         min_confirmed_for_guaranteed_ticket: usize,
     ) {
-        let nft_cost = EgldOrEsdtTokenPayment::new(
-            nft_cost_token_id,
-            nft_cost_token_nonce,
-            nft_cost_token_amount,
-        );
-
-        self.require_valid_cost(&nft_cost);
         require!(total_available_nfts > 0, "Invalid total_available_nfts");
 
         require!(
@@ -77,7 +71,12 @@ pub trait Launchpad:
             Flags::default(),
         );
 
-        self.nft_cost().set(&nft_cost);
+        self.try_set_nft_cost(
+            nft_cost_token_id,
+            nft_cost_token_nonce,
+            nft_cost_token_amount,
+        );
+
         self.total_available_nfts().set(total_available_nfts);
         self.sft_setup_steps()
             .set_if_empty(&SftSetupSteps::default());

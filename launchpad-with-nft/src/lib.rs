@@ -10,6 +10,7 @@ pub mod claim_nft;
 pub mod confirm_nft;
 pub mod mystery_sft;
 pub mod nft_blacklist;
+pub mod nft_config;
 pub mod nft_winners_selection;
 
 #[elrond_wasm::contract]
@@ -26,6 +27,7 @@ pub trait Launchpad:
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + nft_config::NftConfigModule
     + nft_blacklist::NftBlacklistModule
     + mystery_sft::MysterySftModule
     + confirm_nft::ConfirmNftModule
@@ -44,10 +46,11 @@ pub trait Launchpad:
         confirmation_period_start_epoch: u64,
         winner_selection_start_epoch: u64,
         claim_start_epoch: u64,
-        nft_cost: EgldOrEsdtTokenPayment<Self::Api>,
+        nft_cost_token_id: EgldOrEsdtTokenIdentifier,
+        nft_cost_token_nonce: u64,
+        nft_cost_token_amount: BigUint,
         total_available_nfts: usize,
     ) {
-        self.require_valid_cost(&nft_cost);
         require!(total_available_nfts > 0, "Invalid total_available_nfts");
 
         self.init_base(
@@ -62,7 +65,12 @@ pub trait Launchpad:
             Flags::default(),
         );
 
-        self.nft_cost().set(&nft_cost);
+        self.try_set_nft_cost(
+            nft_cost_token_id,
+            nft_cost_token_nonce,
+            nft_cost_token_amount,
+        );
+
         self.total_available_nfts().set(total_available_nfts);
         self.sft_setup_steps()
             .set_if_empty(&SftSetupSteps::default());
