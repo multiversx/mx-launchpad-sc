@@ -3,8 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::mystery_sft::SftSetupSteps;
-use launchpad_common::{launch_stage::Flags, random::Random};
+use launchpad_common::{random::Random};
 
 pub mod claim_nft;
 pub mod confirm_nft;
@@ -32,41 +31,8 @@ pub trait Launchpad:
     + nft_winners_selection::NftWinnersSelectionModule
     + claim_nft::ClaimNftModule
 {
-    #[allow(clippy::too_many_arguments)]
     #[init]
-    fn init(
-        &self,
-        launchpad_token_id: TokenIdentifier,
-        launchpad_tokens_per_winning_ticket: BigUint,
-        ticket_payment_token: EgldOrEsdtTokenIdentifier,
-        ticket_price: BigUint,
-        nr_winning_tickets: usize,
-        confirmation_period_start_epoch: u64,
-        winner_selection_start_epoch: u64,
-        claim_start_epoch: u64,
-        nft_cost: EgldOrEsdtTokenPayment<Self::Api>,
-        total_available_nfts: usize,
-    ) {
-        self.require_valid_cost(&nft_cost);
-        require!(total_available_nfts > 0, "Invalid total_available_nfts");
-
-        self.init_base(
-            launchpad_token_id,
-            launchpad_tokens_per_winning_ticket,
-            ticket_payment_token,
-            ticket_price,
-            nr_winning_tickets,
-            confirmation_period_start_epoch,
-            winner_selection_start_epoch,
-            claim_start_epoch,
-            Flags::default(),
-        );
-
-        self.nft_cost().set(&nft_cost);
-        self.total_available_nfts().set(total_available_nfts);
-        self.sft_setup_steps()
-            .set_if_empty(&SftSetupSteps::default());
-    }
+    fn init(&self) {}
 
     #[only_owner]
     #[endpoint(addTickets)]
