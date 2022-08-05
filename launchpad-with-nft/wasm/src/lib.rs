@@ -46,5 +46,6 @@ elrond_wasm_node::wasm_endpoints! {
         setTicketPrice
         setTransferRole
         setWinnerSelectionStartEpoch
+        unsetTransferRole
     )
 }
