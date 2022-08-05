@@ -3,9 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use launchpad_common::launch_stage::Flags;
-use launchpad_with_nft::mystery_sft::SftSetupSteps;
-
 pub mod combined_selection;
 
 #[elrond_wasm::contract]
@@ -31,57 +28,8 @@ pub trait Launchpad:
     + launchpad_with_nft::claim_nft::ClaimNftModule
     + combined_selection::CombinedSelectionModule
 {
-    #[allow(clippy::too_many_arguments)]
     #[init]
-    fn init(
-        &self,
-        launchpad_token_id: TokenIdentifier,
-        launchpad_tokens_per_winning_ticket: BigUint,
-        ticket_payment_token: EgldOrEsdtTokenIdentifier,
-        ticket_price: BigUint,
-        nr_winning_tickets: usize,
-        confirmation_period_start_epoch: u64,
-        winner_selection_start_epoch: u64,
-        claim_start_epoch: u64,
-        nft_cost_token_id: EgldOrEsdtTokenIdentifier,
-        nft_cost_token_nonce: u64,
-        nft_cost_token_amount: BigUint,
-        total_available_nfts: usize,
-        min_confirmed_for_guaranteed_ticket: usize,
-    ) {
-        let nft_cost = EgldOrEsdtTokenPayment::new(
-            nft_cost_token_id,
-            nft_cost_token_nonce,
-            nft_cost_token_amount,
-        );
-
-        self.require_valid_cost(&nft_cost);
-        require!(total_available_nfts > 0, "Invalid total_available_nfts");
-
-        require!(
-            min_confirmed_for_guaranteed_ticket > 0,
-            "Invalid minimum tickets confirmed for guaranteed winning ticket"
-        );
-        self.min_confirmed_for_guaranteed_ticket()
-            .set(min_confirmed_for_guaranteed_ticket);
-
-        self.init_base(
-            launchpad_token_id,
-            launchpad_tokens_per_winning_ticket,
-            ticket_payment_token,
-            ticket_price,
-            nr_winning_tickets,
-            confirmation_period_start_epoch,
-            winner_selection_start_epoch,
-            claim_start_epoch,
-            Flags::default(),
-        );
-
-        self.nft_cost().set(&nft_cost);
-        self.total_available_nfts().set(total_available_nfts);
-        self.sft_setup_steps()
-            .set_if_empty(&SftSetupSteps::default());
-    }
+    fn init(&self) {}
 
     #[only_owner]
     #[endpoint(addTickets)]
