@@ -104,6 +104,31 @@ pub trait MysterySftModule:
         );
     }
 
+    #[endpoint(unsetTransferRole)]
+    fn unset_transfer_role(&self, opt_addr_to_set: OptionalValue<ManagedAddress>) {
+        self.require_extended_permissions();
+
+        let addr = match opt_addr_to_set {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => {
+                self.sft_setup_steps()
+                    .update(|steps| steps.set_transfer_role = false);
+
+                self.blockchain().get_sc_address()
+            }
+        };
+
+        self.send()
+        .esdt_system_sc_proxy()
+        .unset_special_roles(
+            &addr,
+            &self.mystery_sft().get_token_id(),
+            [EsdtLocalRole::Transfer][..].iter().cloned(),
+        )
+        .async_call()
+        .call_and_exit();
+    }
+
     #[storage_mapper("mysterySftTokenId")]
     fn mystery_sft(&self) -> NonFungibleTokenMapper<Self::Api>;
 
