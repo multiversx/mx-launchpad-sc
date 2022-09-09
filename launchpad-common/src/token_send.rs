@@ -19,7 +19,14 @@ pub trait TokenSendModule: crate::config::ConfigModule {
         );
     }
 
-    fn send_launchpad_tokens(&self, address: &ManagedAddress, nr_claimed_tickets: usize) {
+    fn send_launchpad_tokens<
+        SendLaunchpadTokensFn: Fn(&Self, &ManagedAddress, &EsdtTokenPayment<Self::Api>),
+    >(
+        &self,
+        address: &ManagedAddress,
+        nr_claimed_tickets: usize,
+        send_fn: SendLaunchpadTokensFn,
+    ) {
         if nr_claimed_tickets == 0 {
             return;
         }
@@ -29,11 +36,20 @@ pub trait TokenSendModule: crate::config::ConfigModule {
         let launchpad_tokens_amount_to_send =
             BigUint::from(nr_claimed_tickets as u32) * tokens_per_winning_ticket;
 
+        let payment = EsdtTokenPayment::new(launchpad_token_id, 0, launchpad_tokens_amount_to_send);
+        send_fn(self, address, &payment);
+    }
+
+    fn default_send_launchpad_tokens_fn(
+        &self,
+        address: &ManagedAddress,
+        payment: &EsdtTokenPayment<Self::Api>,
+    ) {
         self.send().direct_esdt(
             address,
-            &launchpad_token_id,
-            0,
-            &launchpad_tokens_amount_to_send,
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
         );
     }
 }

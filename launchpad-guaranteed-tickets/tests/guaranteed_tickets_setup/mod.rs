@@ -191,7 +191,7 @@ where
     pub fn claim_user(&mut self, user: &Address) -> TxResult {
         self.b_mock
             .execute_tx(user, &self.lp_wrapper, &rust_biguint!(0), |sc| {
-                sc.claim_launchpad_tokens();
+                sc.claim_launchpad_tokens_endpoint();
             })
     }
 
