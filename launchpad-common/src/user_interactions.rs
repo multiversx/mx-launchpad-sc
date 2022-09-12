@@ -47,7 +47,12 @@ pub trait UserInteractionsModule:
         self.nr_confirmed_tickets(&caller).set(&total_confirmed);
     }
 
-    fn claim_launchpad_tokens(&self) {
+    fn claim_launchpad_tokens<
+        SendLaunchpadTokensFn: Fn(&Self, &ManagedAddress, &EsdtTokenPayment<Self::Api>),
+    >(
+        &self,
+        send_fn: SendLaunchpadTokensFn,
+    ) {
         self.require_claim_period();
 
         let caller = self.blockchain().get_caller();
@@ -81,7 +86,7 @@ pub trait UserInteractionsModule:
 
         let nr_tickets_to_refund = nr_confirmed_tickets - nr_redeemable_tickets;
         self.refund_ticket_payment(&caller, nr_tickets_to_refund);
-        self.send_launchpad_tokens(&caller, nr_redeemable_tickets);
+        self.send_launchpad_tokens(&caller, nr_redeemable_tickets, send_fn);
     }
 
     #[view(hasUserClaimedTokens)]

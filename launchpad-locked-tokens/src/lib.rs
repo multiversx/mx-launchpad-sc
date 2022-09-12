@@ -5,8 +5,10 @@ elrond_wasm::derive_imports!();
 
 use launchpad_common::{launch_stage::Flags, *};
 
+pub mod locked_launchpad_token_send;
+
 #[elrond_wasm::contract]
-pub trait Launchpad:
+pub trait LaunchpadLockedTokens:
     launchpad_common::LaunchpadMain
     + launch_stage::LaunchStageModule
     + config::ConfigModule
@@ -18,6 +20,7 @@ pub trait Launchpad:
     + blacklist::BlacklistModule
     + token_send::TokenSendModule
     + user_interactions::UserInteractionsModule
+    + locked_launchpad_token_send::LockedLaunchpadTokenSend
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
@@ -31,6 +34,9 @@ pub trait Launchpad:
         confirmation_period_start_block: u64,
         winner_selection_start_block: u64,
         claim_start_block: u64,
+        launchpad_tokens_lock_percentage: u32,
+        launchpad_tokens_unlock_epoch: u64,
+        simple_lock_sc_address: ManagedAddress,
     ) {
         let flags = Flags {
             has_winner_selection_process_started: false,
@@ -49,6 +55,10 @@ pub trait Launchpad:
             claim_start_block,
             flags,
         );
+
+        self.try_set_launchpad_tokens_lock_percentage(launchpad_tokens_lock_percentage);
+        self.try_set_launchpad_tokens_unlock_epoch(launchpad_tokens_unlock_epoch);
+        self.try_set_simple_lock_sc_address(simple_lock_sc_address);
     }
 
     #[only_owner]
@@ -70,7 +80,7 @@ pub trait Launchpad:
 
     #[endpoint(claimLaunchpadTokens)]
     fn claim_launchpad_tokens_endpoint(&self) {
-        self.claim_launchpad_tokens(Self::default_send_launchpad_tokens_fn);
+        self.claim_launchpad_tokens(Self::send_locked_launchpad_tokens);
     }
 
     #[only_owner]
