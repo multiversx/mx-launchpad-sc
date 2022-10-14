@@ -3,15 +3,16 @@ elrond_wasm::derive_imports!();
 use elrond_wasm::{
     api::ManagedTypeApi,
     contract_base::{CallableContract, ContractBase},
-    elrond_codec::{Empty, TopDecode, TopEncode},
+    elrond_codec::{TopDecode, TopEncode},
     types::{
         EgldOrEsdtTokenIdentifier, EsdtLocalRole, EsdtTokenPayment, ManagedAddress,
         MultiValueEncoded,
     },
 };
 use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_egld_token_id, managed_token_id, rust_biguint,
-    testing_framework::BlockchainStateWrapper, tx_mock::TxContextStack, DebugApi,
+    managed_address, managed_biguint, managed_egld_token_id, managed_token_id,
+    managed_token_id_wrapped, rust_biguint, testing_framework::BlockchainStateWrapper,
+    tx_mock::TxContextStack, DebugApi,
 };
 use launchpad_common::{
     config::ConfigModule, user_interactions::UserInteractionsModule,
@@ -33,6 +34,7 @@ const UNLOCK_EPOCH: u64 = 10;
 
 #[test]
 fn launchpad_with_locked_tokens_out_test() {
+    let _ = DebugApi::dummy();
     let mut b_mock = BlockchainStateWrapper::new();
     let rust_zero = rust_biguint!(0);
 
@@ -119,12 +121,16 @@ fn launchpad_with_locked_tokens_out_test() {
         &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET / 2),
     );
 
-    b_mock.check_nft_balance::<Empty>(
+    b_mock.check_nft_balance(
         &user,
-        LAUNCHPAD_TOKEN_ID,
+        LOCKED_TOKEN_ID,
         1,
         &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET / 2),
-        None,
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(LAUNCHPAD_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: UNLOCK_EPOCH,
+        }),
     );
 }
 

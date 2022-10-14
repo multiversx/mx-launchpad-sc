@@ -5,6 +5,8 @@ members = [
   "launchpad/meta",
   "launchpad-locked-tokens",
   "launchpad-locked-tokens/meta",
+  "launchpad-locked-tokens-and-guaranteed-tickets",
+  "launchpad-locked-tokens-and-guaranteed-tickets/meta",
   "launchpad-with-nft",
   "launchpad-with-nft/meta",
   "launchpad-guaranteed-tickets",
