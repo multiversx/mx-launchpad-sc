@@ -43,9 +43,6 @@ jobs:
           # Setting $HOME is required by erdpy.
           export HOME=$ELROND_HOME
           cd $REPO_PATH
-          erdpy --verbose contract build ./launchpad
-          erdpy --verbose contract build ./launchpad-guaranteed-tickets
-          erdpy --verbose contract build ./launchpad-nft-and-guaranteed-tickets
           erdpy --verbose contract build ./launchpad-locked-tokens-and-guaranteed-tickets
 
       - name: Save artifacts
