@@ -44,7 +44,7 @@ jobs:
           wget https://raw.githubusercontent.com/ElrondNetwork/elrond-sdk-images-build-contract-rust/${{ github.event.inputs.image_tag }}/build_with_docker.py
       - name: Build contract
         run: |
-          python3 ./build_with_docker.py --no-docker-tty --image=elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }} --project=./{{ github.event.inputs.contract }} --output=/home/runner/work/output-from-docker
+          python3 ./build_with_docker.py --no-docker-tty --image=elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }} --project=./${{ github.event.inputs.contract }} --output=/home/runner/work/output-from-docker
       - name: Save artifacts
         uses: actions/upload-artifact@v2
         with:
