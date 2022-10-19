@@ -14,7 +14,7 @@ on:
         required: true
         description: Image elrondnetwork/build-contract-rust
         options:
-        - contract-within-project
+        - v3.2.0
       contract:
         type: choice
         required: true
