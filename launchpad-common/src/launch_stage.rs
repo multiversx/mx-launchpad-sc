@@ -35,17 +35,7 @@ pub trait LaunchStageModule: crate::config::ConfigModule {
 
         let both_selection_steps_completed =
             flags.were_winners_selected && flags.was_additional_step_completed;
-        if flags.has_winner_selection_process_started && !both_selection_steps_completed {
-            return LaunchStage::WinnerSelection;
-        }
-
-        if config.winner_selection_start_block == config.claim_start_block
-            && current_block == config.winner_selection_start_block
-        {
-            if flags.were_winners_selected {
-                return LaunchStage::Claim;
-            }
-
+        if current_block >= config.winner_selection_start_block && !both_selection_steps_completed {
             return LaunchStage::WinnerSelection;
         }
         if current_block >= config.winner_selection_start_block
