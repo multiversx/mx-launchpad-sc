@@ -132,49 +132,6 @@ setClaimStartBlock() {
     --send --proxy=${PROXY} --chain=${CHAIN_ID}
 } 
 
-# params
-#   $1 = Token name
-#   $2 = Token ticker
-issueMysterySft() {
-    TOKEN_NAME_HEX="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
-    TOKEN_TICKER_HEX="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
-
-    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
-    --gas-limit=100000000 --function="issueMysterySft" --value=50000000000000000\
-    --arguments $TOKEN_NAME_HEX $TOKEN_TICKER_HEX \
-    --send --proxy=${PROXY} --chain=${CHAIN_ID}
-} 
-
-# params
-createInitialSfts() {
-    TOKEN_NAME_HEX="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
-    TOKEN_TICKER_HEX="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
-
-    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
-    --gas-limit=20000000 --function="createInitialSfts" \
-    --send --proxy=${PROXY} --chain=${CHAIN_ID}
-} 
-
-# params
-setInitialTransferRole() {
-
-    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
-    --gas-limit=100000000 --function="setTransferRole" \
-    --send --proxy=${PROXY} --chain=${CHAIN_ID}
-} 
-
-# params
-#   $1 = Address
-setTransferRole() {
-    local ADDRESS_HEX="0x$(erdpy wallet bech32 --decode $1)"
-
-    erdpy --verbose contract call ${ADDRESS} --recall-nonce --pem=${OWNER_PEM_PATH} \
-    --gas-limit=100000000 --function="setTransferRole" \
-    --arguments ${ADDRESS_HEX} \
-    --send --proxy=${PROXY} --chain=${CHAIN_ID}
-} 
-
-
 # "CONFIRM TICKETS" STAGE ENDPOINTS BELOW
 
 # params
