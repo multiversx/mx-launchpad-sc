@@ -2,7 +2,7 @@
 
 ## Launchpad smart contract
 
-On the Elrond Protocol we aim to start several “launchpad” projects and for the token launch we want to create a set of smart contracts which handle in a decentralized manner the selection of token buyers. The basic idea is that the user is eligible to buy a set of lottery tickets for the given launchpad according to the number of EGLD tokens the user stakes / delegates. On top of this every user who wants to participate in the token sale event must register and must do a KYC.
+We aim to start several “launchpad” projects on MultiversX and for the token launch we want to create a set of smart contracts which handle in a decentralized manner the selection of token buyers. The basic idea is that the user is eligible to buy a set of lottery tickets for the given launchpad according to the number of EGLD tokens the user stakes / delegates. On top of this every user who wants to participate in the token sale event must register and must do a KYC.
 
 The code of computing the ticket allocation, doing snapshots of EGLD token holders/delegators/stakers will be the same as for MEX tokens, when we computed the allocation for those.
 

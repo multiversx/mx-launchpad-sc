@@ -1,7 +1,7 @@
 OWNER_PEM_PATH="ownerWallet.pem"
 
 ADDRESS="erd1qqqqqqqqqqqqqpgqmn5m0q4mrfr4s3dmxxce869rrvmfcuukdg0qfvggs6"
-PROXY=https://devnet-gateway.elrond.com
+PROXY=https://devnet-gateway.multiversx.com
 CHAIN_ID="D"
 
 LAUNCHPAD_TOKEN_ID="DLNTK-79679c"

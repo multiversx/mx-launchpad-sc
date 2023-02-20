@@ -3,23 +3,25 @@ id: readme
 title: Internal launchpad SC setup & deploy procedure
 ---
 
-This document provides a description of the Launchpad Smart Contract setup, deploy, integration & flow procedures
+This document provides a description of the Launchpad Smart Contract setup, deploy, integration & flow procedures as according to MultiversX's internal strategy & infrastructure.
+
+Community projects may use this procedure only as FYI in regards to the general flow of the contract usage. Most of the steps can be abstracted and may be relevant to provide a general overview on how the contract operates, but some parts will not be relevant since access to MultiversX internal resources is not available (such as ticket allocation calculation) though these are not critical for running the contract.
 
 ## Internal launchpad SC setup & deploy procedure
 
 ### Prerequisites
 
 - Clone the launchpad smart contract repo:
-https://github.com/ElrondNetwork/sc-launchpad-rs
+https://github.com/multiversx/mx-launchpad-sc
 
 - Clone launchpad-scripts repo:
-https://github.com/ElrondNetwork/launchpad-scripts
+(only internally available until further notice)
 
 - (if previous repo not used) Clone temp-mex-indexing repo:
-https://github.com/ElrondNetwork/temp-mex-indexing
+(only internally available until further notice)
 
 - We have an “Owner’s Launchpad Smart Contract control guide” for the startups to prepare their prerequisites.
-Ask the counterpart to prepare the tokens in an account onto which we’ll transfer the contract ownership at some point before entering into the "Confirmation" block. They should either have a PEM file prepared for the account if they plan to use the snippets, or issue the necessary transactions from the wallet directly (it's easy).
+Ask the counterpart to prepare the tokens in an account onto which we’ll transfer the contract ownership at some point before entering into the "Confirmation" block. They should either have a PEM file prepared for the account if they plan to use the snippets, or issue the necessary transactions directly from the wallet (it's easy, ledger-enabled and the recommended way to go).
 
 - We’ll need the **Token ID** to setup the contract and, in case they plan to use the snippet, the **filename** of the wallet PEM file.
 
@@ -31,7 +33,7 @@ Ask the counterpart to prepare the tokens in an account onto which we’ll trans
 
 2. Go to `sc-launchpad-rs/launchpad-nft-guaranteed-tickets/interaction` and copy the wallet .pem file in here
 
-3. Edit `snippets.sh` with all launchpad contract details for deployment - this will be the “control panel” on Elrond’s side
+3. Edit `snippets.sh` with all launchpad contract details for deployment - this will be the “control panel” on MultiversX’s side
 
 4. Terminal into the folder
 

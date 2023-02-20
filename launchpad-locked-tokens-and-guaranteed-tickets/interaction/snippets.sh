@@ -1,7 +1,7 @@
 OWNER_PEM_PATH=""
 
 ADDRESS="erd1qqqqqqqqqqqqqpgqv70gqyr2tr2vqfrxxre6wzytt7nfcuyupr9sr4zgys"
-PROXY=https://testnet-gateway.elrond.com
+PROXY=https://testnet-gateway.multiversx.com
 CHAIN_ID="T"
 
 LAUNCHPAD_TOKEN_ID="ASH-4ce444"
