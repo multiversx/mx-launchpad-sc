@@ -1,4 +1,4 @@
-OWNER_PEM_PATH="elrondOwner.pem"
+OWNER_PEM_PATH="multiversxOwner.pem"
 
 ADDRESS=$(erdpy data load --key=address-sc)
 PROXY=https://devnet-gateway.multiversx.com
