@@ -1,7 +1,7 @@
 OWNER_PEM_PATH=""
 
 ADDRESS="erd1qqqqqqqqqqqqqpgqww6yy7u5fddnejxf0m5z7qtluu06c8g6ad7q2zddq3"
-PROXY=https://devnet-gateway.elrond.com
+PROXY=https://devnet-gateway.multiversx.com
 CHAIN_ID="D"
 
 LAUNCHPAD_TOKEN_ID="LNCHPD-c4577b"

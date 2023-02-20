@@ -1,7 +1,7 @@
 OWNER_PEM_PATH="~/Documents/split/1.pem"
 
 ADDRESS="erd1qqqqqqqqqqqqqpgqptlxkvh3djyq2x3adf00pgtlrdl4czmrad7qmleqfs"
-PROXY=https://testnet-gateway.elrond.com
+PROXY=https://testnet-gateway.multiversx.com
 CHAIN_ID="T"
 
 LAUNCHPAD_TOKEN_ID="LNCHTKMY8M-aef94a"

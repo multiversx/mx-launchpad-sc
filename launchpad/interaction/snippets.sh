@@ -1,7 +1,7 @@
 OWNER_PEM_PATH="elrondOwner.pem"
 
 ADDRESS=$(erdpy data load --key=address-sc)
-PROXY=https://devnet-gateway.elrond.com
+PROXY=https://devnet-gateway.multiversx.com
 CHAIN_ID="D"
 
 LAUNCHPAD_TOKEN_ID="DLNTK-79679c"

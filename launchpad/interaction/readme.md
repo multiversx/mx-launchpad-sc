@@ -78,12 +78,12 @@ First, we will deploy and parameterize the Launchpad Smart Contract in advance f
 
 
 ### Prerequisites
-Erdpy will be the base tool used to send the necessary transactions that are interacting with the Launchpad Smart Contract, so you’ll have to install it. Besides, it will be handy to have it anyway since you’re planning to work within the Elrond ecosystem, so this sets you up for the future as well.
+mxpy will be the base tool used to send the necessary transactions that are interacting with the Launchpad Smart Contract, so you’ll have to install it. Besides, it will be handy to have it anyway since you’re planning to work within the MultiversX ecosystem, so this sets you up for the future as well.
 Go ahead and follow the instructions on this link and you’ll be up and running in no time: 
 
-[Erdpy install procedure](https://docs.elrond.com/sdk-and-tools/erdpy/installing-erdpy/)
+[mxpy install procedure](https://docs.multiversx.com/sdk-and-tools/sdk-py/installing-mxpy/)
 
-After you’ve successfully installed erdpy, prepare an account to which we can transfer the Launchpad Smart Contract ownership and please care that you should have your launchpad tokens ready in this very same account, along with a small amount of EGLD for the transaction fees.
+After you’ve successfully installed mxpy, prepare an account to which we can transfer the Launchpad Smart Contract ownership and please care that you should have your launchpad tokens ready in this very same account, along with a small amount of EGLD for the transaction fees.
 
 All that’s left to prepare is a folder in which you should place your PEM file containing the private key to your Launchpad Smart Contract owner account along with the end_owner_snippets.sh file we will build for your contract and provide to you.
 
@@ -107,14 +107,14 @@ To get this action done, write in the prepared terminal the following command:
 ```
 depositLaunchpadTokens
 ```
-And that’s it, done. You can go ahead and check the status of the submitted transaction in the Elrond explorer.
+And that’s it, done. You can go ahead and check the status of the submitted transaction in the MultiversX explorer.
 
 ### Add address to blacklist
 This one requires a bit more effort as we’re not yet able to guess the future and foresee the address you need to blacklist, so you’ll have to provide it yourself. Therefore, in the prepared terminal window, execute the following command (just replace the `address_to_blacklist` with the real address you have in mind):
 ```
 addAddressToBlacklist address_to_blacklist
 ```
-Done. You can go ahead and check the status of the submitted transaction in the Elrond explorer.
+Done. You can go ahead and check the status of the submitted transaction in the MultiversX explorer.
 
 ### Remove address from blacklist
 Similarly to the way you’ve added an address to the blacklist, you can also remove it with the following command (just replace the `address_to_remove_from_blacklist` with the real address you have in mind)
@@ -149,8 +149,8 @@ The last and most important command. When the “Claim” stage is reached, just
 ```
 claimTicketPayment
 ```
-Go ahead and check the Elrond explorer for the status of this transaction. This is the big one! 
-If everything is fine, then congrats! You’ve reached your destination on the Elrond Launchpad.
+Go ahead and check the MultiversX explorer for the status of this transaction. This is the big one! 
+If everything is fine, then congrats! You’ve reached your destination on the MultiversX Launchpad.
 
 
 
