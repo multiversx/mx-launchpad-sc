@@ -75,7 +75,7 @@ The general workflow looks like this:
 4) Winner Selection - repeat until completed
 5) Claim Tokens
 
-The Add Tickets stage was described above, so we will start with the Winner Selection stage.
+The Add Tickets stage was described above, so we will start with the Confirm Tickets stage.
 
 ## Confirm Tickets
 
