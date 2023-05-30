@@ -1,14 +1,14 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use launchpad_common::launch_stage::Flags;
 use launchpad_with_nft::mystery_sft::SftSetupSteps;
 
 pub mod combined_selection;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Launchpad:
     launchpad_common::LaunchpadMain
     + launchpad_common::launch_stage::LaunchStageModule
@@ -21,7 +21,7 @@ pub trait Launchpad:
     + launchpad_common::blacklist::BlacklistModule
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule
     + launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketWinnersModule
     + launchpad_with_nft::nft_config::NftConfigModule
@@ -79,7 +79,7 @@ pub trait Launchpad:
 
         self.total_available_nfts().set(total_available_nfts);
         self.sft_setup_steps()
-            .set_if_empty(&SftSetupSteps::default());
+            .set_if_empty(SftSetupSteps::default());
     }
 
     #[only_owner]

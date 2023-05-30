@@ -1,7 +1,7 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+use multiversx_sc::codec::Empty;
 
-use elrond_wasm::elrond_codec::Empty;
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub const NFT_AMOUNT: u32 = 1;
 static SFT_NAMES: &[&[u8]] = &[b"Confirmed Won", b"Confirmed Lost", b"Not Confirmed"];
@@ -29,9 +29,9 @@ pub struct SftSetupSteps {
     pub set_transfer_role: bool,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait MysterySftModule:
-    elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + launchpad_common::permissions::PermissionsModule
 {
     #[payable("*")]
@@ -39,7 +39,7 @@ pub trait MysterySftModule:
     fn issue_mystery_sft(&self, token_display_name: ManagedBuffer, token_ticker: ManagedBuffer) {
         self.require_extended_permissions();
 
-        let issue_cost = self.call_value().egld_value();
+        let issue_cost = self.call_value().egld_value().clone_value();
         self.mystery_sft().issue_and_set_all_roles(
             EsdtTokenType::SemiFungible,
             issue_cost,

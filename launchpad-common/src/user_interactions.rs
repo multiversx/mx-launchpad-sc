@@ -1,8 +1,8 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::{config::TokenAmountPair, tickets::WINNING_TICKET};
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait UserInteractionsModule:
     crate::launch_stage::LaunchStageModule
     + crate::config::ConfigModule
@@ -44,7 +44,7 @@ pub trait UserInteractionsModule:
         );
         require!(payment_amount == total_ticket_price, "Wrong amount sent");
 
-        self.nr_confirmed_tickets(&caller).set(&total_confirmed);
+        self.nr_confirmed_tickets(&caller).set(total_confirmed);
     }
 
     fn claim_launchpad_tokens<

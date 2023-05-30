@@ -1,12 +1,12 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use launchpad_common::launch_stage::Flags;
 use launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait LaunchpadLockedTokensAndGuaranteedTickets:
     launchpad_common::LaunchpadMain
     + launchpad_common::launch_stage::LaunchStageModule

@@ -1,12 +1,3 @@
-use elrond_wasm::types::{
-    Address, EgldOrEsdtTokenIdentifier, EsdtLocalRole, MultiValueEncoded, OperationCompletionStatus,
-};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::TxResult,
-    DebugApi,
-};
 use launchpad_common::{
     config::ConfigModule,
     launch_stage::{Flags, LaunchStageModule},
@@ -16,6 +7,15 @@ use launchpad_common::{
 };
 use launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule;
 use launchpad_locked_tokens_and_guaranteed_tickets::LaunchpadLockedTokensAndGuaranteedTickets;
+use multiversx_sc::types::{
+    Address, EgldOrEsdtTokenIdentifier, EsdtLocalRole, MultiValueEncoded, OperationCompletionStatus,
+};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
+    tx_mock::TxResult,
+    DebugApi,
+};
 
 use self::simple_lock_mock::SimpleLockMock;
 

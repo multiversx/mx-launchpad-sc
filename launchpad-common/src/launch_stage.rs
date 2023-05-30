@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::config::TimelineConfig;
 
@@ -19,7 +19,7 @@ pub struct Flags {
     pub was_additional_step_completed: bool,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LaunchStageModule: crate::config::ConfigModule {
     fn get_launch_stage(&self) -> LaunchStage {
         let current_block = self.blockchain().get_block_nonce();

@@ -1,7 +1,7 @@
 use crate::config::TokenAmountPair;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub const FIRST_TICKET_ID: usize = 1;
 
@@ -20,7 +20,7 @@ pub struct TicketBatch<M: ManagedTypeApi> {
     pub nr_tickets: usize,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait TicketsModule:
     crate::launch_stage::LaunchStageModule + crate::config::ConfigModule
 {

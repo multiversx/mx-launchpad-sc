@@ -1,7 +1,5 @@
 mod guaranteed_tickets_setup;
 
-use elrond_wasm::types::MultiValueEncoded;
-use elrond_wasm_debug::{managed_address, managed_token_id_wrapped, rust_biguint, DebugApi};
 use guaranteed_tickets_setup::{
     simple_lock_mock::LockedTokenAttributes, LaunchpadSetup, CLAIM_START_BLOCK,
     CONFIRM_START_BLOCK, LAUNCHPAD_TOKENS_PER_TICKET, LAUNCHPAD_TOKEN_ID, LOCKED_TOKEN_ID,
@@ -19,6 +17,8 @@ use launchpad_guaranteed_tickets::{
     },
 };
 use launchpad_locked_tokens_and_guaranteed_tickets::LaunchpadLockedTokensAndGuaranteedTickets;
+use multiversx_sc::types::MultiValueEncoded;
+use multiversx_sc_scenario::{managed_address, managed_token_id_wrapped, rust_biguint, DebugApi};
 
 use crate::guaranteed_tickets_setup::NR_WINNING_TICKETS;
 

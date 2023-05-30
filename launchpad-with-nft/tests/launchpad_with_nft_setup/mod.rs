@@ -1,16 +1,3 @@
-use elrond_wasm::{
-    storage::mappers::StorageTokenWrapper,
-    types::{
-        Address, EgldOrEsdtTokenIdentifier, EsdtLocalRole, MultiValueEncoded,
-        OperationCompletionStatus,
-    },
-};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::TxResult,
-    DebugApi,
-};
 use launchpad_common::{
     tickets::TicketsModule, user_interactions::UserInteractionsModule,
     winner_selection::WinnerSelectionModule,
@@ -19,6 +6,19 @@ use launchpad_with_nft::{
     confirm_nft::ConfirmNftModule,
     mystery_sft::{MysterySftModule, SftSetupSteps},
     Launchpad,
+};
+use multiversx_sc::{
+    storage::mappers::StorageTokenWrapper,
+    types::{
+        Address, EgldOrEsdtTokenIdentifier, EsdtLocalRole, MultiValueEncoded,
+        OperationCompletionStatus,
+    },
+};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
+    tx_mock::TxResult,
+    DebugApi,
 };
 
 pub const NR_LAUNCHPAD_PARTICIPANTS: usize = 3;

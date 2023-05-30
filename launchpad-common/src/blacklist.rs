@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait BlacklistModule:
     crate::permissions::PermissionsModule
     + crate::launch_stage::LaunchStageModule

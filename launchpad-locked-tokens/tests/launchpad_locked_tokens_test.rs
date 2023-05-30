@@ -1,24 +1,24 @@
-elrond_wasm::derive_imports!();
+multiversx_sc::derive_imports!();
 
-use elrond_wasm::{
-    api::ManagedTypeApi,
-    contract_base::{CallableContract, ContractBase},
-    elrond_codec::{TopDecode, TopEncode},
-    types::{
-        EgldOrEsdtTokenIdentifier, EsdtLocalRole, EsdtTokenPayment, ManagedAddress,
-        MultiValueEncoded,
-    },
-};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_egld_token_id, managed_token_id,
-    managed_token_id_wrapped, rust_biguint, testing_framework::BlockchainStateWrapper,
-    tx_mock::TxContextStack, DebugApi,
-};
 use launchpad_common::{
     config::ConfigModule, user_interactions::UserInteractionsModule,
     winner_selection::WinnerSelectionModule,
 };
 use launchpad_locked_tokens::LaunchpadLockedTokens;
+use multiversx_sc::{
+    api::ManagedTypeApi,
+    codec::{TopDecode, TopEncode},
+    contract_base::{CallableContract, ContractBase},
+    types::{
+        EgldOrEsdtTokenIdentifier, EsdtLocalRole, EsdtTokenPayment, ManagedAddress,
+        MultiValueEncoded,
+    },
+};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_egld_token_id, managed_token_id,
+    managed_token_id_wrapped, rust_biguint, testing_framework::BlockchainStateWrapper,
+    tx_mock::TxContextStack, DebugApi,
+};
 
 static LOCK_FN_NAME: &[u8] = b"lockTokens";
 static LOCKED_TOKEN_ID: &[u8] = b"LKTOK-123456";

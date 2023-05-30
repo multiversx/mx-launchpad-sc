@@ -1,12 +1,12 @@
-elrond_wasm::derive_imports!();
+multiversx_sc::derive_imports!();
 
-use elrond_wasm::{
+use multiversx_sc::{
     api::ManagedTypeApi,
+    codec::{TopDecode, TopEncode},
     contract_base::{CallableContract, ContractBase},
-    elrond_codec::{TopDecode, TopEncode},
     types::{EgldOrEsdtTokenIdentifier, EsdtTokenPayment, ManagedAddress},
 };
-use elrond_wasm_debug::{managed_token_id, tx_mock::TxContextStack, DebugApi};
+use multiversx_sc_scenario::{managed_token_id, tx_mock::TxContextStack, DebugApi};
 
 use super::{LOCKED_TOKEN_ID, LOCK_FN_NAME};
 

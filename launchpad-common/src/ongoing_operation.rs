@@ -1,8 +1,7 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::{random::Random, FIRST_TICKET_ID};
-use elrond_wasm::elrond_codec::TopEncode;
 
 const MIN_GAS_TO_SAVE_PROGRESS: u64 = 10_000_000;
 static ANOTHER_OP_ERR_MSG: &[u8] = b"Another ongoing operation is in progress";
@@ -27,7 +26,7 @@ pub type LoopOp = bool;
 pub const CONTINUE_OP: bool = true;
 pub const STOP_OP: bool = false;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait OngoingOperationModule {
     fn run_while_it_has_gas<Process>(&self, mut process: Process) -> OperationCompletionStatus
     where

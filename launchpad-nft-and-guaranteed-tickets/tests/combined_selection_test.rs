@@ -2,8 +2,6 @@ use combined_selection_setup::{
     LaunchpadSetup, BASE_TICKET_COST, CLAIM_START_BLOCK, LAUNCHPAD_TOKENS_PER_TICKET,
     LAUNCHPAD_TOKEN_ID, NFT_TICKET_COST, SFT_TOKEN_ID, WINNER_SELECTION_START_BLOCK,
 };
-use elrond_wasm::elrond_codec::Empty;
-use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint};
 use launchpad_common::{
     config::ConfigModule,
     tickets::{TicketsModule, WINNING_TICKET},
@@ -13,6 +11,8 @@ use launchpad_with_nft::{
     confirm_nft::ConfirmNftModule, mystery_sft::MysterySftTypes,
     nft_winners_selection::NftWinnersSelectionModule,
 };
+use multiversx_sc::codec::Empty;
+use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint};
 
 use crate::combined_selection_setup::{MAX_TIER_TICKETS, NR_WINNING_TICKETS, TOTAL_NFTS};
 

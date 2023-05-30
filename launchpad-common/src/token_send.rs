@@ -1,8 +1,8 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::config::TokenAmountPair;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait TokenSendModule: crate::config::ConfigModule {
     fn refund_ticket_payment(&self, address: &ManagedAddress, nr_tickets_to_refund: usize) {
         if nr_tickets_to_refund == 0 {

@@ -1,7 +1,7 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::mystery_sft::SftSetupSteps;
 use launchpad_common::{launch_stage::Flags, random::Random};
@@ -13,7 +13,7 @@ pub mod nft_blacklist;
 pub mod nft_config;
 pub mod nft_winners_selection;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Launchpad:
     launchpad_common::LaunchpadMain
     + launchpad_common::launch_stage::LaunchStageModule
@@ -26,7 +26,7 @@ pub trait Launchpad:
     + launchpad_common::blacklist::BlacklistModule
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + nft_config::NftConfigModule
     + nft_blacklist::NftBlacklistModule
     + mystery_sft::MysterySftModule
@@ -73,7 +73,7 @@ pub trait Launchpad:
 
         self.total_available_nfts().set(total_available_nfts);
         self.sft_setup_steps()
-            .set_if_empty(&SftSetupSteps::default());
+            .set_if_empty(SftSetupSteps::default());
     }
 
     #[only_owner]
