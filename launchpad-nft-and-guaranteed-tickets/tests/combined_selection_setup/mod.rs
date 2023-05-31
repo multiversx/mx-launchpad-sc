@@ -17,8 +17,7 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::TxResult,
+    testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
 
@@ -117,7 +116,7 @@ where
         b_mock
             .execute_tx(&owner_address, &lp_wrapper, &rust_zero, |sc| {
                 sc.mystery_sft()
-                    .set_token_id(&managed_token_id!(SFT_TOKEN_ID));
+                    .set_token_id(managed_token_id!(SFT_TOKEN_ID));
                 sc.create_initial_sfts();
                 sc.sft_setup_steps().set(&SftSetupSteps {
                     issued_token: true,

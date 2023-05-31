@@ -16,11 +16,12 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_egld_token_id, managed_token_id,
-    managed_token_id_wrapped, rust_biguint, testing_framework::BlockchainStateWrapper,
-    tx_mock::TxContextStack, DebugApi,
+    managed_token_id_wrapped, rust_biguint,
+    testing_framework::{BlockchainStateWrapper, TxContextStack},
+    DebugApi,
 };
 
-static LOCK_FN_NAME: &[u8] = b"lockTokens";
+static LOCK_FN_NAME: &str = "lockTokens";
 static LOCKED_TOKEN_ID: &[u8] = b"LKTOK-123456";
 static LAUNCHPAD_TOKEN_ID: &[u8] = b"LAUNCH-123456";
 const LAUNCHPAD_TOKENS_PER_TICKET: u64 = 100_000;
@@ -142,7 +143,7 @@ impl ContractBase for SimpleLockMock {
 }
 
 impl CallableContract for SimpleLockMock {
-    fn call(&self, fn_name: &[u8]) -> bool {
+    fn call(&self, fn_name: &str) -> bool {
         if fn_name != LOCK_FN_NAME {
             return false;
         }
@@ -150,10 +151,6 @@ impl CallableContract for SimpleLockMock {
         self.call_lock_tokens();
 
         true
-    }
-
-    fn clone_obj(&self) -> Box<dyn CallableContract> {
-        Box::new(self.clone())
     }
 }
 

@@ -12,8 +12,7 @@ use multiversx_sc::types::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::TxResult,
+    testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
 
@@ -32,7 +31,7 @@ pub const NR_WINNING_TICKETS: usize = 3;
 pub const MAX_TIER_TICKETS: usize = 3;
 pub const TICKET_COST: u64 = 10;
 
-pub static LOCK_FN_NAME: &[u8] = b"lockTokens";
+pub static LOCK_FN_NAME: &str = "lockTokens";
 pub static LOCKED_TOKEN_ID: &[u8] = b"LKTOK-123456";
 pub const LOCK_PERCENTAGE: u32 = 5_000; // 50%
 pub const UNLOCK_EPOCH: u64 = 10;
