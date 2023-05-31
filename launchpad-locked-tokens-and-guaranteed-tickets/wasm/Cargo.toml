@@ -18,7 +18,7 @@ panic = "abort"
 [dependencies.launchpad-locked-tokens-and-guaranteed-tickets]
 path = ".."
 
-[multiversx-sc-wasm-adapter]
+[dependencies.multiversx-sc-wasm-adapter]
 version = "0.41.1"
 
 [workspace]
