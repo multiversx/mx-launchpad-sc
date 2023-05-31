@@ -1,7 +1,7 @@
 use crate::config::TokenAmountPair;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub const FIRST_TICKET_ID: usize = 1;
 
@@ -20,7 +20,7 @@ pub struct TicketBatch<M: ManagedTypeApi> {
     pub nr_tickets: usize,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait TicketsModule:
     crate::launch_stage::LaunchStageModule + crate::config::ConfigModule
 {
@@ -104,7 +104,7 @@ pub trait TicketsModule:
         let first_ticket_id = last_ticket_id_mapper.get() + 1;
         let last_ticket_id = first_ticket_id + nr_tickets - 1;
 
-        ticket_range_mapper.set(&TicketRange {
+        ticket_range_mapper.set(TicketRange {
             first_id: first_ticket_id,
             last_id: last_ticket_id,
         });

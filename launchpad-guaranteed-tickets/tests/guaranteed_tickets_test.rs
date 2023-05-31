@@ -1,7 +1,7 @@
+#![allow(clippy::bool_assert_comparison)]
+
 mod guaranteed_tickets_setup;
 
-use elrond_wasm::types::MultiValueEncoded;
-use elrond_wasm_debug::{managed_address, rust_biguint};
 use guaranteed_tickets_setup::{
     LaunchpadSetup, CLAIM_START_BLOCK, CONFIRM_START_BLOCK, LAUNCHPAD_TOKENS_PER_TICKET,
     LAUNCHPAD_TOKEN_ID, MAX_TIER_TICKETS, TICKET_COST, WINNER_SELECTION_START_BLOCK,
@@ -18,6 +18,8 @@ use launchpad_guaranteed_tickets::{
     },
     LaunchpadGuaranteedTickets,
 };
+use multiversx_sc::types::MultiValueEncoded;
+use multiversx_sc_scenario::{managed_address, rust_biguint};
 
 use crate::guaranteed_tickets_setup::NR_WINNING_TICKETS;
 

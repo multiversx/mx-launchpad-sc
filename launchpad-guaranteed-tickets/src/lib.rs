@@ -1,7 +1,7 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use launchpad_common::launch_stage::Flags;
 
@@ -10,7 +10,7 @@ use crate::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 pub mod guaranteed_tickets_init;
 pub mod guranteed_ticket_winners;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait LaunchpadGuaranteedTickets:
     launchpad_common::LaunchpadMain
     + launchpad_common::launch_stage::LaunchStageModule

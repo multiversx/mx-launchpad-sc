@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct TokenAmountPair<M: ManagedTypeApi> {
@@ -14,7 +14,7 @@ pub struct TimelineConfig {
     pub claim_start_block: u64,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ConfigModule {
     #[inline]
     fn were_launchpad_tokens_deposited(&self) -> bool {

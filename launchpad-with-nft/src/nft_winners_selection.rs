@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use launchpad_common::{
     ongoing_operation::{CONTINUE_OP, STOP_OP},
@@ -8,14 +8,14 @@ use launchpad_common::{
 
 const VEC_MAPPER_START_INDEX: usize = 1;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait NftWinnersSelectionModule:
     launchpad_common::launch_stage::LaunchStageModule
     + launchpad_common::config::ConfigModule
     + launchpad_common::ongoing_operation::OngoingOperationModule
     + launchpad_common::tickets::TicketsModule
     + launchpad_common::permissions::PermissionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::nft_config::NftConfigModule
     + crate::confirm_nft::ConfirmNftModule
     + crate::mystery_sft::MysterySftModule

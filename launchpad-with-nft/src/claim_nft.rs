@@ -1,8 +1,8 @@
 use crate::mystery_sft::{MysterySftTypes, NFT_AMOUNT};
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ClaimNftModule:
     launchpad_common::launch_stage::LaunchStageModule
     + launchpad_common::config::ConfigModule
@@ -12,7 +12,7 @@ pub trait ClaimNftModule:
     + launchpad_common::permissions::PermissionsModule
     + launchpad_common::user_interactions::UserInteractionsModule
     + launchpad_common::ongoing_operation::OngoingOperationModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::nft_config::NftConfigModule
     + crate::mystery_sft::MysterySftModule
     + crate::confirm_nft::ConfirmNftModule

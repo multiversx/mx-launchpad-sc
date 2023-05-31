@@ -1,8 +1,8 @@
 [package]
 name = "launchpad-with-nft-wasm"
 version = "0.0.0"
-authors = ["Dorin Iancu <dorin.iancu@elrond.com>"]
-edition = "2018"
+authors = ["Dorin Marian Iancu <dorin.iancu@multiversx.com>"]
+edition = "2021"
 publish = false
 
 [lib]
@@ -18,12 +18,8 @@ panic = "abort"
 [dependencies.launchpad-with-nft]
 path = ".."
 
-[dependencies.elrond-wasm-node]
-version = "0.33.0"
-
-[dependencies.elrond-wasm-output]
-version = "0.33.0"
-features = ["wasm-output-mode"]
+[dependencies.multiversx-sc-wasm-adapter]
+version = "0.41.1"
 
 [workspace]
 members = ["."]

@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 const USIZE_BYTES: usize = 4;
 pub const HASH_LEN: usize = 32;
@@ -59,7 +59,7 @@ impl<M: ManagedTypeApi + CryptoApi> Random<M> {
 
     fn hash_seed(&mut self) {
         let handle = self.seed.get_raw_handle();
-        M::crypto_api_impl().sha256_managed(handle, handle);
+        M::crypto_api_impl().sha256_managed(handle.into(), handle.into());
 
         self.index = 0;
     }

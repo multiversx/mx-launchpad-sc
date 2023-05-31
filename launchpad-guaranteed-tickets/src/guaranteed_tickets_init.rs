@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait GuaranteedTicketsInitModule:
     launchpad_common::launch_stage::LaunchStageModule
     + launchpad_common::config::ConfigModule

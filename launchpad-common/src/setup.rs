@@ -1,8 +1,8 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::config::{TimelineConfig, TokenAmountPair};
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait SetupModule:
     crate::launch_stage::LaunchStageModule + crate::config::ConfigModule
 {
@@ -20,7 +20,7 @@ pub trait SetupModule:
         let amount_needed = amount_per_ticket * (total_winning_tickets as u32);
         require!(payment_amount == amount_needed, "Wrong amount");
 
-        self.launchpad_tokens_deposited().set(&true);
+        self.launchpad_tokens_deposited().set(true);
     }
 
     #[only_owner]
@@ -99,7 +99,7 @@ pub trait SetupModule:
             "Cannot set number of winning tickets to zero"
         );
 
-        self.nr_winning_tickets().set(&nr_winning_tickets);
+        self.nr_winning_tickets().set(nr_winning_tickets);
     }
 
     fn require_valid_config_timeline_change(&self, old_start_block: u64, new_start_block: u64) {

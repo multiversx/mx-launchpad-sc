@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use launchpad_common::{
     ongoing_operation::{CONTINUE_OP, STOP_OP},
@@ -34,7 +34,7 @@ pub enum AdditionalSelectionTryResult {
     NewlySelectedAlreadyWinning,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait GuaranteedTicketWinnersModule:
     launchpad_common::launch_stage::LaunchStageModule
     + launchpad_common::config::ConfigModule

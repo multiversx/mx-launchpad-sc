@@ -1,12 +1,12 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ConfirmNftModule:
     launchpad_common::launch_stage::LaunchStageModule
     + launchpad_common::config::ConfigModule
     + launchpad_common::tickets::TicketsModule
     + launchpad_common::permissions::PermissionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::nft_config::NftConfigModule
     + crate::mystery_sft::MysterySftModule
 {

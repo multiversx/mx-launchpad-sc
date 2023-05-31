@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use launchpad_common::random::Random;
 use launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
@@ -25,14 +25,14 @@ where
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait CombinedSelectionModule:
     launchpad_common::launch_stage::LaunchStageModule
     + launchpad_common::config::ConfigModule
     + launchpad_common::ongoing_operation::OngoingOperationModule
     + launchpad_common::tickets::TicketsModule
     + launchpad_common::permissions::PermissionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule
     + launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketWinnersModule
     + launchpad_with_nft::nft_config::NftConfigModule

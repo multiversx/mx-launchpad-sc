@@ -1,26 +1,27 @@
-elrond_wasm::derive_imports!();
+multiversx_sc::derive_imports!();
 
-use elrond_wasm::{
-    api::ManagedTypeApi,
-    contract_base::{CallableContract, ContractBase},
-    elrond_codec::{TopDecode, TopEncode},
-    types::{
-        EgldOrEsdtTokenIdentifier, EsdtLocalRole, EsdtTokenPayment, ManagedAddress,
-        MultiValueEncoded,
-    },
-};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_egld_token_id, managed_token_id,
-    managed_token_id_wrapped, rust_biguint, testing_framework::BlockchainStateWrapper,
-    tx_mock::TxContextStack, DebugApi,
-};
 use launchpad_common::{
     config::ConfigModule, user_interactions::UserInteractionsModule,
     winner_selection::WinnerSelectionModule,
 };
 use launchpad_locked_tokens::LaunchpadLockedTokens;
+use multiversx_sc::{
+    api::ManagedTypeApi,
+    codec::{TopDecode, TopEncode},
+    contract_base::{CallableContract, ContractBase},
+    types::{
+        EgldOrEsdtTokenIdentifier, EsdtLocalRole, EsdtTokenPayment, ManagedAddress,
+        MultiValueEncoded,
+    },
+};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_egld_token_id, managed_token_id,
+    managed_token_id_wrapped, rust_biguint,
+    testing_framework::{BlockchainStateWrapper, TxContextStack},
+    DebugApi,
+};
 
-static LOCK_FN_NAME: &[u8] = b"lockTokens";
+static LOCK_FN_NAME: &str = "lockTokens";
 static LOCKED_TOKEN_ID: &[u8] = b"LKTOK-123456";
 static LAUNCHPAD_TOKEN_ID: &[u8] = b"LAUNCH-123456";
 const LAUNCHPAD_TOKENS_PER_TICKET: u64 = 100_000;
@@ -134,7 +135,7 @@ fn launchpad_with_locked_tokens_out_test() {
     );
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct SimpleLockMock {}
 
 impl ContractBase for SimpleLockMock {
@@ -142,7 +143,7 @@ impl ContractBase for SimpleLockMock {
 }
 
 impl CallableContract for SimpleLockMock {
-    fn call(&self, fn_name: &[u8]) -> bool {
+    fn call(&self, fn_name: &str) -> bool {
         if fn_name != LOCK_FN_NAME {
             return false;
         }
@@ -150,10 +151,6 @@ impl CallableContract for SimpleLockMock {
         self.call_lock_tokens();
 
         true
-    }
-
-    fn clone_obj(&self) -> Box<dyn CallableContract> {
-        Box::new(self.clone())
     }
 }
 

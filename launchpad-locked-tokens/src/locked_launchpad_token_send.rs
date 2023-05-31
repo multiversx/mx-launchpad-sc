@@ -1,11 +1,11 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 const MAX_PERCENTAGE: u32 = 10_000; // 100%
 
 pub mod simple_lock_proxy {
-    elrond_wasm::imports!();
+    multiversx_sc::imports!();
 
-    #[elrond_wasm::proxy]
+    #[multiversx_sc::proxy]
     pub trait SimpleLockProxy {
         #[payable("*")]
         #[endpoint(lockTokens)]
@@ -13,7 +13,7 @@ pub mod simple_lock_proxy {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LockedLaunchpadTokenSend {
     fn try_set_launchpad_tokens_lock_percentage(&self, lock_percentage: u32) {
         require!(
@@ -56,14 +56,15 @@ pub trait LockedLaunchpadTokenSend {
                 unlocked_amount -= &lock_amount;
 
                 let sc_address = self.simple_lock_sc_address().get();
-                self.simple_lock_proxy_builder(sc_address)
+                let _: IgnoreValue = self
+                    .simple_lock_proxy_builder(sc_address)
                     .lock_tokens(unlock_epoch, dest_address.clone())
-                    .add_esdt_token_transfer(
+                    .with_esdt_transfer((
                         launchpad_tokens.token_identifier.clone(),
                         launchpad_tokens.token_nonce,
                         lock_amount,
-                    )
-                    .execute_on_dest_context_ignore_result();
+                    ))
+                    .execute_on_dest_context();
             }
         }
 

@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::{
     launch_stage::Flags,
@@ -7,7 +7,7 @@ use crate::{
     tickets::{TicketBatch, TicketRange, FIRST_TICKET_ID, WINNING_TICKET},
 };
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait WinnerSelectionModule:
     crate::launch_stage::LaunchStageModule
     + crate::tickets::TicketsModule
@@ -48,7 +48,7 @@ pub trait WinnerSelectionModule:
 
                 current_ticket_batch_mapper.clear();
 
-                self.ticket_range_for_address(address).set(&TicketRange {
+                self.ticket_range_for_address(address).set(TicketRange {
                     first_id: new_first_id,
                     last_id: new_last_id,
                 });
@@ -81,10 +81,10 @@ pub trait WinnerSelectionModule:
                 let new_last_ticket_id = last_ticket_id - nr_removed;
                 let nr_winning_tickets = self.nr_winning_tickets().get();
                 if nr_winning_tickets > new_last_ticket_id {
-                    self.nr_winning_tickets().set(&new_last_ticket_id);
+                    self.nr_winning_tickets().set(new_last_ticket_id);
                 }
 
-                self.last_ticket_id().set(&new_last_ticket_id);
+                self.last_ticket_id().set(new_last_ticket_id);
                 flags.were_tickets_filtered = true;
             }
         };

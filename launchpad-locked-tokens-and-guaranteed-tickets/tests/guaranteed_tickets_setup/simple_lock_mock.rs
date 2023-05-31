@@ -1,12 +1,12 @@
-elrond_wasm::derive_imports!();
+multiversx_sc::derive_imports!();
 
-use elrond_wasm::{
+use multiversx_sc::{
     api::ManagedTypeApi,
+    codec::{TopDecode, TopEncode},
     contract_base::{CallableContract, ContractBase},
-    elrond_codec::{TopDecode, TopEncode},
     types::{EgldOrEsdtTokenIdentifier, EsdtTokenPayment, ManagedAddress},
 };
-use elrond_wasm_debug::{managed_token_id, tx_mock::TxContextStack, DebugApi};
+use multiversx_sc_scenario::{managed_token_id, testing_framework::TxContextStack, DebugApi};
 
 use super::{LOCKED_TOKEN_ID, LOCK_FN_NAME};
 
@@ -18,7 +18,7 @@ impl ContractBase for SimpleLockMock {
 }
 
 impl CallableContract for SimpleLockMock {
-    fn call(&self, fn_name: &[u8]) -> bool {
+    fn call(&self, fn_name: &str) -> bool {
         if fn_name != LOCK_FN_NAME {
             return false;
         }
@@ -26,10 +26,6 @@ impl CallableContract for SimpleLockMock {
         self.call_lock_tokens();
 
         true
-    }
-
-    fn clone_obj(&self) -> Box<dyn CallableContract> {
-        Box::new(self.clone())
     }
 }
 

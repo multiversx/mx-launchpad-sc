@@ -1,13 +1,15 @@
+#![allow(clippy::bool_assert_comparison)]
+
 mod launchpad_with_nft_setup;
 
-use elrond_wasm::{elrond_codec::Empty, types::MultiValueEncoded};
-use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint};
 use launchpad_common::tickets::{TicketsModule, WINNING_TICKET};
 use launchpad_with_nft::{
     confirm_nft::ConfirmNftModule, mystery_sft::MysterySftTypes,
     nft_winners_selection::NftWinnersSelectionModule, Launchpad,
 };
 use launchpad_with_nft_setup::*;
+use multiversx_sc::{codec::Empty, types::MultiValueEncoded};
+use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint};
 
 #[test]
 fn init_test() {
@@ -152,7 +154,7 @@ fn claim_test() {
         .check_egld_balance(&users[2], &rust_biguint!(initial_balance));
 
     lp_setup.b_mock.check_egld_balance(
-        &lp_setup.lp_wrapper.address_ref(),
+        lp_setup.lp_wrapper.address_ref(),
         &rust_biguint!(BASE_TICKET_COST + NFT_TICKET_COST),
     );
     lp_setup
@@ -183,7 +185,7 @@ fn claim_test() {
         .assert_ok();
 
     lp_setup.b_mock.check_egld_balance(
-        &lp_setup.lp_wrapper.address_ref(),
+        lp_setup.lp_wrapper.address_ref(),
         &rust_biguint!(BASE_TICKET_COST),
     );
     lp_setup

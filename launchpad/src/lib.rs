@@ -1,11 +1,11 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use launchpad_common::{launch_stage::Flags, *};
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Launchpad:
     launchpad_common::LaunchpadMain
     + launch_stage::LaunchStageModule

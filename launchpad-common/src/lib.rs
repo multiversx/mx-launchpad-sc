@@ -1,8 +1,8 @@
 #![no_std]
 #![feature(trait_alias)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub mod blacklist;
 pub mod config;
@@ -20,7 +20,7 @@ use config::TimelineConfig;
 use launch_stage::Flags;
 use tickets::FIRST_TICKET_ID;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LaunchpadMain:
     launch_stage::LaunchStageModule
     + config::ConfigModule
@@ -59,7 +59,7 @@ pub trait LaunchpadMain:
         };
         self.require_valid_time_periods(&config);
         self.configuration().set(&config);
-        self.flags().set_if_empty(&flags);
+        self.flags().set_if_empty(flags);
 
         let caller = self.blockchain().get_caller();
         self.support_address().set_if_empty(&caller);
