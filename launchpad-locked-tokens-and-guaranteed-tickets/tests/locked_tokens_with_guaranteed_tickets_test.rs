@@ -1,3 +1,5 @@
+#![allow(clippy::bool_assert_comparison)]
+
 mod guaranteed_tickets_setup;
 
 use guaranteed_tickets_setup::{

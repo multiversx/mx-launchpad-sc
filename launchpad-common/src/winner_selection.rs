@@ -48,7 +48,7 @@ pub trait WinnerSelectionModule:
 
                 current_ticket_batch_mapper.clear();
 
-                self.ticket_range_for_address(address).set(&TicketRange {
+                self.ticket_range_for_address(address).set(TicketRange {
                     first_id: new_first_id,
                     last_id: new_last_id,
                 });

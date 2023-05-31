@@ -1,3 +1,5 @@
+#![allow(clippy::bool_assert_comparison)]
+
 use combined_selection_setup::{
     LaunchpadSetup, BASE_TICKET_COST, CLAIM_START_BLOCK, LAUNCHPAD_TOKENS_PER_TICKET,
     LAUNCHPAD_TOKEN_ID, NFT_TICKET_COST, SFT_TOKEN_ID, WINNER_SELECTION_START_BLOCK,
@@ -34,7 +36,7 @@ fn setup_test() {
             assert_eq!(sc.users_with_guaranteed_ticket().len(), 1);
             assert!(sc
                 .users_with_guaranteed_ticket()
-                .contains(&managed_address!(&part.last().unwrap())));
+                .contains(&managed_address!(part.last().unwrap())));
 
             assert_eq!(sc.total_available_nfts().get(), TOTAL_NFTS);
             assert_eq!(sc.confirmed_nft_user_list().len(), 2);

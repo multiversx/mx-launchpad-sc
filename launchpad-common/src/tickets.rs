@@ -104,7 +104,7 @@ pub trait TicketsModule:
         let first_ticket_id = last_ticket_id_mapper.get() + 1;
         let last_ticket_id = first_ticket_id + nr_tickets - 1;
 
-        ticket_range_mapper.set(&TicketRange {
+        ticket_range_mapper.set(TicketRange {
             first_id: first_ticket_id,
             last_id: last_ticket_id,
         });

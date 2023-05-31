@@ -135,7 +135,7 @@ fn launchpad_with_locked_tokens_out_test() {
     );
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct SimpleLockMock {}
 
 impl ContractBase for SimpleLockMock {

@@ -1,3 +1,5 @@
+#![allow(clippy::bool_assert_comparison)]
+
 mod launchpad_with_nft_setup;
 
 use launchpad_common::tickets::{TicketsModule, WINNING_TICKET};
@@ -152,7 +154,7 @@ fn claim_test() {
         .check_egld_balance(&users[2], &rust_biguint!(initial_balance));
 
     lp_setup.b_mock.check_egld_balance(
-        &lp_setup.lp_wrapper.address_ref(),
+        lp_setup.lp_wrapper.address_ref(),
         &rust_biguint!(BASE_TICKET_COST + NFT_TICKET_COST),
     );
     lp_setup
@@ -183,7 +185,7 @@ fn claim_test() {
         .assert_ok();
 
     lp_setup.b_mock.check_egld_balance(
-        &lp_setup.lp_wrapper.address_ref(),
+        lp_setup.lp_wrapper.address_ref(),
         &rust_biguint!(BASE_TICKET_COST),
     );
     lp_setup
