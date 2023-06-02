@@ -85,7 +85,7 @@ pub trait GuaranteedTicketsInitModule:
                 UserGuaranteedTickets::new(user, user_new_guaranteed_tickets);
 
             let _ = guranteed_ticket_whitelist.insert(new_user_guaranteed_tickets);
-            total_winning_tickets -= STAKING_GUARANTEED_TICKETS_NO;
+            total_winning_tickets -= MIGRATION_GUARANTEED_TICKETS_NO;
         }
 
         self.nr_winning_tickets().set(total_winning_tickets);
