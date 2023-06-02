@@ -394,8 +394,8 @@ fn add_more_guaranteed_tickets_scenario_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
-                args.push((managed_address!(&participants[2])).into());
-                args.push((managed_address!(&participants[4])).into());
+                args.push(managed_address!(&participants[2]));
+                args.push(managed_address!(&participants[4]));
 
                 sc.add_more_guaranteed_tickets_endpoint(args);
             },
