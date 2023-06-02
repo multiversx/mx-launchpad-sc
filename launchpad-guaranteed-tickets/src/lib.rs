@@ -70,6 +70,12 @@ pub trait LaunchpadGuaranteedTickets:
     }
 
     #[only_owner]
+    #[endpoint(addMoreGuaranteedTickets)]
+    fn add_more_guaranteed_tickets_endpoint(&self, addresses: MultiValueEncoded<ManagedAddress>) {
+        self.add_more_guaranteed_tickets(addresses);
+    }
+
+    #[only_owner]
     #[payable("*")]
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens_endpoint(&self) {

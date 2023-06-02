@@ -10,7 +10,10 @@ use launchpad_common::{
     winner_selection::WinnerSelectionModule,
 };
 use launchpad_guaranteed_tickets::{
-    guaranteed_tickets_init::GuaranteedTicketsInitModule, LaunchpadGuaranteedTickets,
+    guaranteed_tickets_init::{
+        GuaranteedTicketsInitModule, UserGuaranteedTickets, STAKING_GUARANTEED_TICKETS_NO,
+    },
+    LaunchpadGuaranteedTickets,
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -99,9 +102,13 @@ where
                 // 1 ticket for the max tier gets removed
                 assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS - 1);
                 assert_eq!(sc.users_with_guaranteed_ticket().len(), 1);
+                let user_guaranteed_tickets = UserGuaranteedTickets::new(
+                    managed_address!(participants.last().unwrap()),
+                    STAKING_GUARANTEED_TICKETS_NO,
+                );
                 assert!(sc
                     .users_with_guaranteed_ticket()
-                    .contains(&managed_address!(participants.last().unwrap())));
+                    .contains(&user_guaranteed_tickets));
             })
             .assert_ok();
 
