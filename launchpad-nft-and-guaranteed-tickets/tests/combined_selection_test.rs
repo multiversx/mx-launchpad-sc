@@ -8,7 +8,9 @@ use launchpad_common::{
     config::ConfigModule,
     tickets::{TicketsModule, WINNING_TICKET},
 };
-use launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule;
+use launchpad_guaranteed_tickets::guaranteed_tickets_init::{
+    GuaranteedTicketsInitModule, UserGuaranteedTickets, STAKING_GUARANTEED_TICKETS_NO,
+};
 use launchpad_with_nft::{
     confirm_nft::ConfirmNftModule, mystery_sft::MysterySftTypes,
     nft_winners_selection::NftWinnersSelectionModule,
@@ -34,9 +36,13 @@ fn setup_test() {
                 MAX_TIER_TICKETS
             );
             assert_eq!(sc.users_with_guaranteed_ticket().len(), 1);
+            let user_guaranteed_tickets = UserGuaranteedTickets::new(
+                managed_address!(part.last().unwrap()),
+                STAKING_GUARANTEED_TICKETS_NO,
+            );
             assert!(sc
                 .users_with_guaranteed_ticket()
-                .contains(&managed_address!(part.last().unwrap())));
+                .contains(&user_guaranteed_tickets));
 
             assert_eq!(sc.total_available_nfts().get(), TOTAL_NFTS);
             assert_eq!(sc.confirmed_nft_user_list().len(), 2);
