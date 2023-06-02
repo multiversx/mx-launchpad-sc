@@ -66,12 +66,16 @@ pub trait GuaranteedTicketsInitModule:
             let mut user_new_guaranteed_tickets = MIGRATION_GUARANTEED_TICKETS_NO;
             let user_initial_guaranteed_tickets =
                 UserGuaranteedTickets::new(user.clone(), STAKING_GUARANTEED_TICKETS_NO);
-            if guranteed_ticket_whitelist.contains(&user_initial_guaranteed_tickets) {
-                guranteed_ticket_whitelist.swap_remove(&user_initial_guaranteed_tickets);
+            if guranteed_ticket_whitelist.swap_remove(&user_initial_guaranteed_tickets) {
                 user_new_guaranteed_tickets += 1;
             }
-            let user_total_tickets_no = self.nr_confirmed_tickets(&user).get();
+            let user_ticket_range = self.ticket_range_for_address(&user).get();
+            let user_total_tickets_no = user_ticket_range.last_id - user_ticket_range.first_id + 1;
 
+            require!(
+                total_winning_tickets > 0,
+                "Too many users with guaranteed ticket"
+            );
             require!(
                 user_total_tickets_no >= user_new_guaranteed_tickets,
                 "The guaranteed tickets number is bigger than the user's total tickets"
