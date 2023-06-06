@@ -141,6 +141,10 @@ pub trait GuaranteedTicketsInitModule:
             .users_with_guaranteed_ticket()
             .contains(&user_guaranteed_tickets)
         {
+            require!(
+                user_guaranteed_tickets_no == 0,
+                "Multiple guaranteed tickets entries for the user"
+            );
             user_guaranteed_tickets_no = user_guaranteed_tickets.guaranteed_tickets;
         }
 
