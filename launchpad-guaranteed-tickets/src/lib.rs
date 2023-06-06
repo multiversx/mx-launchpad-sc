@@ -10,6 +10,8 @@ use crate::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 pub mod guaranteed_tickets_init;
 pub mod guranteed_ticket_winners;
 
+pub type UserTicketsStatus = MultiValue3<usize, usize, usize>;
+
 #[multiversx_sc::contract]
 pub trait LaunchpadGuaranteedTickets:
     launchpad_common::LaunchpadMain
@@ -150,5 +152,19 @@ pub trait LaunchpadGuaranteedTickets:
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment_endpoint(&self) {
         self.claim_ticket_payment();
+    }
+
+    #[view(getUserTicketsStatus)]
+    fn user_tickets_status(&self, address: ManagedAddress) -> UserTicketsStatus {
+        let user_total_allocated_tickets_no = self.get_user_total_allocated_tickets_no(&address);
+        let user_confirmed_tickets_no = self.nr_confirmed_tickets(&address).get();
+        let user_guaranteed_tickets_no = self.get_user_guaranteed_tickets_no(address);
+
+        (
+            user_total_allocated_tickets_no,
+            user_confirmed_tickets_no,
+            user_guaranteed_tickets_no,
+        )
+            .into()
     }
 }

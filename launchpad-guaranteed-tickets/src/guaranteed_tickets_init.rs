@@ -118,6 +118,35 @@ pub trait GuaranteedTicketsInitModule:
         }
     }
 
+    fn get_user_total_allocated_tickets_no(&self, address: &ManagedAddress) -> usize {
+        let user_ticket_range = self.ticket_range_for_address(address).get();
+        user_ticket_range.last_id - user_ticket_range.first_id + 1
+    }
+
+    fn get_user_guaranteed_tickets_no(&self, address: ManagedAddress) -> usize {
+        let mut user_guaranteed_tickets = UserGuaranteedTickets {
+            address,
+            guaranteed_tickets: STAKING_GUARANTEED_TICKETS_NO,
+        };
+        let mut user_guaranteed_tickets_no = 0;
+        if self
+            .users_with_guaranteed_ticket()
+            .contains(&user_guaranteed_tickets)
+        {
+            user_guaranteed_tickets_no = user_guaranteed_tickets.guaranteed_tickets;
+        }
+        user_guaranteed_tickets.guaranteed_tickets =
+            STAKING_GUARANTEED_TICKETS_NO + MIGRATION_GUARANTEED_TICKETS_NO;
+        if self
+            .users_with_guaranteed_ticket()
+            .contains(&user_guaranteed_tickets)
+        {
+            user_guaranteed_tickets_no = user_guaranteed_tickets.guaranteed_tickets;
+        }
+
+        user_guaranteed_tickets_no
+    }
+
     #[storage_mapper("minConfirmedForGuaranteedTicket")]
     fn min_confirmed_for_guaranteed_ticket(&self) -> SingleValueMapper<usize>;
 
