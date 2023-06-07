@@ -35,6 +35,7 @@ pub trait GuaranteedTicketsInitModule:
         let min_confirmed_for_guaranteed_ticket = self.min_confirmed_for_guaranteed_ticket().get();
         let mut guranteed_ticket_whitelist = self.users_with_guaranteed_ticket();
         let mut total_winning_tickets = self.nr_winning_tickets().get();
+        let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
 
         for multi_arg in address_number_pairs {
             let (buyer, nr_tickets) = multi_arg.into_tuple();
@@ -50,10 +51,13 @@ pub trait GuaranteedTicketsInitModule:
                     UserGuaranteedTickets::new(buyer, STAKING_GUARANTEED_TICKETS_NO);
                 let _ = guranteed_ticket_whitelist.insert(user_guaranteed_tickets);
                 total_winning_tickets -= STAKING_GUARANTEED_TICKETS_NO;
+                total_guaranteed_tickets += STAKING_GUARANTEED_TICKETS_NO;
             }
         }
 
         self.nr_winning_tickets().set(total_winning_tickets);
+        self.total_guaranteed_tickets()
+            .set(total_guaranteed_tickets);
     }
 
     fn add_more_guaranteed_tickets(&self, addresses: MultiValueEncoded<ManagedAddress>) {
@@ -61,6 +65,7 @@ pub trait GuaranteedTicketsInitModule:
 
         let mut guranteed_ticket_whitelist = self.users_with_guaranteed_ticket();
         let mut total_winning_tickets = self.nr_winning_tickets().get();
+        let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
 
         for user in addresses {
             let mut user_new_guaranteed_tickets = MIGRATION_GUARANTEED_TICKETS_NO;
@@ -86,9 +91,12 @@ pub trait GuaranteedTicketsInitModule:
 
             let _ = guranteed_ticket_whitelist.insert(new_user_guaranteed_tickets);
             total_winning_tickets -= MIGRATION_GUARANTEED_TICKETS_NO;
+            total_guaranteed_tickets += MIGRATION_GUARANTEED_TICKETS_NO;
         }
 
         self.nr_winning_tickets().set(total_winning_tickets);
+        self.total_guaranteed_tickets()
+            .set(total_guaranteed_tickets);
     }
 
     fn clear_users_with_guaranteed_ticket_after_blacklist(
@@ -156,4 +164,7 @@ pub trait GuaranteedTicketsInitModule:
 
     #[storage_mapper("usersWithGuaranteedTicket")]
     fn users_with_guaranteed_ticket(&self) -> UnorderedSetMapper<UserGuaranteedTickets<Self::Api>>;
+
+    #[storage_mapper("totalGuaranteedTickets")]
+    fn total_guaranteed_tickets(&self) -> SingleValueMapper<usize>;
 }
