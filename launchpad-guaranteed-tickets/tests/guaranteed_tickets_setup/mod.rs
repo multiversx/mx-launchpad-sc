@@ -10,7 +10,10 @@ use launchpad_common::{
     winner_selection::WinnerSelectionModule,
 };
 use launchpad_guaranteed_tickets::{
-    guaranteed_tickets_init::GuaranteedTicketsInitModule, LaunchpadGuaranteedTickets,
+    guaranteed_tickets_init::{
+        GuaranteedTicketsInitModule, UserGuaranteedTickets, STAKING_GUARANTEED_TICKETS_NO,
+    },
+    LaunchpadGuaranteedTickets,
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -44,11 +47,11 @@ impl<LaunchpadBuilder> LaunchpadSetup<LaunchpadBuilder>
 where
     LaunchpadBuilder: 'static + Copy + Fn() -> launchpad_guaranteed_tickets::ContractObj<DebugApi>,
 {
-    pub fn new(lp_builder: LaunchpadBuilder) -> Self {
+    pub fn new(nr_winning_tickets: usize, lp_builder: LaunchpadBuilder) -> Self {
         let rust_zero = rust_biguint!(0u64);
         let user_balance = rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64);
         let total_launchpad_tokens =
-            rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET * NR_WINNING_TICKETS as u64);
+            rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET * nr_winning_tickets as u64);
 
         let mut b_mock = BlockchainStateWrapper::new();
         let owner_address = b_mock.create_user_account(&rust_zero);
@@ -76,7 +79,7 @@ where
                     managed_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
                     EgldOrEsdtTokenIdentifier::egld(),
                     managed_biguint!(TICKET_COST),
-                    NR_WINNING_TICKETS,
+                    nr_winning_tickets,
                     CONFIRM_START_BLOCK,
                     WINNER_SELECTION_START_BLOCK,
                     CLAIM_START_BLOCK,
@@ -97,11 +100,15 @@ where
                 sc.add_tickets_endpoint(args);
 
                 // 1 ticket for the max tier gets removed
-                assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS - 1);
+                assert_eq!(sc.nr_winning_tickets().get(), nr_winning_tickets - 1);
                 assert_eq!(sc.users_with_guaranteed_ticket().len(), 1);
+                let user_guaranteed_tickets = UserGuaranteedTickets::new(
+                    managed_address!(participants.last().unwrap()),
+                    STAKING_GUARANTEED_TICKETS_NO,
+                );
                 assert!(sc
                     .users_with_guaranteed_ticket()
-                    .contains(&managed_address!(participants.last().unwrap())));
+                    .contains(&user_guaranteed_tickets));
             })
             .assert_ok();
 
@@ -152,13 +159,17 @@ where
         )
     }
 
-    pub fn select_base_winners_mock(&mut self, nr_whales: usize) -> TxResult {
+    pub fn select_base_winners_mock(
+        &mut self,
+        nr_winning_tickets: usize,
+        guaranteed_tickets: usize,
+    ) -> TxResult {
         self.b_mock.execute_tx(
             &self.owner_address,
             &self.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let base_winning = NR_WINNING_TICKETS - nr_whales;
+                let base_winning = nr_winning_tickets - guaranteed_tickets;
                 for ticket_id in 1..=base_winning {
                     sc.ticket_status(ticket_id).set(WINNING_TICKET);
                 }

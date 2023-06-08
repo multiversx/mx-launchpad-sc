@@ -1,4 +1,23 @@
 multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
+
+pub const STAKING_GUARANTEED_TICKETS_NO: usize = 1;
+pub const MIGRATION_GUARANTEED_TICKETS_NO: usize = 1;
+
+#[derive(NestedEncode, NestedDecode, TopEncode, TopDecode, PartialEq, Eq, TypeAbi, Clone)]
+pub struct UserGuaranteedTickets<M: ManagedTypeApi> {
+    pub address: ManagedAddress<M>,
+    pub guaranteed_tickets: usize,
+}
+
+impl<M: ManagedTypeApi> UserGuaranteedTickets<M> {
+    pub fn new(address: ManagedAddress<M>, guaranteed_tickets: usize) -> Self {
+        Self {
+            address,
+            guaranteed_tickets,
+        }
+    }
+}
 
 #[multiversx_sc::module]
 pub trait GuaranteedTicketsInitModule:
@@ -16,10 +35,12 @@ pub trait GuaranteedTicketsInitModule:
         let min_confirmed_for_guaranteed_ticket = self.min_confirmed_for_guaranteed_ticket().get();
         let mut guranteed_ticket_whitelist = self.users_with_guaranteed_ticket();
         let mut total_winning_tickets = self.nr_winning_tickets().get();
+        let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
 
         for multi_arg in address_number_pairs {
             let (buyer, nr_tickets) = multi_arg.into_tuple();
             self.try_create_tickets(buyer.clone(), nr_tickets);
+            self.user_total_allocated_tickets(&buyer).set(nr_tickets);
 
             if nr_tickets >= min_confirmed_for_guaranteed_ticket {
                 require!(
@@ -27,12 +48,56 @@ pub trait GuaranteedTicketsInitModule:
                     "Too many users with guaranteed ticket"
                 );
 
-                let _ = guranteed_ticket_whitelist.insert(buyer);
-                total_winning_tickets -= 1;
+                let user_guaranteed_tickets =
+                    UserGuaranteedTickets::new(buyer, STAKING_GUARANTEED_TICKETS_NO);
+                let _ = guranteed_ticket_whitelist.insert(user_guaranteed_tickets);
+                total_winning_tickets -= STAKING_GUARANTEED_TICKETS_NO;
+                total_guaranteed_tickets += STAKING_GUARANTEED_TICKETS_NO;
             }
         }
 
         self.nr_winning_tickets().set(total_winning_tickets);
+        self.total_guaranteed_tickets()
+            .set(total_guaranteed_tickets);
+    }
+
+    fn add_more_guaranteed_tickets(&self, addresses: MultiValueEncoded<ManagedAddress>) {
+        self.require_add_tickets_period();
+
+        let mut guranteed_ticket_whitelist = self.users_with_guaranteed_ticket();
+        let mut total_winning_tickets = self.nr_winning_tickets().get();
+        let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
+
+        for user in addresses {
+            let mut user_new_guaranteed_tickets = MIGRATION_GUARANTEED_TICKETS_NO;
+            let user_initial_guaranteed_tickets =
+                UserGuaranteedTickets::new(user.clone(), STAKING_GUARANTEED_TICKETS_NO);
+            if guranteed_ticket_whitelist.swap_remove(&user_initial_guaranteed_tickets) {
+                user_new_guaranteed_tickets += 1;
+            }
+            let user_ticket_range = self.ticket_range_for_address(&user).get();
+            let user_total_tickets_no = user_ticket_range.last_id - user_ticket_range.first_id + 1;
+
+            require!(
+                total_winning_tickets > 0,
+                "Too many users with guaranteed ticket"
+            );
+            require!(
+                user_total_tickets_no >= user_new_guaranteed_tickets,
+                "The guaranteed tickets number is bigger than the user's total tickets"
+            );
+
+            let new_user_guaranteed_tickets =
+                UserGuaranteedTickets::new(user, user_new_guaranteed_tickets);
+
+            let _ = guranteed_ticket_whitelist.insert(new_user_guaranteed_tickets);
+            total_winning_tickets -= MIGRATION_GUARANTEED_TICKETS_NO;
+            total_guaranteed_tickets += MIGRATION_GUARANTEED_TICKETS_NO;
+        }
+
+        self.nr_winning_tickets().set(total_winning_tickets);
+        self.total_guaranteed_tickets()
+            .set(total_guaranteed_tickets);
     }
 
     fn clear_users_with_guaranteed_ticket_after_blacklist(
@@ -40,23 +105,65 @@ pub trait GuaranteedTicketsInitModule:
         users: &ManagedVec<ManagedAddress>,
     ) {
         let mut whitelist = self.users_with_guaranteed_ticket();
-        let mut nr_users_removed = 0;
+        let mut nr_tickets_removed = 0;
         for user in users {
-            let was_whitelisted = whitelist.swap_remove(&user);
-            if was_whitelisted {
-                nr_users_removed += 1;
+            let user_staking_guaranteed_tickets =
+                UserGuaranteedTickets::new(user.clone(), STAKING_GUARANTEED_TICKETS_NO);
+            let user_migration_guaranteed_tickets = UserGuaranteedTickets::new(
+                user,
+                STAKING_GUARANTEED_TICKETS_NO + MIGRATION_GUARANTEED_TICKETS_NO,
+            );
+            if whitelist.swap_remove(&user_staking_guaranteed_tickets) {
+                nr_tickets_removed += user_staking_guaranteed_tickets.guaranteed_tickets;
+            }
+            if whitelist.swap_remove(&user_migration_guaranteed_tickets) {
+                nr_tickets_removed += user_migration_guaranteed_tickets.guaranteed_tickets;
             }
         }
 
-        if nr_users_removed > 0 {
+        if nr_tickets_removed > 0 {
             self.nr_winning_tickets()
-                .update(|nr_winning| *nr_winning += nr_users_removed);
+                .update(|nr_winning| *nr_winning += nr_tickets_removed);
         }
+    }
+
+    fn get_user_guaranteed_tickets_no(&self, address: ManagedAddress) -> usize {
+        let mut user_guaranteed_tickets = UserGuaranteedTickets {
+            address,
+            guaranteed_tickets: STAKING_GUARANTEED_TICKETS_NO,
+        };
+        let mut user_guaranteed_tickets_no = 0;
+        if self
+            .users_with_guaranteed_ticket()
+            .contains(&user_guaranteed_tickets)
+        {
+            user_guaranteed_tickets_no = user_guaranteed_tickets.guaranteed_tickets;
+        }
+        user_guaranteed_tickets.guaranteed_tickets =
+            STAKING_GUARANTEED_TICKETS_NO + MIGRATION_GUARANTEED_TICKETS_NO;
+        if self
+            .users_with_guaranteed_ticket()
+            .contains(&user_guaranteed_tickets)
+        {
+            require!(
+                user_guaranteed_tickets_no == 0,
+                "Multiple guaranteed tickets entries for the user"
+            );
+            user_guaranteed_tickets_no = user_guaranteed_tickets.guaranteed_tickets;
+        }
+
+        user_guaranteed_tickets_no
     }
 
     #[storage_mapper("minConfirmedForGuaranteedTicket")]
     fn min_confirmed_for_guaranteed_ticket(&self) -> SingleValueMapper<usize>;
 
     #[storage_mapper("usersWithGuaranteedTicket")]
-    fn users_with_guaranteed_ticket(&self) -> UnorderedSetMapper<ManagedAddress>;
+    fn users_with_guaranteed_ticket(&self) -> UnorderedSetMapper<UserGuaranteedTickets<Self::Api>>;
+
+    #[storage_mapper("userTotalAllocatedTickets")]
+    fn user_total_allocated_tickets(&self, address: &ManagedAddress) -> SingleValueMapper<usize>;
+
+    #[storage_mapper("totalGuaranteedTickets")]
+    fn total_guaranteed_tickets(&self) -> SingleValueMapper<usize>;
 }

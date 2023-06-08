@@ -5,7 +5,9 @@ use launchpad_common::{
     user_interactions::UserInteractionsModule,
     winner_selection::WinnerSelectionModule,
 };
-use launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule;
+use launchpad_guaranteed_tickets::guaranteed_tickets_init::{
+    GuaranteedTicketsInitModule, UserGuaranteedTickets, STAKING_GUARANTEED_TICKETS_NO,
+};
 use launchpad_locked_tokens_and_guaranteed_tickets::LaunchpadLockedTokensAndGuaranteedTickets;
 use multiversx_sc::types::{
     Address, EgldOrEsdtTokenIdentifier, EsdtLocalRole, MultiValueEncoded, OperationCompletionStatus,
@@ -124,9 +126,13 @@ where
                 // 1 ticket for the max tier gets removed
                 assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS - 1);
                 assert_eq!(sc.users_with_guaranteed_ticket().len(), 1);
+                let user_guaranteed_tickets = UserGuaranteedTickets::new(
+                    managed_address!(participants.last().unwrap()),
+                    STAKING_GUARANTEED_TICKETS_NO,
+                );
                 assert!(sc
                     .users_with_guaranteed_ticket()
-                    .contains(&managed_address!(participants.last().unwrap())));
+                    .contains(&user_guaranteed_tickets));
             })
             .assert_ok();
 

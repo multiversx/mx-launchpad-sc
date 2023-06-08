@@ -10,6 +10,8 @@ use crate::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 pub mod guaranteed_tickets_init;
 pub mod guranteed_ticket_winners;
 
+pub type UserTicketsStatus = MultiValue3<usize, usize, usize>;
+
 #[multiversx_sc::contract]
 pub trait LaunchpadGuaranteedTickets:
     launchpad_common::LaunchpadMain
@@ -70,11 +72,17 @@ pub trait LaunchpadGuaranteedTickets:
     }
 
     #[only_owner]
+    #[endpoint(addMoreGuaranteedTickets)]
+    fn add_more_guaranteed_tickets_endpoint(&self, addresses: MultiValueEncoded<ManagedAddress>) {
+        self.add_more_guaranteed_tickets(addresses);
+    }
+
+    #[only_owner]
     #[payable("*")]
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens_endpoint(&self) {
         let base_selection_winning_tickets = self.nr_winning_tickets().get();
-        let reserved_tickets = self.users_with_guaranteed_ticket().len();
+        let reserved_tickets = self.total_guaranteed_tickets().get();
         let total_tickets = base_selection_winning_tickets + reserved_tickets;
 
         self.deposit_launchpad_tokens(total_tickets);
@@ -144,5 +152,19 @@ pub trait LaunchpadGuaranteedTickets:
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment_endpoint(&self) {
         self.claim_ticket_payment();
+    }
+
+    #[view(getUserTicketsStatus)]
+    fn user_tickets_status(&self, address: ManagedAddress) -> UserTicketsStatus {
+        let user_total_allocated_tickets_no = self.user_total_allocated_tickets(&address).get();
+        let user_confirmed_tickets_no = self.nr_confirmed_tickets(&address).get();
+        let user_guaranteed_tickets_no = self.get_user_guaranteed_tickets_no(address);
+
+        (
+            user_total_allocated_tickets_no,
+            user_confirmed_tickets_no,
+            user_guaranteed_tickets_no,
+        )
+            .into()
     }
 }
