@@ -199,14 +199,14 @@ fn redistribute_test() {
 
     lp_setup.distribute_tickets().assert_ok();
 
-    // distribute leftover selected ticket ID 3 as winning
+    // distribute leftover selected ticket ID 4 as winning
     lp_setup
         .b_mock
         .execute_query(&lp_setup.lp_wrapper, |sc| {
             assert_eq!(sc.ticket_status(1).get(), WINNING_TICKET);
             assert_eq!(sc.ticket_status(2).get(), WINNING_TICKET);
-            assert_eq!(sc.ticket_status(3).get(), WINNING_TICKET);
-            assert_eq!(sc.ticket_status(4).get(), false);
+            assert_eq!(sc.ticket_status(3).get(), false);
+            assert_eq!(sc.ticket_status(4).get(), WINNING_TICKET);
             assert_eq!(sc.ticket_status(5).get(), false);
 
             assert_eq!(
@@ -215,11 +215,11 @@ fn redistribute_test() {
             );
             assert_eq!(
                 sc.get_number_of_winning_tickets_for_address(managed_address!(&participants[1])),
-                2
+                1
             );
             assert_eq!(
                 sc.get_number_of_winning_tickets_for_address(managed_address!(&participants[2])),
-                0
+                1
             );
 
             assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS);

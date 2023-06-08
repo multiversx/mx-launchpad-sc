@@ -46,7 +46,6 @@ pub trait GuaranteedTicketWinnersModule:
         &self,
         op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
     ) -> OperationCompletionStatus {
-        let min_confirmed_for_guaranteed_ticket = self.min_confirmed_for_guaranteed_ticket().get();
         let mut users_whitelist = self.users_with_guaranteed_ticket();
         let mut users_left = users_whitelist.len();
 
@@ -62,7 +61,9 @@ pub trait GuaranteedTicketWinnersModule:
             let user_confirmed_tickets = self
                 .nr_confirmed_tickets(&user_guaranteed_tickets.address)
                 .get();
-            if user_confirmed_tickets >= min_confirmed_for_guaranteed_ticket {
+            let user_total_allocated_tickets_no =
+                self.get_user_total_allocated_tickets_no(&user_guaranteed_tickets.address);
+            if user_confirmed_tickets == user_total_allocated_tickets_no {
                 let ticket_range = self
                     .ticket_range_for_address(&user_guaranteed_tickets.address)
                     .get();
