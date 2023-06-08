@@ -40,6 +40,7 @@ pub trait GuaranteedTicketsInitModule:
         for multi_arg in address_number_pairs {
             let (buyer, nr_tickets) = multi_arg.into_tuple();
             self.try_create_tickets(buyer.clone(), nr_tickets);
+            self.user_total_allocated_tickets(&buyer).set(nr_tickets);
 
             if nr_tickets >= min_confirmed_for_guaranteed_ticket {
                 require!(
@@ -126,11 +127,6 @@ pub trait GuaranteedTicketsInitModule:
         }
     }
 
-    fn get_user_total_allocated_tickets_no(&self, address: &ManagedAddress) -> usize {
-        let user_ticket_range = self.ticket_range_for_address(address).get();
-        user_ticket_range.last_id - user_ticket_range.first_id + 1
-    }
-
     fn get_user_guaranteed_tickets_no(&self, address: ManagedAddress) -> usize {
         let mut user_guaranteed_tickets = UserGuaranteedTickets {
             address,
@@ -164,6 +160,9 @@ pub trait GuaranteedTicketsInitModule:
 
     #[storage_mapper("usersWithGuaranteedTicket")]
     fn users_with_guaranteed_ticket(&self) -> UnorderedSetMapper<UserGuaranteedTickets<Self::Api>>;
+
+    #[storage_mapper("userTotalAllocatedTickets")]
+    fn user_total_allocated_tickets(&self, address: &ManagedAddress) -> SingleValueMapper<usize>;
 
     #[storage_mapper("totalGuaranteedTickets")]
     fn total_guaranteed_tickets(&self) -> SingleValueMapper<usize>;

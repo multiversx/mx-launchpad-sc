@@ -156,7 +156,7 @@ pub trait LaunchpadGuaranteedTickets:
 
     #[view(getUserTicketsStatus)]
     fn user_tickets_status(&self, address: ManagedAddress) -> UserTicketsStatus {
-        let user_total_allocated_tickets_no = self.get_user_total_allocated_tickets_no(&address);
+        let user_total_allocated_tickets_no = self.user_total_allocated_tickets(&address).get();
         let user_confirmed_tickets_no = self.nr_confirmed_tickets(&address).get();
         let user_guaranteed_tickets_no = self.get_user_guaranteed_tickets_no(address);
 

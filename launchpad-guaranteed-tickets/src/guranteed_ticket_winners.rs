@@ -61,8 +61,9 @@ pub trait GuaranteedTicketWinnersModule:
             let user_confirmed_tickets = self
                 .nr_confirmed_tickets(&user_guaranteed_tickets.address)
                 .get();
-            let user_total_allocated_tickets_no =
-                self.get_user_total_allocated_tickets_no(&user_guaranteed_tickets.address);
+            let user_total_allocated_tickets_no = self
+                .user_total_allocated_tickets(&user_guaranteed_tickets.address)
+                .get();
             if user_confirmed_tickets == user_total_allocated_tickets_no {
                 let ticket_range = self
                     .ticket_range_for_address(&user_guaranteed_tickets.address)
