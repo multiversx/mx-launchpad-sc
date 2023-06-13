@@ -46,7 +46,8 @@ pub trait GuaranteedTicketWinnersModule:
         &self,
         op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
     ) -> OperationCompletionStatus {
-        let min_confirmed_for_guaranteed_ticket = self.min_confirmed_for_guaranteed_ticket().get();
+        let min_confirmed_for_staking_guaranteed_ticket =
+            self.min_confirmed_for_guaranteed_ticket().get();
         let mut users_whitelist = self.users_with_guaranteed_ticket();
         let mut users_left = users_whitelist.len();
 
@@ -59,21 +60,61 @@ pub trait GuaranteedTicketWinnersModule:
             let _ = users_whitelist.swap_remove(&current_user);
             users_left -= 1;
 
+            let user_ticket_status_mapper = self.user_ticket_status(&current_user);
+            if user_ticket_status_mapper.is_empty() {
+                return CONTINUE_OP;
+            }
             let user_confirmed_tickets = self.nr_confirmed_tickets(&current_user).get();
-            if user_confirmed_tickets >= min_confirmed_for_guaranteed_ticket {
-                let ticket_range = self.ticket_range_for_address(&current_user).get();
-                if !self.has_any_winning_tickets(&ticket_range) {
-                    self.ticket_status(ticket_range.first_id)
-                        .set(WINNING_TICKET);
+            let user_ticket_status = user_ticket_status_mapper.get();
+            let user_total_tickets_allowance = user_ticket_status.staking_tickets_allowance
+                + user_ticket_status.energy_tickets_allowance;
 
-                    op.total_additional_winning_tickets += 1;
-                } else {
-                    op.leftover_tickets += 1;
-                }
+            let mut user_guaranteed_tickets_no = 0;
+            // Tickets guaranteed by token migration
+            if user_confirmed_tickets >= user_ticket_status.energy_tickets_allowance {
+                user_guaranteed_tickets_no += user_ticket_status.migration_guaranteed_tickets;
             } else {
-                op.leftover_tickets += 1;
+                op.leftover_tickets += user_ticket_status.migration_guaranteed_tickets;
             }
 
+            // Tickets guaranteed by EGLD staking
+            if user_guaranteed_tickets_no > 0
+                && user_confirmed_tickets >= user_total_tickets_allowance
+            {
+                user_guaranteed_tickets_no += user_ticket_status.staking_guaranteed_tickets;
+            } else if user_guaranteed_tickets_no == 0
+                && user_confirmed_tickets >= min_confirmed_for_staking_guaranteed_ticket
+            {
+                user_guaranteed_tickets_no += user_ticket_status.staking_guaranteed_tickets;
+            } else {
+                op.leftover_tickets += user_ticket_status.staking_guaranteed_tickets;
+            }
+
+            if user_guaranteed_tickets_no > 0 {
+                let ticket_range: TicketRange = self.ticket_range_for_address(&current_user).get();
+                let user_winning_tickets_no = self.winning_tickets_in_range(&ticket_range);
+
+                if user_guaranteed_tickets_no <= user_winning_tickets_no {
+                    op.leftover_tickets += user_guaranteed_tickets_no;
+                    return CONTINUE_OP;
+                }
+
+                let mut remaining_tickets_to_be_won =
+                    user_guaranteed_tickets_no - user_winning_tickets_no;
+
+                op.leftover_tickets += user_guaranteed_tickets_no - remaining_tickets_to_be_won;
+
+                let mut current_ticket = ticket_range.first_id;
+                while remaining_tickets_to_be_won > 0 {
+                    let is_winning_ticket = self.ticket_status(current_ticket).get();
+                    if !is_winning_ticket {
+                        self.ticket_status(current_ticket).set(WINNING_TICKET);
+                        op.total_additional_winning_tickets += 1;
+                        remaining_tickets_to_be_won -= 1;
+                    }
+                    current_ticket += 1;
+                }
+            }
             CONTINUE_OP
         })
     }
@@ -110,15 +151,16 @@ pub trait GuaranteedTicketWinnersModule:
         })
     }
 
-    fn has_any_winning_tickets(&self, ticket_range: &TicketRange) -> bool {
+    fn winning_tickets_in_range(&self, ticket_range: &TicketRange) -> usize {
+        let mut winning_tickets_no = 0;
         for ticket_id in ticket_range.first_id..=ticket_range.last_id {
             let ticket_status = self.ticket_status(ticket_id).get();
             if ticket_status == WINNING_TICKET {
-                return true;
+                winning_tickets_no += 1;
             }
         }
 
-        false
+        winning_tickets_no
     }
 
     fn try_select_winning_ticket(

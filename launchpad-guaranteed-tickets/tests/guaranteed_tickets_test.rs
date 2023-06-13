@@ -240,8 +240,16 @@ fn combined_scenario_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
-                args.push((managed_address!(&new_participant), MAX_TIER_TICKETS).into());
-                args.push((managed_address!(&second_new_participant), 1).into());
+                args.push(
+                    (
+                        managed_address!(&new_participant),
+                        MAX_TIER_TICKETS,
+                        0,
+                        false,
+                    )
+                        .into(),
+                );
+                args.push((managed_address!(&second_new_participant), 1, 0, false).into());
 
                 sc.add_tickets_endpoint(args);
             },

@@ -91,7 +91,7 @@ where
             .execute_tx(&owner_address, &lp_wrapper, &rust_zero, |sc| {
                 let mut args = MultiValueEncoded::new();
                 for (i, p) in participants.iter().enumerate() {
-                    args.push((managed_address!(p), i + 1).into());
+                    args.push((managed_address!(p), i + 1, 0, false).into());
                 }
 
                 sc.add_tickets_endpoint(args);

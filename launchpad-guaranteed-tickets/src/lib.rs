@@ -10,6 +10,8 @@ use crate::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 pub mod guaranteed_tickets_init;
 pub mod guranteed_ticket_winners;
 
+pub type UserTicketsStatus = MultiValue5<usize, usize, usize, usize, usize>;
+
 #[multiversx_sc::contract]
 pub trait LaunchpadGuaranteedTickets:
     launchpad_common::LaunchpadMain
@@ -64,7 +66,7 @@ pub trait LaunchpadGuaranteedTickets:
     #[endpoint(addTickets)]
     fn add_tickets_endpoint(
         &self,
-        address_number_pairs: MultiValueEncoded<MultiValue2<ManagedAddress, usize>>,
+        address_number_pairs: MultiValueEncoded<MultiValue4<ManagedAddress, usize, usize, bool>>,
     ) {
         self.add_tickets_with_guaranteed_winners(address_number_pairs);
     }
@@ -144,5 +146,22 @@ pub trait LaunchpadGuaranteedTickets:
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment_endpoint(&self) {
         self.claim_ticket_payment();
+    }
+
+    #[view(getUserTicketsStatus)]
+    fn user_tickets_status(&self, address: ManagedAddress) -> UserTicketsStatus {
+        let user_ticket_status_mapper = self.user_ticket_status(&address);
+        require!(!user_ticket_status_mapper.is_empty(), "User not found");
+        let user_ticket_status = user_ticket_status_mapper.get();
+        let user_confirmed_tickets_no = self.nr_confirmed_tickets(&address).get();
+
+        (
+            user_ticket_status.staking_tickets_allowance,
+            user_ticket_status.energy_tickets_allowance,
+            user_confirmed_tickets_no,
+            user_ticket_status.staking_guaranteed_tickets,
+            user_ticket_status.migration_guaranteed_tickets,
+        )
+            .into()
     }
 }
