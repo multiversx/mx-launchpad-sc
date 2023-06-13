@@ -78,12 +78,10 @@ pub trait GuaranteedTicketWinnersModule:
             }
 
             // Tickets guaranteed by EGLD staking
-            if user_guaranteed_tickets_no > 0
-                && user_confirmed_tickets >= user_total_tickets_allowance
-            {
-                user_guaranteed_tickets_no += user_ticket_status.staking_guaranteed_tickets;
-            } else if user_guaranteed_tickets_no == 0
-                && user_confirmed_tickets >= min_confirmed_for_staking_guaranteed_ticket
+            if (user_guaranteed_tickets_no > 0
+                && user_confirmed_tickets >= user_total_tickets_allowance)
+                || (user_guaranteed_tickets_no == 0
+                    && user_confirmed_tickets >= min_confirmed_for_staking_guaranteed_ticket)
             {
                 user_guaranteed_tickets_no += user_ticket_status.staking_guaranteed_tickets;
             } else {

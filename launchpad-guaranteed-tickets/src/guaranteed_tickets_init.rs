@@ -12,11 +12,11 @@ pub struct UserTicketsStatus {
     pub migration_guaranteed_tickets: usize,
 }
 
-impl Default for UserTicketsStatus {
-    fn default() -> Self {
+impl UserTicketsStatus {
+    fn new(staking_tickets_allowance: usize, energy_tickets_allowance: usize) -> Self {
         Self {
-            staking_tickets_allowance: 0usize,
-            energy_tickets_allowance: 0usize,
+            staking_tickets_allowance,
+            energy_tickets_allowance,
             staking_guaranteed_tickets: 0usize,
             migration_guaranteed_tickets: 0usize,
         }
@@ -45,9 +45,8 @@ pub trait GuaranteedTicketsInitModule:
                 multi_arg.into_tuple();
             self.try_create_tickets(buyer.clone(), nr_staking_tickets + nr_energy_tickets);
 
-            let mut user_ticket_status = UserTicketsStatus::default();
-            user_ticket_status.staking_tickets_allowance = nr_staking_tickets;
-            user_ticket_status.energy_tickets_allowance = nr_energy_tickets;
+            let mut user_ticket_status =
+                UserTicketsStatus::new(nr_staking_tickets, nr_energy_tickets);
 
             if nr_staking_tickets >= min_confirmed_for_guaranteed_ticket {
                 require!(
