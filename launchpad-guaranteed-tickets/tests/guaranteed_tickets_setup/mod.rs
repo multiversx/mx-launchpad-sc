@@ -44,11 +44,11 @@ impl<LaunchpadBuilder> LaunchpadSetup<LaunchpadBuilder>
 where
     LaunchpadBuilder: 'static + Copy + Fn() -> launchpad_guaranteed_tickets::ContractObj<DebugApi>,
 {
-    pub fn new(lp_builder: LaunchpadBuilder) -> Self {
+    pub fn new(nr_winning_tickets: usize, lp_builder: LaunchpadBuilder) -> Self {
         let rust_zero = rust_biguint!(0u64);
         let user_balance = rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64);
         let total_launchpad_tokens =
-            rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET * NR_WINNING_TICKETS as u64);
+            rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET * nr_winning_tickets as u64);
 
         let mut b_mock = BlockchainStateWrapper::new();
         let owner_address = b_mock.create_user_account(&rust_zero);
@@ -76,7 +76,7 @@ where
                     managed_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
                     EgldOrEsdtTokenIdentifier::egld(),
                     managed_biguint!(TICKET_COST),
-                    NR_WINNING_TICKETS,
+                    nr_winning_tickets,
                     CONFIRM_START_BLOCK,
                     WINNER_SELECTION_START_BLOCK,
                     CLAIM_START_BLOCK,
@@ -97,7 +97,7 @@ where
                 sc.add_tickets_endpoint(args);
 
                 // 1 ticket for the max tier gets removed
-                assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS - 1);
+                assert_eq!(sc.nr_winning_tickets().get(), nr_winning_tickets - 1);
                 assert_eq!(sc.users_with_guaranteed_ticket().len(), 1);
                 assert!(sc
                     .users_with_guaranteed_ticket()
