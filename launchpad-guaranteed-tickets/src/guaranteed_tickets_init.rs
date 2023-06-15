@@ -39,6 +39,7 @@ pub trait GuaranteedTicketsInitModule:
         let min_confirmed_for_guaranteed_ticket = self.min_confirmed_for_guaranteed_ticket().get();
         let mut guranteed_ticket_whitelist = self.users_with_guaranteed_ticket();
         let mut total_winning_tickets = self.nr_winning_tickets().get();
+        let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
 
         for multi_arg in address_number_pairs {
             let (buyer, nr_staking_tickets, nr_energy_tickets, has_migrated_tokens) =
@@ -55,6 +56,7 @@ pub trait GuaranteedTicketsInitModule:
                 );
                 let _ = guranteed_ticket_whitelist.insert(buyer.clone());
                 total_winning_tickets -= STAKING_GUARANTEED_TICKETS_NO;
+                total_guaranteed_tickets += STAKING_GUARANTEED_TICKETS_NO;
                 user_ticket_status.staking_guaranteed_tickets = STAKING_GUARANTEED_TICKETS_NO;
             }
 
@@ -65,12 +67,15 @@ pub trait GuaranteedTicketsInitModule:
                 );
                 let _ = guranteed_ticket_whitelist.insert(buyer.clone());
                 total_winning_tickets -= MIGRATION_GUARANTEED_TICKETS_NO;
+                total_guaranteed_tickets += MIGRATION_GUARANTEED_TICKETS_NO;
                 user_ticket_status.migration_guaranteed_tickets = MIGRATION_GUARANTEED_TICKETS_NO;
             }
 
             self.user_ticket_status(&buyer).set(user_ticket_status);
         }
 
+        self.total_guaranteed_tickets()
+            .set(total_guaranteed_tickets);
         self.nr_winning_tickets().set(total_winning_tickets);
     }
 
@@ -80,12 +85,15 @@ pub trait GuaranteedTicketsInitModule:
     ) {
         let mut whitelist = self.users_with_guaranteed_ticket();
         let mut nr_winning_tickets_removed = 0;
+        let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
         for user in users {
             let was_whitelisted = whitelist.swap_remove(&user);
             if was_whitelisted {
                 let user_ticket_status = self.user_ticket_status(&user).take();
                 nr_winning_tickets_removed += user_ticket_status.staking_guaranteed_tickets;
                 nr_winning_tickets_removed += user_ticket_status.migration_guaranteed_tickets;
+                total_guaranteed_tickets -= user_ticket_status.staking_guaranteed_tickets;
+                total_guaranteed_tickets -= user_ticket_status.migration_guaranteed_tickets;
             }
         }
 
@@ -93,6 +101,8 @@ pub trait GuaranteedTicketsInitModule:
             self.nr_winning_tickets()
                 .update(|nr_winning| *nr_winning += nr_winning_tickets_removed);
         }
+        self.total_guaranteed_tickets()
+            .set(total_guaranteed_tickets);
     }
 
     #[storage_mapper("minConfirmedForGuaranteedTicket")]
@@ -100,6 +110,9 @@ pub trait GuaranteedTicketsInitModule:
 
     #[storage_mapper("usersWithGuaranteedTicket")]
     fn users_with_guaranteed_ticket(&self) -> UnorderedSetMapper<ManagedAddress>;
+
+    #[storage_mapper("totalGuaranteedTickets")]
+    fn total_guaranteed_tickets(&self) -> SingleValueMapper<usize>;
 
     #[storage_mapper("userTicketStatus")]
     fn user_ticket_status(&self, user: &ManagedAddress) -> SingleValueMapper<UserTicketsStatus>;

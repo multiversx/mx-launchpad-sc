@@ -76,7 +76,7 @@ pub trait LaunchpadGuaranteedTickets:
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens_endpoint(&self) {
         let base_selection_winning_tickets = self.nr_winning_tickets().get();
-        let reserved_tickets = self.users_with_guaranteed_ticket().len();
+        let reserved_tickets = self.total_guaranteed_tickets().get();
         let total_tickets = base_selection_winning_tickets + reserved_tickets;
 
         self.deposit_launchpad_tokens(total_tickets);
