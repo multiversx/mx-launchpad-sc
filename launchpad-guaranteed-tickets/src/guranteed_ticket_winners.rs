@@ -89,7 +89,13 @@ pub trait GuaranteedTicketWinnersModule:
             }
 
             if user_guaranteed_tickets_no > 0 {
-                let ticket_range: TicketRange = self.ticket_range_for_address(&current_user).get();
+                let ticket_range_mapper = self.ticket_range_for_address(&current_user);
+                if ticket_range_mapper.is_empty() {
+                    op.leftover_tickets += user_guaranteed_tickets_no;
+                    return CONTINUE_OP;
+                }
+
+                let ticket_range: TicketRange = ticket_range_mapper.get();
                 let user_winning_tickets_no = self.winning_tickets_in_range(&ticket_range);
 
                 if user_guaranteed_tickets_no <= user_winning_tickets_no {
