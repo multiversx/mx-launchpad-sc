@@ -89,6 +89,16 @@ pub trait LaunchpadGuaranteedTickets:
         self.clear_users_with_guaranteed_ticket_after_blacklist(&users_vec);
     }
 
+    #[endpoint(removeGuaranteedUsersFromBlacklist)]
+    fn remove_guaranteed_users_from_blacklist_endpoint(
+        &self,
+        users_list: MultiValueEncoded<ManagedAddress>,
+    ) {
+        let users_vec = users_list.to_vec();
+        self.remove_users_from_blacklist(users_list);
+        self.remove_guaranteed_tickets_from_blacklist(&users_vec);
+    }
+
     #[endpoint(distributeGuaranteedTickets)]
     fn distribute_guaranteed_tickets_endpoint(&self) -> OperationCompletionStatus {
         self.require_winner_selection_period();

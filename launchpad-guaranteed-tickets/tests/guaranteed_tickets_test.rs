@@ -8,6 +8,7 @@ use guaranteed_tickets_setup::{
 };
 use launchpad_common::{
     config::ConfigModule,
+    setup::SetupModule,
     tickets::{TicketsModule, WINNING_TICKET},
     winner_selection::WinnerSelectionModule,
 };
@@ -18,8 +19,8 @@ use launchpad_guaranteed_tickets::{
     },
     LaunchpadGuaranteedTickets,
 };
-use multiversx_sc::types::MultiValueEncoded;
-use multiversx_sc_scenario::{managed_address, rust_biguint};
+use multiversx_sc::types::{EgldOrEsdtTokenIdentifier, MultiValueEncoded};
+use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint};
 
 use crate::guaranteed_tickets_setup::NR_WINNING_TICKETS;
 
@@ -488,4 +489,343 @@ fn add_migration_guaranteed_tickets_scenario_test() {
             },
         )
         .assert_ok();
+}
+
+#[test]
+fn condition_checks_test() {
+    let nr_random_tickets = 1;
+    let nr_staking_guaranteed_tickets = 1;
+    let nr_migration_guaranteed_tickets = 1;
+    let nr_winning_tickets =
+        nr_random_tickets + nr_staking_guaranteed_tickets + nr_migration_guaranteed_tickets;
+    let mut lp_setup = LaunchpadSetup::new(
+        nr_winning_tickets,
+        launchpad_guaranteed_tickets::contract_obj,
+    );
+    let mut participants = lp_setup.participants.clone();
+
+    let new_participant = lp_setup
+        .b_mock
+        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64));
+    participants.push(new_participant.clone());
+
+    // Check error - add tickets for user twice
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut args = MultiValueEncoded::new();
+                args.push((managed_address!(&new_participant), 1, 1, true).into());
+                sc.add_tickets_endpoint(args);
+            },
+        )
+        .assert_ok();
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut args = MultiValueEncoded::new();
+                args.push((managed_address!(&new_participant), 1, 1, true).into());
+                sc.add_tickets_endpoint(args);
+            },
+        )
+        .assert_error(4, "Duplicate entry for user");
+
+    // Check error - add tickets after allowed period
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK + 1); // -> Confirm phase
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut args = MultiValueEncoded::new();
+                args.push((managed_address!(&new_participant), 1, 1, true).into());
+
+                sc.add_tickets_endpoint(args);
+            },
+        )
+        .assert_error(4, "Add tickets period has passed");
+
+    // Check error - update launchpad parameters after add ticket phase
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_ticket_price(
+                    EgldOrEsdtTokenIdentifier::egld(),
+                    managed_biguint!(TICKET_COST),
+                );
+            },
+        )
+        .assert_error(4, "Add tickets period has passed");
+
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+
+    // User 0 confirms with 0 tickets - the flow should still work
+    lp_setup.confirm(&participants[0], 0).assert_ok();
+
+    lp_setup.confirm(&participants[2], 3).assert_ok();
+    lp_setup.confirm(&participants[3], 1).assert_ok();
+
+    lp_setup
+        .b_mock
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+
+    lp_setup.filter_tickets().assert_ok();
+
+    lp_setup
+        .claim_user(&participants[3])
+        .assert_error(4, "Not in claim period");
+
+    lp_setup.select_base_winners_mock(2).assert_ok();
+
+    lp_setup.distribute_tickets().assert_ok();
+
+    // Check error - user claim twice
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    lp_setup.claim_user(&participants[3]).assert_ok();
+
+    lp_setup
+        .claim_user(&participants[3])
+        .assert_error(4, "Already claimed");
+
+    // Check error - owner claim twice
+    lp_setup.claim_owner().assert_ok();
+}
+
+#[test]
+fn blacklist_scenario_test() {
+    let nr_random_tickets = 1;
+    let nr_staking_guaranteed_tickets = 1;
+    let nr_migration_guaranteed_tickets = 2;
+    let nr_winning_tickets =
+        nr_random_tickets + nr_staking_guaranteed_tickets + nr_migration_guaranteed_tickets;
+    let mut lp_setup = LaunchpadSetup::new(
+        nr_winning_tickets,
+        launchpad_guaranteed_tickets::contract_obj,
+    );
+    let mut participants = lp_setup.participants.clone();
+
+    let new_participant = lp_setup
+        .b_mock
+        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64));
+    participants.push(new_participant.clone());
+
+    let second_new_participant_tickets = 2;
+    let second_new_participant_egld_balance = TICKET_COST * second_new_participant_tickets;
+    let second_new_participant = lp_setup
+        .b_mock
+        .create_user_account(&rust_biguint!(second_new_participant_egld_balance));
+    participants.push(second_new_participant.clone());
+
+    // add 2 new users with migration guaranteed tickets
+    // second_new_participant will be blacklisted
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut args = MultiValueEncoded::new();
+                args.push((managed_address!(&new_participant), 1, 1, true).into());
+                args.push((managed_address!(&second_new_participant), 1, 1, true).into());
+
+                sc.add_tickets_endpoint(args);
+            },
+        )
+        .assert_ok();
+
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+
+    lp_setup.confirm(&participants[2], 3).assert_ok();
+    lp_setup.confirm(&participants[3], 1).assert_ok();
+
+    lp_setup.b_mock.check_egld_balance(
+        &second_new_participant,
+        &rust_biguint!(second_new_participant_egld_balance),
+    );
+    lp_setup
+        .confirm(
+            &second_new_participant,
+            second_new_participant_tickets as usize,
+        )
+        .assert_ok();
+    lp_setup.b_mock.check_egld_balance(
+        &second_new_participant,
+        &rust_biguint!(
+            second_new_participant_egld_balance - second_new_participant_tickets * TICKET_COST
+        ),
+    );
+
+    // Check error - unauthorized endpoint call
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &new_participant,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut blacklist = MultiValueEncoded::new();
+                blacklist.push(managed_address!(&participants[4]));
+                sc.add_users_to_blacklist_endpoint(blacklist);
+            },
+        )
+        .assert_error(4, "Permission denied");
+
+    // Before blacklist
+    let no_users_with_guaranteed_tickets = 3;
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert_eq!(
+                sc.nr_winning_tickets().get(),
+                nr_winning_tickets
+                    - nr_staking_guaranteed_tickets
+                    - nr_migration_guaranteed_tickets
+            );
+            assert_eq!(
+                sc.total_guaranteed_tickets().get(),
+                nr_staking_guaranteed_tickets + nr_migration_guaranteed_tickets
+            );
+            assert_eq!(
+                sc.users_with_guaranteed_ticket().len(),
+                no_users_with_guaranteed_tickets
+            );
+        })
+        .assert_ok();
+
+    // Blacklist second_new_participant
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut blacklist = MultiValueEncoded::new();
+                blacklist.push(managed_address!(&second_new_participant));
+                sc.add_users_to_blacklist_endpoint(blacklist);
+            },
+        )
+        .assert_ok();
+
+    // User gets his payment tokens back
+    lp_setup.b_mock.check_egld_balance(
+        &second_new_participant,
+        &rust_biguint!(second_new_participant_egld_balance),
+    );
+
+    // After blacklist
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            let blacklisted_user_guaranteed_tickets = 1;
+            assert_eq!(
+                sc.nr_winning_tickets().get(),
+                nr_winning_tickets
+                    - nr_staking_guaranteed_tickets
+                    - nr_migration_guaranteed_tickets
+                    + blacklisted_user_guaranteed_tickets
+            );
+            assert_eq!(
+                sc.total_guaranteed_tickets().get(),
+                nr_staking_guaranteed_tickets + nr_migration_guaranteed_tickets
+                    - blacklisted_user_guaranteed_tickets
+            );
+            assert_eq!(
+                sc.users_with_guaranteed_ticket().len(),
+                no_users_with_guaranteed_tickets - blacklisted_user_guaranteed_tickets
+            );
+        })
+        .assert_ok();
+
+    // Check error - Blacklist user tries to confirm his tickets again, while being blacklisted
+    lp_setup.confirm(&second_new_participant, 2).assert_error(
+        4,
+        "You have been put into the blacklist and may not confirm tickets",
+    );
+
+    // Remove second_new_participant from blacklist
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut blacklist = MultiValueEncoded::new();
+                blacklist.push(managed_address!(&second_new_participant));
+                sc.remove_guaranteed_users_from_blacklist_endpoint(blacklist);
+            },
+        )
+        .assert_ok();
+
+    // User tries to confirm his tickets after he is removed from blacklist
+    lp_setup.confirm(&second_new_participant, 2).assert_ok();
+
+    lp_setup
+        .b_mock
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+
+    lp_setup.filter_tickets().assert_ok();
+    lp_setup.select_base_winners_mock(2).assert_ok();
+
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert_eq!(sc.ticket_status(1).get(), WINNING_TICKET);
+            assert_eq!(sc.ticket_status(2).get(), false);
+            assert_eq!(sc.ticket_status(3).get(), false);
+            assert_eq!(sc.ticket_status(4).get(), false);
+            assert_eq!(sc.ticket_status(5).get(), false);
+            assert_eq!(sc.ticket_status(6).get(), false);
+            assert_eq!(sc.ticket_status(7).get(), false);
+
+            assert_eq!(sc.users_with_guaranteed_ticket().len(), 3);
+        })
+        .assert_ok();
+
+    lp_setup.distribute_tickets().assert_ok();
+
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert_eq!(sc.ticket_status(1).get(), WINNING_TICKET);
+            assert_eq!(sc.ticket_status(2).get(), false);
+            assert_eq!(sc.ticket_status(3).get(), WINNING_TICKET);
+            assert_eq!(sc.ticket_status(4).get(), WINNING_TICKET);
+            assert_eq!(sc.ticket_status(5).get(), WINNING_TICKET);
+            assert_eq!(sc.ticket_status(6).get(), false);
+
+            assert_eq!(sc.users_with_guaranteed_ticket().len(), 0);
+        })
+        .assert_ok();
+
+    // Check user balance after he wins only 1 ticket
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    lp_setup.claim_user(&second_new_participant).assert_ok();
+
+    lp_setup.b_mock.check_egld_balance(
+        &second_new_participant,
+        &rust_biguint!(second_new_participant_egld_balance - TICKET_COST),
+    );
+    lp_setup.b_mock.check_esdt_balance(
+        &second_new_participant,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
+    );
 }

@@ -94,6 +94,8 @@ pub trait GuaranteedTicketsInitModule:
                 nr_winning_tickets_removed += user_ticket_status.migration_guaranteed_tickets;
                 total_guaranteed_tickets -= user_ticket_status.staking_guaranteed_tickets;
                 total_guaranteed_tickets -= user_ticket_status.migration_guaranteed_tickets;
+                self.blacklist_user_ticket_status(&user)
+                    .set(user_ticket_status);
             }
         }
 
@@ -101,6 +103,33 @@ pub trait GuaranteedTicketsInitModule:
             self.nr_winning_tickets()
                 .update(|nr_winning| *nr_winning += nr_winning_tickets_removed);
         }
+        self.total_guaranteed_tickets()
+            .set(total_guaranteed_tickets);
+    }
+
+    fn remove_guaranteed_tickets_from_blacklist(&self, users: &ManagedVec<ManagedAddress>) {
+        let mut nr_winning_tickets = self.nr_winning_tickets().get();
+        let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
+        let mut whitelist = self.users_with_guaranteed_ticket();
+        for user in users {
+            let user_ticket_status_mapper = self.user_ticket_status(&user);
+            if !user_ticket_status_mapper.is_empty()
+                || self.ticket_range_for_address(&user).is_empty()
+            {
+                continue;
+            }
+
+            if whitelist.insert(user.clone()) {
+                let user_ticket_status = self.blacklist_user_ticket_status(&user).take();
+                nr_winning_tickets -= user_ticket_status.staking_guaranteed_tickets;
+                nr_winning_tickets -= user_ticket_status.migration_guaranteed_tickets;
+                total_guaranteed_tickets += user_ticket_status.staking_guaranteed_tickets;
+                total_guaranteed_tickets += user_ticket_status.migration_guaranteed_tickets;
+                user_ticket_status_mapper.set(user_ticket_status);
+            }
+        }
+
+        self.nr_winning_tickets().set(nr_winning_tickets);
         self.total_guaranteed_tickets()
             .set(total_guaranteed_tickets);
     }
@@ -116,4 +145,10 @@ pub trait GuaranteedTicketsInitModule:
 
     #[storage_mapper("userTicketStatus")]
     fn user_ticket_status(&self, user: &ManagedAddress) -> SingleValueMapper<UserTicketsStatus>;
+
+    #[storage_mapper("blacklistUserTicketStatus")]
+    fn blacklist_user_ticket_status(
+        &self,
+        user: &ManagedAddress,
+    ) -> SingleValueMapper<UserTicketsStatus>;
 }
