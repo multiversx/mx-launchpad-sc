@@ -500,11 +500,11 @@ fn add_migration_guaranteed_tickets_scenario_test() {
     // 2 tickets were refunded
     lp_setup
         .b_mock
-        .check_egld_balance(&&participants[2], &rust_biguint!(2 * TICKET_COST));
+        .check_egld_balance(&participants[2], &rust_biguint!(2 * TICKET_COST));
 
     // 1 ticket was won
     lp_setup.b_mock.check_esdt_balance(
-        &&participants[2],
+        &participants[2],
         LAUNCHPAD_TOKEN_ID,
         &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
     );
@@ -626,11 +626,11 @@ fn condition_checks_test() {
     // 1 ticket was refunded
     lp_setup
         .b_mock
-        .check_egld_balance(&&participants[2], &rust_biguint!(1 * TICKET_COST));
+        .check_egld_balance(&participants[2], &rust_biguint!(1 * TICKET_COST));
 
     // 2 tickets were won
     lp_setup.b_mock.check_esdt_balance(
-        &&participants[2],
+        &participants[2],
         LAUNCHPAD_TOKEN_ID,
         &rust_biguint!(2 * LAUNCHPAD_TOKENS_PER_TICKET),
     );
@@ -885,5 +885,104 @@ fn blacklist_scenario_test() {
         &second_new_participant,
         LAUNCHPAD_TOKEN_ID,
         &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+}
+
+#[test]
+fn confirm_less_tickets_than_total_available_scenario_test() {
+    let nr_random_tickets = 1;
+    let nr_staking_guaranteed_tickets = 1;
+    let nr_migration_guaranteed_tickets = 1;
+    let nr_winning_tickets =
+        nr_random_tickets + nr_staking_guaranteed_tickets + nr_migration_guaranteed_tickets;
+    let mut lp_setup = LaunchpadSetup::new(
+        nr_winning_tickets,
+        launchpad_guaranteed_tickets::contract_obj,
+    );
+    let mut participants = lp_setup.participants.clone();
+
+    let new_participant = lp_setup
+        .b_mock
+        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64));
+    participants.push(new_participant.clone());
+
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut args = MultiValueEncoded::new();
+                args.push((managed_address!(&new_participant), 1, 1, true).into());
+                sc.add_tickets_endpoint(args);
+            },
+        )
+        .assert_ok();
+
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+
+    lp_setup.confirm(&participants[3], 1).assert_ok();
+
+    lp_setup
+        .b_mock
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+
+    lp_setup.filter_tickets().assert_ok();
+
+    lp_setup.select_base_winners_mock(2).assert_ok();
+
+    lp_setup.distribute_tickets().assert_ok();
+
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+
+    // Check user balance after winning 1 ticket
+    lp_setup.claim_user(&participants[3]).assert_ok();
+
+    // 1 ticket was won
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[3],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Check owner claim and balance (before and after)
+    // only 1 ticket was confirmed and won
+    let actual_winning_tickets = 1;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&lp_setup.owner_address, &rust_biguint!(0));
+
+    lp_setup.b_mock.check_esdt_balance(
+        &lp_setup.owner_address,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0),
+    );
+
+    lp_setup.claim_owner().assert_ok();
+
+    lp_setup.b_mock.check_egld_balance(
+        &lp_setup.owner_address,
+        &rust_biguint!(TICKET_COST * actual_winning_tickets as u64),
+    );
+
+    lp_setup.b_mock.check_esdt_balance(
+        &lp_setup.owner_address,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(
+            (nr_winning_tickets - actual_winning_tickets) as u64 * LAUNCHPAD_TOKENS_PER_TICKET
+        ),
+    );
+
+    // Check if SC funds are 0 after all tokens were claimed
+    lp_setup
+        .b_mock
+        .check_egld_balance(lp_setup.lp_wrapper.address_ref(), &rust_biguint!(0));
+
+    lp_setup.b_mock.check_esdt_balance(
+        lp_setup.lp_wrapper.address_ref(),
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0),
     );
 }

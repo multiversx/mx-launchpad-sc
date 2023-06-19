@@ -131,6 +131,11 @@ pub trait GuaranteedTicketWinnersModule:
         let last_ticket_pos = self.get_total_tickets();
 
         self.run_while_it_has_gas(|| {
+            if nr_original_winning_tickets + op.total_additional_winning_tickets >= last_ticket_pos
+            {
+                op.leftover_tickets = 0;
+            }
+
             if op.leftover_tickets == 0 {
                 return STOP_OP;
             }
