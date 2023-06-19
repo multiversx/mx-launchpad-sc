@@ -595,8 +595,8 @@ fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
   lp_setup.b_mock.check_egld_balance(&participants[0], &base_user_balance);
   lp_setup.b_mock.check_egld_balance(&participants[1], &base_user_balance);
   lp_setup.b_mock.check_egld_balance(&participants[2], &(&base_user_balance - TICKET_COST * 3));
-  lp_setup.b_mock.check_egld_balance(&participants[3], &(&base_user_balance - TICKET_COST * 1));
-  lp_setup.b_mock.check_egld_balance(&participants[4], &(&base_user_balance * (2 as u64) - TICKET_COST * 6));
+  lp_setup.b_mock.check_egld_balance(&participants[3], &(&base_user_balance - TICKET_COST));
+  lp_setup.b_mock.check_egld_balance(&participants[4], &(&base_user_balance * 2_u64 - TICKET_COST * 6));
 
   // check launchpad tokens balances of participants before they claim
   for p in participants.iter() {
