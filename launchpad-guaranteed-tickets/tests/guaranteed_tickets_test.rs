@@ -626,7 +626,7 @@ fn condition_checks_test() {
     // 1 ticket was refunded
     lp_setup
         .b_mock
-        .check_egld_balance(&participants[2], &rust_biguint!(1 * TICKET_COST));
+        .check_egld_balance(&participants[2], &rust_biguint!(TICKET_COST));
 
     // 2 tickets were won
     lp_setup.b_mock.check_esdt_balance(
