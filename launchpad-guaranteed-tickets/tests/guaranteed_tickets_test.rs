@@ -489,6 +489,25 @@ fn add_migration_guaranteed_tickets_scenario_test() {
             },
         )
         .assert_ok();
+
+    lp_setup.distribute_tickets().assert_ok();
+
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+
+    // Check user balance after winning 2 of 3 tickets
+    lp_setup.claim_user(&participants[2]).assert_ok();
+
+    // 2 tickets were refunded
+    lp_setup
+        .b_mock
+        .check_egld_balance(&&participants[2], &rust_biguint!(2 * TICKET_COST));
+
+    // 1 ticket was won
+    lp_setup.b_mock.check_esdt_balance(
+        &&participants[2],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
+    );
 }
 
 #[test]
@@ -601,8 +620,32 @@ fn condition_checks_test() {
         .claim_user(&participants[3])
         .assert_error(4, "Already claimed");
 
-    // Check error - owner claim twice
+    // Check user balance after winning 2 of 3 tickets
+    lp_setup.claim_user(&participants[2]).assert_ok();
+
+    // 1 ticket was refunded
+    lp_setup
+        .b_mock
+        .check_egld_balance(&&participants[2], &rust_biguint!(1 * TICKET_COST));
+
+    // 2 tickets were won
+    lp_setup.b_mock.check_esdt_balance(
+        &&participants[2],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(2 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Check owner claim and balance (before and after)
+    lp_setup
+        .b_mock
+        .check_egld_balance(&lp_setup.owner_address, &rust_biguint!(0));
+
     lp_setup.claim_owner().assert_ok();
+
+    lp_setup.b_mock.check_egld_balance(
+        &lp_setup.owner_address,
+        &rust_biguint!(TICKET_COST * nr_winning_tickets as u64),
+    );
 }
 
 #[test]
@@ -780,6 +823,21 @@ fn blacklist_scenario_test() {
     lp_setup
         .b_mock
         .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+
+    // Check error - try to blacklist user again, in the winner selection phase
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut blacklist = MultiValueEncoded::new();
+                blacklist.push(managed_address!(&second_new_participant));
+                sc.add_users_to_blacklist_endpoint(blacklist);
+            },
+        )
+        .assert_error(4, "May only modify blacklist before winner selection");
 
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_base_winners_mock(2).assert_ok();
