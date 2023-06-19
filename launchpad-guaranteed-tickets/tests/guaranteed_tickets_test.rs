@@ -352,7 +352,7 @@ fn add_migration_guaranteed_tickets_scenario_test() {
     let nr_random_tickets = 1;
     let nr_staking_guaranteed_tickets = 2;
     let nr_migration_guaranteed_tickets = 2;
-    let nr_winning_tickets =
+    let mut nr_winning_tickets =
         nr_random_tickets + nr_staking_guaranteed_tickets + nr_migration_guaranteed_tickets;
     let mut lp_setup = LaunchpadSetup::new(
         nr_winning_tickets,
@@ -494,10 +494,32 @@ fn add_migration_guaranteed_tickets_scenario_test() {
 
     lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
 
-    // Check user balance after winning 2 of 3 tickets
+    // check EGLD balances of participants before they claim
+    let base_user_balance = rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64);
+    lp_setup.b_mock.check_egld_balance(&participants[0], &base_user_balance);
+    lp_setup.b_mock.check_egld_balance(&participants[1], &base_user_balance);
+    lp_setup.b_mock.check_egld_balance(&participants[2], &(&base_user_balance - TICKET_COST * 3));
+    lp_setup.b_mock.check_egld_balance(&participants[3], &(&base_user_balance - TICKET_COST * 1));
+    lp_setup.b_mock.check_egld_balance(&participants[4], &(&base_user_balance * (2 as u64) - TICKET_COST * 6));
+
+    // check launchpad tokens balances of participants before they claim
+    for p in participants.iter() {
+      lp_setup
+        .b_mock
+        .check_esdt_balance(p, LAUNCHPAD_TOKEN_ID, &rust_biguint!(0));
+    }
+
+    // check EGLD and launchpad token balance for the owner before users claim
+    lp_setup.b_mock.check_egld_balance(&lp_setup.owner_address, &rust_biguint!(0));
+    lp_setup
+        .b_mock
+        .check_esdt_balance(&lp_setup.owner_address, LAUNCHPAD_TOKEN_ID, &rust_biguint!(0));
+
+    // 1st and 2nd participants have not confirmed anything. So we skip them.
+    // 3rd participant claims.
     lp_setup.claim_user(&participants[2]).assert_ok();
 
-    // 2 tickets were refunded
+     // 2 tickets were refunded
     lp_setup
         .b_mock
         .check_egld_balance(&participants[2], &rust_biguint!(2 * TICKET_COST));
@@ -508,6 +530,20 @@ fn add_migration_guaranteed_tickets_scenario_test() {
         LAUNCHPAD_TOKEN_ID,
         &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
     );
+    nr_winning_tickets -= 1;
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert_eq!(
+                sc.nr_winning_tickets().get(),
+                nr_winning_tickets
+                    - nr_staking_guaranteed_tickets
+                    - nr_migration_guaranteed_tickets
+            );
+        })
+        .assert_ok();
+    // This fails, but should not.
+    lp_setup.claim_user(&participants[3]).assert_ok();
 }
 
 #[test]
