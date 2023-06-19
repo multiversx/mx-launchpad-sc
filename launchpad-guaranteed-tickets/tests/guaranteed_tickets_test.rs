@@ -617,7 +617,17 @@ fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
         &rust_biguint!(0)
       );
 
-  // 1st and 2nd participants have not confirmed anything. So we skip them. 3rd participant claims.
+  // 1st and 2nd participants have not confirmed anything. So they should not be able to claim anything.
+
+  lp_setup
+    .claim_user(&participants[0])
+    .assert_error(4, "You have no tickets");
+
+  lp_setup
+    .claim_user(&participants[1])
+    .assert_error(4, "You have no tickets");
+
+  // 3rd participant claims.
   lp_setup.claim_user(&participants[2]).assert_ok();
 
   // Out of 3 confirmed tickets, 1 was won, and 2 were refunded.
@@ -965,6 +975,21 @@ fn blacklist_scenario_test() {
         4,
         "You have been put into the blacklist and may not confirm tickets",
     );
+
+    // Check error - unauthorized endpoint call
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &new_participant,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut blacklist = MultiValueEncoded::new();
+                blacklist.push(managed_address!(&second_new_participant));
+                sc.remove_guaranteed_users_from_blacklist_endpoint(blacklist);
+            },
+        )
+        .assert_error(4, "Permission denied");
 
     // Remove second_new_participant from blacklist
     lp_setup
