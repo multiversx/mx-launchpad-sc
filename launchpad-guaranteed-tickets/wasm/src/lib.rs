@@ -41,6 +41,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getTotalNumberOfTickets
         getNumberOfConfirmedTicketsForAddress
         filterTickets
+        dummyRandom
         selectWinners
         getNumberOfWinningTicketsForAddress
         getWinningTicketIdsForAddress

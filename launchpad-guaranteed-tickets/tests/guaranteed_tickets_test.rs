@@ -1175,3 +1175,17 @@ fn confirm_less_tickets_than_total_available_scenario_test() {
         &rust_biguint!(0),
     );
 }
+
+#[test]
+fn dummy_random_scenario_test() {
+  let mut lp_setup = LaunchpadSetup::new(1, launchpad_guaranteed_tickets::contract_obj);
+  lp_setup.b_mock.execute_tx(
+      &lp_setup.owner_address,
+      &lp_setup.lp_wrapper,
+      &rust_biguint!(0),
+      |sc| {
+        sc.dummy_random();
+      },
+  )
+  .assert_error(4, "Cast type mismatch");
+}

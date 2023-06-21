@@ -94,6 +94,15 @@ pub trait WinnerSelectionModule:
         run_result
     }
 
+    #[endpoint(dummyRandom)]
+    fn dummy_random(&self) {
+      let mut rng: Random<Self::Api> = Random::default();
+      for i in 0..9 {
+        rng.next_usize();
+        sc_print!("Successfully sampled {}th random numbers", i);
+      }
+    }
+
     #[endpoint(selectWinners)]
     fn select_winners(&self) -> OperationCompletionStatus {
         self.require_winner_selection_period();
