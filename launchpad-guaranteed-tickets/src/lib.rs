@@ -10,6 +10,8 @@ use crate::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 pub mod guaranteed_tickets_init;
 pub mod guranteed_ticket_winners;
 
+pub type UserTicketsStatus = MultiValue5<usize, usize, usize, usize, usize>;
+
 #[multiversx_sc::contract]
 pub trait LaunchpadGuaranteedTickets:
     launchpad_common::LaunchpadMain
@@ -64,7 +66,7 @@ pub trait LaunchpadGuaranteedTickets:
     #[endpoint(addTickets)]
     fn add_tickets_endpoint(
         &self,
-        address_number_pairs: MultiValueEncoded<MultiValue2<ManagedAddress, usize>>,
+        address_number_pairs: MultiValueEncoded<MultiValue4<ManagedAddress, usize, usize, bool>>,
     ) {
         self.add_tickets_with_guaranteed_winners(address_number_pairs);
     }
@@ -74,7 +76,7 @@ pub trait LaunchpadGuaranteedTickets:
     #[endpoint(depositLaunchpadTokens)]
     fn deposit_launchpad_tokens_endpoint(&self) {
         let base_selection_winning_tickets = self.nr_winning_tickets().get();
-        let reserved_tickets = self.users_with_guaranteed_ticket().len();
+        let reserved_tickets = self.total_guaranteed_tickets().get();
         let total_tickets = base_selection_winning_tickets + reserved_tickets;
 
         self.deposit_launchpad_tokens(total_tickets);
@@ -85,6 +87,16 @@ pub trait LaunchpadGuaranteedTickets:
         let users_vec = users_list.to_vec();
         self.add_users_to_blacklist(&users_vec);
         self.clear_users_with_guaranteed_ticket_after_blacklist(&users_vec);
+    }
+
+    #[endpoint(removeGuaranteedUsersFromBlacklist)]
+    fn remove_guaranteed_users_from_blacklist_endpoint(
+        &self,
+        users_list: MultiValueEncoded<ManagedAddress>,
+    ) {
+        let users_vec = users_list.to_vec();
+        self.remove_users_from_blacklist(users_list);
+        self.remove_guaranteed_tickets_from_blacklist(&users_vec);
     }
 
     #[endpoint(distributeGuaranteedTickets)]
@@ -144,5 +156,22 @@ pub trait LaunchpadGuaranteedTickets:
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment_endpoint(&self) {
         self.claim_ticket_payment();
+    }
+
+    #[view(getUserTicketsStatus)]
+    fn user_tickets_status(&self, address: ManagedAddress) -> UserTicketsStatus {
+        let user_ticket_status_mapper = self.user_ticket_status(&address);
+        require!(!user_ticket_status_mapper.is_empty(), "User not found");
+        let user_ticket_status = user_ticket_status_mapper.get();
+        let user_confirmed_tickets_no = self.nr_confirmed_tickets(&address).get();
+
+        (
+            user_ticket_status.staking_tickets_allowance,
+            user_ticket_status.energy_tickets_allowance,
+            user_confirmed_tickets_no,
+            user_ticket_status.staking_guaranteed_tickets,
+            user_ticket_status.migration_guaranteed_tickets,
+        )
+            .into()
     }
 }

@@ -68,7 +68,7 @@ pub trait LaunchpadLockedTokensAndGuaranteedTickets:
     #[endpoint(addTickets)]
     fn add_tickets_endpoint(
         &self,
-        address_number_pairs: MultiValueEncoded<MultiValue2<ManagedAddress, usize>>,
+        address_number_pairs: MultiValueEncoded<MultiValue4<ManagedAddress, usize, usize, bool>>,
     ) {
         self.add_tickets_with_guaranteed_winners(address_number_pairs);
     }
