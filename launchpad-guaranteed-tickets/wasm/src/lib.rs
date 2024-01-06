@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           32
+// Endpoints:                           35
 // Async Callback (empty):               1
-// Total number of exported functions:  34
+// Total number of exported functions:  37
 
 #![no_std]
 #![feature(lang_items)]
@@ -21,6 +21,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         addTickets
         depositLaunchpadTokens
         addUsersToBlacklist
+        removeGuaranteedUsersFromBlacklist
         distributeGuaranteedTickets
         claimLaunchpadTokens
         claimTicketPayment
@@ -50,6 +51,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         isUserBlacklisted
         confirmTickets
         hasUserClaimedTokens
+        setUnlockSchedule
+        getClaimableTokens
     )
 }
 
