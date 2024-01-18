@@ -115,12 +115,15 @@ pub trait TokenReleaseModule: config::ConfigModule {
         current_claimable_tokens - user_claimed_balance
     }
 
+    #[view(getUserTotalClaimableBalance)]
     #[storage_mapper("userTotalClaimableBalance")]
     fn user_total_claimable_balance(&self, address: &ManagedAddress) -> SingleValueMapper<BigUint>;
 
+    #[view(getUserClaimedBalance)]
     #[storage_mapper("userClaimedBalance")]
     fn user_claimed_balance(&self, address: &ManagedAddress) -> SingleValueMapper<BigUint>;
 
+    #[view(getUnlockSchedule)]
     #[storage_mapper("unlockSchedule")]
     fn unlock_schedule(&self) -> SingleValueMapper<UnlockSchedule>;
 }
