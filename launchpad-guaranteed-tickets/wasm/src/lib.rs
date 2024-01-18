@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           35
+// Endpoints:                           38
 // Async Callback (empty):               1
-// Total number of exported functions:  37
+// Total number of exported functions:  40
 
 #![no_std]
 #![feature(lang_items)]
@@ -53,6 +53,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         hasUserClaimedTokens
         setUnlockSchedule
         getClaimableTokens
+        getUserTotalClaimableBalance
+        getUserClaimedBalance
+        getUnlockSchedule
     )
 }
 
