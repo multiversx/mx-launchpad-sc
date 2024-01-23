@@ -3,18 +3,17 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use launchpad_common::{launch_stage::Flags, tickets::WINNING_TICKET};
+use launchpad_common::launch_stage::Flags;
 
 use crate::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 
 pub mod guaranteed_tickets_init;
 pub mod guranteed_ticket_winners;
-pub mod token_release;
 
 pub type UserTicketsStatus = MultiValue5<usize, usize, usize, usize, usize>;
 
 #[multiversx_sc::contract]
-pub trait LaunchpadGuaranteedTickets:
+pub trait LaunchpadMigrationGuaranteedTickets:
     launchpad_common::LaunchpadMain
     + launchpad_common::launch_stage::LaunchStageModule
     + launchpad_common::config::ConfigModule
@@ -28,7 +27,6 @@ pub trait LaunchpadGuaranteedTickets:
     + launchpad_common::user_interactions::UserInteractionsModule
     + guaranteed_tickets_init::GuaranteedTicketsInitModule
     + guranteed_ticket_winners::GuaranteedTicketWinnersModule
-    + token_release::TokenReleaseModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
@@ -151,62 +149,7 @@ pub trait LaunchpadGuaranteedTickets:
 
     #[endpoint(claimLaunchpadTokens)]
     fn claim_launchpad_tokens_endpoint(&self) {
-        let caller = self.blockchain().get_caller();
-        let user_results_processed = self.claim_list().contains(&caller);
-        if !user_results_processed {
-            self.compute_launchpad_results(&caller);
-        };
-
-        let claimable_tokens = self.compute_claimable_tokens(&caller);
-        if claimable_tokens > 0 {
-            let launchpad_token_id = self.launchpad_token_id().get();
-            self.send()
-                .direct_esdt(&caller, &launchpad_token_id, 0, &claimable_tokens);
-            self.user_claimed_balance(&caller)
-                .update(|balance| *balance += claimable_tokens);
-        }
-    }
-
-    fn compute_launchpad_results(&self, caller: &ManagedAddress) {
-        self.require_claim_period();
-
-        let ticket_range = self.try_get_ticket_range(caller);
-        let nr_confirmed_tickets = self.nr_confirmed_tickets(caller).get();
-        let mut nr_redeemable_tickets = 0;
-
-        for ticket_id in ticket_range.first_id..=ticket_range.last_id {
-            let ticket_status = self.ticket_status(ticket_id).get();
-            if ticket_status == WINNING_TICKET {
-                self.ticket_status(ticket_id).clear();
-
-                nr_redeemable_tickets += 1;
-            }
-
-            self.ticket_pos_to_id(ticket_id).clear();
-        }
-
-        self.nr_confirmed_tickets(caller).clear();
-        self.ticket_range_for_address(caller).clear();
-        self.ticket_batch(ticket_range.first_id).clear();
-
-        if nr_redeemable_tickets > 0 {
-            self.nr_winning_tickets()
-                .update(|nr_winning_tickets| *nr_winning_tickets -= nr_redeemable_tickets);
-        }
-
-        self.claim_list().add(caller);
-
-        let nr_tickets_to_refund = nr_confirmed_tickets - nr_redeemable_tickets;
-        self.refund_ticket_payment(caller, nr_tickets_to_refund);
-
-        if nr_redeemable_tickets > 0 {
-            let tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
-            let launchpad_tokens_amount_won =
-                BigUint::from(nr_redeemable_tickets as u32) * tokens_per_winning_ticket;
-
-            self.user_total_claimable_balance(caller)
-                .set(launchpad_tokens_amount_won);
-        }
+        self.claim_launchpad_tokens(Self::default_send_launchpad_tokens_fn);
     }
 
     #[only_owner]

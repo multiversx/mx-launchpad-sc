@@ -1,0 +1,24 @@
+[package]
+name = "launchpad-migration-guaranteed-tickets"
+version = "0.0.0"
+authors = ["Dorin Marian Iancu <dorin.iancu@multiversx.com>"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.launchpad-common]
+path = "../launchpad-common"
+
+[dependencies.multiversx-sc]
+version = "0.41.1"
+
+[dev-dependencies.multiversx-sc-meta]
+version = "0.41.1"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.41.1"

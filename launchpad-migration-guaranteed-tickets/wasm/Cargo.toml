@@ -1,0 +1,25 @@
+[package]
+name = "launchpad-migration-guaranteed-tickets-wasm"
+version = "0.0.0"
+authors = ["Dorin Marian Iancu <dorin.iancu@multiversx.com>"]
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+
+[dependencies.launchpad-migration-guaranteed-tickets]
+path = ".."
+
+[dependencies.multiversx-sc-wasm-adapter]
+version = "0.41.1"
+
+[workspace]
+members = ["."]
