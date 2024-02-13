@@ -216,6 +216,7 @@ pub trait LaunchpadGuaranteedTickets:
     }
 
     #[only_owner]
+    #[payable("*")]
     #[endpoint(depositVestingTokens)]
     fn deposit_vesting_tokens(&self) {
         let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
