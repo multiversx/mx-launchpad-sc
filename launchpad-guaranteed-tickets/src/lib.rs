@@ -64,6 +64,9 @@ pub trait LaunchpadGuaranteedTickets:
             .set(min_confirmed_for_guaranteed_ticket);
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     #[only_owner]
     #[endpoint(addTickets)]
     fn add_tickets_endpoint(
