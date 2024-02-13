@@ -215,6 +215,15 @@ pub trait LaunchpadGuaranteedTickets:
         self.claim_ticket_payment();
     }
 
+    #[only_owner]
+    #[payable("*")]
+    #[endpoint(depositVestingTokens)]
+    fn deposit_vesting_tokens(&self) {
+        let (payment_token, _payment_amount) = self.call_value().single_fungible_esdt();
+        let launchpad_token_id = self.launchpad_token_id().get();
+        require!(payment_token == launchpad_token_id, "Wrong token");
+    }
+
     #[view(getUserTicketsStatus)]
     fn user_tickets_status(&self, address: ManagedAddress) -> UserTicketsStatus {
         let user_ticket_status_mapper = self.user_ticket_status(&address);
