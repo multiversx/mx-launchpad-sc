@@ -21,6 +21,7 @@ pub trait SetupModule:
         require!(payment_amount == amount_needed, "Wrong amount");
 
         self.launchpad_tokens_deposited().set(true);
+        self.total_launchpad_tokens_deposited().set(payment_amount);
     }
 
     #[only_owner]

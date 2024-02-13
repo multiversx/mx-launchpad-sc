@@ -41,6 +41,10 @@ pub trait ConfigModule {
     #[storage_mapper("nrWinningTickets")]
     fn nr_winning_tickets(&self) -> SingleValueMapper<usize>;
 
+    #[view(getTotalLaunchpadTokensDeposited)]
+    #[storage_mapper("totalLaunchpadTokensDeposited")]
+    fn total_launchpad_tokens_deposited(&self) -> SingleValueMapper<BigUint>;
+
     #[storage_mapper("launchpadTokensDeposited")]
     fn launchpad_tokens_deposited(&self) -> SingleValueMapper<bool>;
 
