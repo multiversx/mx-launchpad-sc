@@ -215,6 +215,10 @@ pub trait LaunchpadGuaranteedTickets:
     #[only_owner]
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment_endpoint(&self) {
+        require!(
+            self.claimable_ticket_payment().get() > BigUint::zero(),
+            "Ticket payment already claimed"
+        );
         self.claim_ticket_payment();
     }
 
