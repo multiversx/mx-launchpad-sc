@@ -64,6 +64,9 @@ pub trait LaunchpadGuaranteedTickets:
             .set(min_confirmed_for_guaranteed_ticket);
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     #[only_owner]
     #[endpoint(addTickets)]
     fn add_tickets_endpoint(
@@ -212,7 +215,20 @@ pub trait LaunchpadGuaranteedTickets:
     #[only_owner]
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment_endpoint(&self) {
+        require!(
+            self.claimable_ticket_payment().get() > BigUint::zero(),
+            "Ticket payment already claimed"
+        );
         self.claim_ticket_payment();
+    }
+
+    #[only_owner]
+    #[payable("*")]
+    #[endpoint(depositVestingTokens)]
+    fn deposit_vesting_tokens(&self) {
+        let (payment_token, _payment_amount) = self.call_value().single_fungible_esdt();
+        let launchpad_token_id = self.launchpad_token_id().get();
+        require!(payment_token == launchpad_token_id, "Wrong token");
     }
 
     #[view(getUserTicketsStatus)]
