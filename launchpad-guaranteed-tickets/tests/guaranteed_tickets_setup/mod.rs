@@ -9,6 +9,7 @@ use launchpad_common::{
     user_interactions::UserInteractionsModule,
     winner_selection::WinnerSelectionModule,
 };
+use launchpad_guaranteed_tickets::token_release::TokenReleaseModule;
 use launchpad_guaranteed_tickets::{
     guaranteed_tickets_init::GuaranteedTicketsInitModule, LaunchpadGuaranteedTickets,
 };
@@ -201,8 +202,32 @@ where
             &self.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.claim_ticket_payment();
+                sc.claim_ticket_payment_endpoint();
             },
         )
+    }
+
+    pub fn set_unlock_schedule(
+        &mut self,
+        claim_start_round: u64,
+        initial_release_percentage: u64,
+        vesting_release_times: u64,
+        vesting_release_percentage: u64,
+        vesting_release_period: u64,
+    ) {
+        let _ = self.b_mock.execute_tx(
+            &self.owner_address,
+            &self.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_unlock_schedule(
+                    claim_start_round,
+                    initial_release_percentage,
+                    vesting_release_times,
+                    vesting_release_percentage,
+                    vesting_release_period,
+                );
+            },
+        );
     }
 }

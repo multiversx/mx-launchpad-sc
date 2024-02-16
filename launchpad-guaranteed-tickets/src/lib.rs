@@ -232,18 +232,13 @@ pub trait LaunchpadGuaranteedTickets:
 
         let total_launchpad_tokens_won = total_nr_winning_tickets * amount_per_ticket;
 
-        if total_launchpad_tokens_won > total_launchpad_tokens_deposited {
+        if total_launchpad_tokens_won >= total_launchpad_tokens_deposited {
             return;
         }
 
         let launchpad_token_id = self.launchpad_token_id().get();
-        let launchpad_tokens_balance = self.blockchain().get_esdt_balance(
-            &self.blockchain().get_sc_address(),
-            &launchpad_token_id,
-            0,
-        );
         let extra_launchpad_tokens = total_launchpad_tokens_deposited - total_launchpad_tokens_won;
-        if extra_launchpad_tokens > 0 && extra_launchpad_tokens >= launchpad_tokens_balance {
+        if extra_launchpad_tokens > 0 {
             self.send()
                 .direct_esdt(&owner, &launchpad_token_id, 0, &extra_launchpad_tokens);
         }
