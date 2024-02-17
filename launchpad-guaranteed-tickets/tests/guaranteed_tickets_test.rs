@@ -1191,6 +1191,16 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
         &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET / 2),
     );
 
+    // Try to claim owner once more
+    lp_setup.claim_owner().assert_ok();
+
+    // SC should, again, still hold the vesting tokens
+    lp_setup.b_mock.check_esdt_balance(
+        lp_setup.lp_wrapper.address_ref(),
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET / 2),
+    );
+
     // Claim the rest of the tokens
     lp_setup.b_mock.set_block_round(1);
     lp_setup.claim_user(&participants[3]).assert_ok();

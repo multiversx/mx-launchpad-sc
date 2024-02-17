@@ -226,12 +226,16 @@ pub trait LaunchpadGuaranteedTickets:
                 .direct(&owner, &ticket_price.token_id, 0, &claimable_ticket_payment);
         }
 
-        let total_launchpad_tokens_deposited = self.total_launchpad_tokens_deposited().get();
+        let deposited_tokens_mapper = self.total_launchpad_tokens_deposited();
+        let total_launchpad_tokens_deposited = deposited_tokens_mapper.take();
+        if total_launchpad_tokens_deposited == 0 {
+            return;
+        }
+
         let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
         let total_nr_winning_tickets = claimable_ticket_payment / ticket_price.amount;
 
         let total_launchpad_tokens_won = total_nr_winning_tickets * amount_per_ticket;
-
         if total_launchpad_tokens_won >= total_launchpad_tokens_deposited {
             return;
         }
