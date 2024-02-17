@@ -62,7 +62,7 @@ pub trait TokenReleaseModule: config::ConfigModule {
             "Wrong claim start round"
         );
         require!(
-            vesting_release_period > 0,
+            vesting_release_period > 0 || initial_release_percentage == MAX_PERCENTAGE,
             "Wrong vesting release recurrency"
         );
 
@@ -89,9 +89,11 @@ pub trait TokenReleaseModule: config::ConfigModule {
     fn compute_claimable_tokens(&self, address: &ManagedAddress) -> BigUint {
         let user_total_claimable_balance = self.user_total_claimable_balance(address).get();
         let user_claimed_balance = self.user_claimed_balance(address).get();
-        if user_total_claimable_balance == user_claimed_balance {
-            return BigUint::zero();
-        }
+        require!(
+            user_claimed_balance < user_total_claimable_balance,
+            "Already claimed all tokens"
+        );
+
         let unlock_schedule_mapper = self.unlock_schedule();
         if unlock_schedule_mapper.is_empty() {
             return BigUint::zero();
@@ -100,6 +102,10 @@ pub trait TokenReleaseModule: config::ConfigModule {
         let current_round = self.blockchain().get_block_round();
         if unlock_schedule.claim_start_round > current_round {
             return BigUint::zero();
+        }
+
+        if unlock_schedule.initial_release_percentage == MAX_PERCENTAGE {
+            return user_total_claimable_balance;
         }
 
         let rounds_passed = current_round - unlock_schedule.claim_start_round;

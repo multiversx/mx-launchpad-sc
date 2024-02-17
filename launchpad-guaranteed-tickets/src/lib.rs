@@ -3,7 +3,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use launchpad_common::{launch_stage::Flags, tickets::WINNING_TICKET};
+use launchpad_common::{config::TokenAmountPair, launch_stage::Flags, tickets::WINNING_TICKET};
 
 use crate::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 
@@ -212,7 +212,36 @@ pub trait LaunchpadGuaranteedTickets:
     #[only_owner]
     #[endpoint(claimTicketPayment)]
     fn claim_ticket_payment_endpoint(&self) {
-        self.claim_ticket_payment();
+        self.require_claim_period();
+
+        let owner = self.blockchain().get_caller();
+
+        let ticket_price: TokenAmountPair<Self::Api> = self.ticket_price().get();
+        let ticket_payment_mapper = self.claimable_ticket_payment();
+        let claimable_ticket_payment = ticket_payment_mapper.get();
+        if claimable_ticket_payment > 0 {
+            ticket_payment_mapper.clear();
+
+            self.send()
+                .direct(&owner, &ticket_price.token_id, 0, &claimable_ticket_payment);
+        }
+
+        let total_launchpad_tokens_deposited = self.total_launchpad_tokens_deposited().get();
+        let amount_per_ticket = self.launchpad_tokens_per_winning_ticket().get();
+        let total_nr_winning_tickets = claimable_ticket_payment / ticket_price.amount;
+
+        let total_launchpad_tokens_won = total_nr_winning_tickets * amount_per_ticket;
+
+        if total_launchpad_tokens_won >= total_launchpad_tokens_deposited {
+            return;
+        }
+
+        let launchpad_token_id = self.launchpad_token_id().get();
+        let extra_launchpad_tokens = total_launchpad_tokens_deposited - total_launchpad_tokens_won;
+        if extra_launchpad_tokens > 0 {
+            self.send()
+                .direct_esdt(&owner, &launchpad_token_id, 0, &extra_launchpad_tokens);
+        }
     }
 
     #[view(getUserTicketsStatus)]

@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           38
+// Endpoints:                           39
 // Async Callback (empty):               1
-// Total number of exported functions:  40
+// Total number of exported functions:  41
 
 #![no_std]
 #![feature(lang_items)]
@@ -32,6 +32,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getLaunchpadTokensPerWinningTicket
         getTicketPrice
         getNumberOfWinningTickets
+        getTotalLaunchpadTokensDeposited
         setTicketPrice
         setLaunchpadTokensPerWinningTicket
         setConfirmationPeriodStartBlock
