@@ -29,7 +29,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getLaunchpadTokensPerWinningTicket
         getTicketPrice
         getNumberOfWinningTickets
-        getTotalNumberOfWinningTickets
+        getTotalLaunchpadTokensDeposited
         setTicketPrice
         setLaunchpadTokensPerWinningTicket
         setConfirmationPeriodStartBlock
