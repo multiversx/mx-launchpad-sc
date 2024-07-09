@@ -85,6 +85,56 @@ pub trait TokenReleaseModule: config::ConfigModule {
         self.unlock_schedule().set(unlock_schedule);
     }
 
+    #[only_owner]
+    #[endpoint(updateUnlockSchedule)]
+    fn update_unlock_schedule(
+        &self,
+        vesting_release_times: u64,
+        vesting_release_percentage: u64,
+        vesting_release_period: u64,
+    ) {
+        let unlock_schedule_mapper = self.unlock_schedule();
+        require!(
+            !unlock_schedule_mapper.is_empty(),
+            "Unlock schedule is not set"
+        );
+
+        let unlocks_schedule = unlock_schedule_mapper.get();
+        let current_round = self.blockchain().get_block_round();
+        require!(
+            current_round > unlocks_schedule.claim_start_round,
+            "Unlock schedule update only possible after claim start round"
+        );
+        require!(
+            current_round < unlocks_schedule.claim_start_round + vesting_release_period,
+            "Unlock schedule update only possible between start claim and first vesting release"
+        );
+
+        require!(
+            vesting_release_period > 0
+                || unlocks_schedule.initial_release_percentage == MAX_PERCENTAGE,
+            "Wrong vesting release recurrency"
+        );
+
+        let unlock_percentage = unlocks_schedule.initial_release_percentage
+            + vesting_release_times * vesting_release_percentage;
+
+        require!(
+            unlock_percentage == MAX_PERCENTAGE,
+            "Unlock percentage is not 100%"
+        );
+
+        let unlock_schedule = UnlockSchedule::new(
+            unlocks_schedule.claim_start_round,
+            unlocks_schedule.initial_release_percentage,
+            vesting_release_times,
+            vesting_release_percentage,
+            vesting_release_period,
+        );
+
+        self.unlock_schedule().set(unlock_schedule);
+    }
+
     #[view(getClaimableTokens)]
     fn compute_claimable_tokens(&self, address: &ManagedAddress) -> BigUint {
         let user_total_claimable_balance = self.user_total_claimable_balance(address).get();

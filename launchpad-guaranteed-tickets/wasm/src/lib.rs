@@ -54,6 +54,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         confirmTickets
         hasUserClaimedTokens
         setUnlockSchedule
+        updateUnlockSchedule
         getClaimableTokens
         getUserTotalClaimableBalance
         getUserClaimedBalance
