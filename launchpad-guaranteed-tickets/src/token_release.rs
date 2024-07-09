@@ -90,7 +90,8 @@ pub trait TokenReleaseModule: config::ConfigModule {
         let user_total_claimable_balance = self.user_total_claimable_balance(address).get();
         let user_claimed_balance = self.user_claimed_balance(address).get();
         require!(
-            user_claimed_balance < user_total_claimable_balance,
+            user_claimed_balance < user_total_claimable_balance
+                || user_total_claimable_balance == 0,
             "Already claimed all tokens"
         );
 
