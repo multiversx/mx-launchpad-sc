@@ -56,7 +56,11 @@ impl SimpleLockMock {
 
             let mut result = Vec::new();
             payment.top_encode(&mut result).unwrap();
-            api.tx_result_cell.borrow_mut().result_values.push(result);
+            api.tx_result_cell
+                .try_lock()
+                .unwrap()
+                .result_values
+                .push(result);
 
             return;
         }
@@ -86,7 +90,11 @@ impl SimpleLockMock {
         );
         let mut result = Vec::new();
         output_payment.top_encode(&mut result).unwrap();
-        api.tx_result_cell.borrow_mut().result_values.push(result);
+        api.tx_result_cell
+            .try_lock()
+            .unwrap()
+            .result_values
+            .push(result);
     }
 }
 

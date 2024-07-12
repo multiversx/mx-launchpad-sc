@@ -6,6 +6,7 @@ use launchpad_common::{
     random::Random,
     tickets::{TicketRange, WINNING_TICKET},
 };
+use multiversx_sc::api::CryptoApi;
 
 const VEC_MAPPER_START_INDEX: usize = 1;
 

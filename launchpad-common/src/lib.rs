@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(trait_alias)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();

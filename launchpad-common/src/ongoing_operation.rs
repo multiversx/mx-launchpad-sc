@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use multiversx_sc::api::CryptoApi;
+
 use crate::{random::Random, FIRST_TICKET_ID};
 
 const MIN_GAS_TO_SAVE_PROGRESS: u64 = 10_000_000;
