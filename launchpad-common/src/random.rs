@@ -1,3 +1,5 @@
+use multiversx_sc::api::{CryptoApi, CryptoApiImpl};
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 

@@ -3,6 +3,7 @@ multiversx_sc::derive_imports!();
 
 use launchpad_common::random::Random;
 use launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
+use multiversx_sc::api::CryptoApi;
 
 #[derive(TopDecode, TopEncode)]
 pub enum CombinedSelectionStep<M: ManagedTypeApi + CryptoApi> {

@@ -2,10 +2,6 @@
 
 mod migration_guaranteed_tickets_setup;
 
-use migration_guaranteed_tickets_setup::{
-    LaunchpadSetup, CLAIM_START_BLOCK, CONFIRM_START_BLOCK, LAUNCHPAD_TOKENS_PER_TICKET,
-    LAUNCHPAD_TOKEN_ID, MAX_TIER_TICKETS, TICKET_COST, WINNER_SELECTION_START_BLOCK,
-};
 use launchpad_common::{
     config::ConfigModule,
     setup::SetupModule,
@@ -18,6 +14,10 @@ use launchpad_migration_guaranteed_tickets::{
         GuaranteedTicketWinnersModule, GuaranteedTicketsSelectionOperation,
     },
     LaunchpadMigrationGuaranteedTickets,
+};
+use migration_guaranteed_tickets_setup::{
+    LaunchpadSetup, CLAIM_START_BLOCK, CONFIRM_START_BLOCK, LAUNCHPAD_TOKENS_PER_TICKET,
+    LAUNCHPAD_TOKEN_ID, MAX_TIER_TICKETS, TICKET_COST, WINNER_SELECTION_START_BLOCK,
 };
 use multiversx_sc::types::{EgldOrEsdtTokenIdentifier, MultiValueEncoded};
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint};
@@ -512,176 +512,185 @@ fn add_migration_guaranteed_tickets_distribution_isolated_steps_scenario_test() 
 
 #[test]
 fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
-  let nr_random_tickets = 1;
-  let nr_staking_guaranteed_tickets = 2;
-  let nr_migration_guaranteed_tickets = 2;
-  let nr_winning_tickets =
-      nr_random_tickets + nr_staking_guaranteed_tickets + nr_migration_guaranteed_tickets;
-  let mut lp_setup = LaunchpadSetup::new(
-      nr_winning_tickets,
-      launchpad_migration_guaranteed_tickets::contract_obj,
-  );
-  let mut participants = lp_setup.participants.clone();
+    let nr_random_tickets = 1;
+    let nr_staking_guaranteed_tickets = 2;
+    let nr_migration_guaranteed_tickets = 2;
+    let nr_winning_tickets =
+        nr_random_tickets + nr_staking_guaranteed_tickets + nr_migration_guaranteed_tickets;
+    let mut lp_setup = LaunchpadSetup::new(
+        nr_winning_tickets,
+        launchpad_migration_guaranteed_tickets::contract_obj,
+    );
+    let mut participants = lp_setup.participants.clone();
 
-  let new_participant = lp_setup
-      .b_mock
-      .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64));
-  participants.push(new_participant.clone());
+    let new_participant = lp_setup
+        .b_mock
+        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64));
+    participants.push(new_participant.clone());
 
-  let second_new_participant = lp_setup
-      .b_mock
-      .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64 * 2));
-  participants.push(second_new_participant.clone());
+    let second_new_participant = lp_setup
+        .b_mock
+        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64 * 2));
+    participants.push(second_new_participant.clone());
 
-  // add 2 new users with migration guaranteed tickets
-  lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
-  lp_setup
-      .b_mock
-      .execute_tx(
-          &lp_setup.owner_address,
-          &lp_setup.lp_wrapper,
-          &rust_biguint!(0),
-          |sc| {
-              let mut args = MultiValueEncoded::new();
-              args.push((managed_address!(&new_participant), 1, 1, true).into());
-              args.push(
-                  (
-                      managed_address!(&second_new_participant),
-                      MAX_TIER_TICKETS,
-                      MAX_TIER_TICKETS,
-                      true,
-                  )
-                      .into(),
-              );
-
-              sc.add_tickets_endpoint(args);
-          },
-      )
-      .assert_ok();
-
-  lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
-
-  // user[0] and user[1] will not confirm, so they get filtered
-  // user[3] confirms only 1 from maximum of 2 allowed tickets - should win by migration guaranteed
-  lp_setup.confirm(&participants[2], 3).assert_ok();
-  lp_setup.confirm(&participants[3], 1).assert_ok();
-  lp_setup.confirm(&participants[4], 6).assert_ok();
-
-  lp_setup
-      .b_mock
-      .set_block_nonce(WINNER_SELECTION_START_BLOCK);
-
-  lp_setup.filter_tickets().assert_ok();
-
-  lp_setup.select_base_winners_mock(2).assert_ok();
-
-  // distribute guaranteed tickets
-  lp_setup
-      .b_mock
-      .execute_tx(
-          &lp_setup.owner_address,
-          &lp_setup.lp_wrapper,
-          &rust_biguint!(0),
-          |sc| {
-            sc.distribute_guaranteed_tickets_endpoint();
-          }
-      )
-      .assert_ok();
-
-  lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
-
-  // check EGLD balances of participants before they claim
-  let base_user_balance = rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64);
-  lp_setup.b_mock.check_egld_balance(&participants[0], &base_user_balance);
-  lp_setup.b_mock.check_egld_balance(&participants[1], &base_user_balance);
-  lp_setup.b_mock.check_egld_balance(&participants[2], &(&base_user_balance - TICKET_COST * 3));
-  lp_setup.b_mock.check_egld_balance(&participants[3], &(&base_user_balance - TICKET_COST));
-  lp_setup.b_mock.check_egld_balance(&participants[4], &(&base_user_balance * 2_u64 - TICKET_COST * 6));
-
-  // check launchpad tokens balances of participants before they claim
-  for p in participants.iter() {
+    // add 2 new users with migration guaranteed tickets
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
     lp_setup
-      .b_mock
-      .check_esdt_balance(p, LAUNCHPAD_TOKEN_ID, &rust_biguint!(0));
-  }
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut args = MultiValueEncoded::new();
+                args.push((managed_address!(&new_participant), 1, 1, true).into());
+                args.push(
+                    (
+                        managed_address!(&second_new_participant),
+                        MAX_TIER_TICKETS,
+                        MAX_TIER_TICKETS,
+                        true,
+                    )
+                        .into(),
+                );
 
-  // check EGLD and launchpad token balance for the owner before users claim
-  lp_setup
-    .b_mock
-    .check_egld_balance(&lp_setup.owner_address, &rust_biguint!(0));
-  lp_setup
-      .b_mock
-      .check_esdt_balance(
+                sc.add_tickets_endpoint(args);
+            },
+        )
+        .assert_ok();
+
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+
+    // user[0] and user[1] will not confirm, so they get filtered
+    // user[3] confirms only 1 from maximum of 2 allowed tickets - should win by migration guaranteed
+    lp_setup.confirm(&participants[2], 3).assert_ok();
+    lp_setup.confirm(&participants[3], 1).assert_ok();
+    lp_setup.confirm(&participants[4], 6).assert_ok();
+
+    lp_setup
+        .b_mock
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+
+    lp_setup.filter_tickets().assert_ok();
+
+    lp_setup.select_base_winners_mock(2).assert_ok();
+
+    // distribute guaranteed tickets
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.distribute_guaranteed_tickets_endpoint();
+            },
+        )
+        .assert_ok();
+
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+
+    // check EGLD balances of participants before they claim
+    let base_user_balance = rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64);
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[0], &base_user_balance);
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[1], &base_user_balance);
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[2], &(&base_user_balance - TICKET_COST * 3));
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[3], &(&base_user_balance - TICKET_COST));
+    lp_setup.b_mock.check_egld_balance(
+        &participants[4],
+        &(&base_user_balance * 2_u64 - TICKET_COST * 6),
+    );
+
+    // check launchpad tokens balances of participants before they claim
+    for p in participants.iter() {
+        lp_setup
+            .b_mock
+            .check_esdt_balance(p, LAUNCHPAD_TOKEN_ID, &rust_biguint!(0));
+    }
+
+    // check EGLD and launchpad token balance for the owner before users claim
+    lp_setup
+        .b_mock
+        .check_egld_balance(&lp_setup.owner_address, &rust_biguint!(0));
+    lp_setup.b_mock.check_esdt_balance(
         &lp_setup.owner_address,
         LAUNCHPAD_TOKEN_ID,
-        &rust_biguint!(0)
-      );
+        &rust_biguint!(0),
+    );
 
-  // 1st and 2nd participants have not confirmed anything. So they should not be able to claim anything.
+    // 1st and 2nd participants have not confirmed anything. So they should not be able to claim anything.
 
-  lp_setup
-    .claim_user(&participants[0])
-    .assert_error(4, "You have no tickets");
+    lp_setup
+        .claim_user(&participants[0])
+        .assert_error(4, "You have no tickets");
 
-  lp_setup
-    .claim_user(&participants[1])
-    .assert_error(4, "You have no tickets");
+    lp_setup
+        .claim_user(&participants[1])
+        .assert_error(4, "You have no tickets");
 
-  // 3rd participant claims.
-  lp_setup.claim_user(&participants[2]).assert_ok();
+    // 3rd participant claims.
+    lp_setup.claim_user(&participants[2]).assert_ok();
 
-  // Out of 3 confirmed tickets, 1 was won, and 2 were refunded.
-  lp_setup
-      .b_mock
-      .check_egld_balance(&participants[2], &rust_biguint!(2 * TICKET_COST));
+    // Out of 3 confirmed tickets, 1 was won, and 2 were refunded.
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[2], &rust_biguint!(2 * TICKET_COST));
 
-  lp_setup.b_mock.check_esdt_balance(
-      &participants[2],
-      LAUNCHPAD_TOKEN_ID,
-      &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
-  );
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[2],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
+    );
 
-  // 4th participant claims
-  lp_setup.claim_user(&participants[3]).assert_ok();
+    // 4th participant claims
+    lp_setup.claim_user(&participants[3]).assert_ok();
 
-  // Out of 1 confirmed ticket, 1 was won.
-  lp_setup
-      .b_mock
-      .check_egld_balance(&participants[3], &rust_biguint!(2 * TICKET_COST));
+    // Out of 1 confirmed ticket, 1 was won.
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[3], &rust_biguint!(2 * TICKET_COST));
 
-  lp_setup.b_mock.check_esdt_balance(
-    &participants[3],
-    LAUNCHPAD_TOKEN_ID,
-    &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
-  );
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[3],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
+    );
 
-  //5th participant claims
-  lp_setup.claim_user(&participants[4]).assert_ok();
+    //5th participant claims
+    lp_setup.claim_user(&participants[4]).assert_ok();
 
-  // Out of 6 confirmed tickets, 3 are winning, 3 are refunded.
-  lp_setup
-      .b_mock
-      .check_egld_balance(&participants[4], &rust_biguint!(3 * TICKET_COST));
+    // Out of 6 confirmed tickets, 3 are winning, 3 are refunded.
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[4], &rust_biguint!(3 * TICKET_COST));
 
-  lp_setup.b_mock.check_esdt_balance(
-    &participants[4],
-    LAUNCHPAD_TOKEN_ID,
-    &rust_biguint!(3 * LAUNCHPAD_TOKENS_PER_TICKET),
-  );
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[4],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(3 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
 
-  // Owner claims. All nr_winning_tickets are sold for EGLD. No launchpad tokens refunded.
-  lp_setup.claim_owner().assert_ok();
+    // Owner claims. All nr_winning_tickets are sold for EGLD. No launchpad tokens refunded.
+    lp_setup.claim_owner().assert_ok();
 
-  lp_setup.b_mock.check_egld_balance(
-      &lp_setup.owner_address,
-      &rust_biguint!(TICKET_COST * nr_winning_tickets as u64),
-  );
+    lp_setup.b_mock.check_egld_balance(
+        &lp_setup.owner_address,
+        &rust_biguint!(TICKET_COST * nr_winning_tickets as u64),
+    );
 
-  lp_setup.b_mock.check_esdt_balance(
-    &lp_setup.owner_address,
-    LAUNCHPAD_TOKEN_ID,
-    &rust_biguint!(0),
-  );
+    lp_setup.b_mock.check_esdt_balance(
+        &lp_setup.owner_address,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0),
+    );
 }
 
 #[test]

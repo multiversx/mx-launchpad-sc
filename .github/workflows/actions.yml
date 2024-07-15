@@ -8,16 +8,14 @@ on:
 
 permissions:
   checks: write
-  contents: read
   pull-requests: write
 
 jobs:
   contracts:
     name: Contracts
-    uses: multiversx/mx-sc-actions/.github/workflows/contracts.yml@v2.3.5
+    uses: multiversx/mx-sc-actions/.github/workflows/contracts.yml@v3.2.0
     with:
-      rust-toolchain: nightly-2023-05-26
-      sc-meta-version: 0.41.1
-      vmtools-version: v1.4.60
+      rust-toolchain: stable
+      enable-contracts-size-report: false
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
