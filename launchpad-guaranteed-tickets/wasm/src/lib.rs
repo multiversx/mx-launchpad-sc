@@ -5,7 +5,8 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           40
+// Upgrade:                              1
+// Endpoints:                           39
 // Async Callback (empty):               1
 // Total number of exported functions:  42
 
@@ -18,6 +19,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     launchpad_guaranteed_tickets
     (
         init => init
+        upgrade => upgrade
         addTickets => add_tickets_endpoint
         depositLaunchpadTokens => deposit_launchpad_tokens_endpoint
         addUsersToBlacklist => add_users_to_blacklist_endpoint
