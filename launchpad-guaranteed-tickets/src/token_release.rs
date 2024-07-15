@@ -88,6 +88,10 @@ pub trait TokenReleaseModule: config::ConfigModule {
     #[view(getClaimableTokens)]
     fn compute_claimable_tokens(&self, address: &ManagedAddress) -> BigUint {
         let user_total_claimable_balance = self.user_total_claimable_balance(address).get();
+        if user_total_claimable_balance == 0 {
+            return BigUint::zero();
+        }
+
         let user_claimed_balance = self.user_claimed_balance(address).get();
         require!(
             user_claimed_balance < user_total_claimable_balance,
