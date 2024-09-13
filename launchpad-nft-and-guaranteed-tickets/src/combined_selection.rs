@@ -2,7 +2,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use launchpad_common::random::Random;
-use launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
+use launchpad_guaranteed_tickets::guaranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 use multiversx_sc::api::CryptoApi;
 
 #[derive(TopDecode, TopEncode)]
@@ -35,7 +35,7 @@ pub trait CombinedSelectionModule:
     + launchpad_common::permissions::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule
-    + launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketWinnersModule
+    + launchpad_guaranteed_tickets::guaranteed_ticket_winners::GuaranteedTicketWinnersModule
     + launchpad_with_nft::nft_config::NftConfigModule
     + launchpad_with_nft::nft_winners_selection::NftWinnersSelectionModule
     + launchpad_with_nft::confirm_nft::ConfirmNftModule

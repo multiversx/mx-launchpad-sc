@@ -37,7 +37,7 @@ pub trait GuaranteedTicketsInitModule:
         self.require_add_tickets_period();
 
         let min_confirmed_for_guaranteed_ticket = self.min_confirmed_for_guaranteed_ticket().get();
-        let mut guranteed_ticket_whitelist = self.users_with_guaranteed_ticket();
+        let mut guaranteed_ticket_whitelist = self.users_with_guaranteed_ticket();
         let mut total_winning_tickets = self.nr_winning_tickets().get();
         let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
 
@@ -54,7 +54,7 @@ pub trait GuaranteedTicketsInitModule:
                     total_winning_tickets > 0,
                     "Too many users with guaranteed ticket"
                 );
-                let _ = guranteed_ticket_whitelist.insert(buyer.clone());
+                let _ = guaranteed_ticket_whitelist.insert(buyer.clone());
                 total_winning_tickets -= STAKING_GUARANTEED_TICKETS_NO;
                 total_guaranteed_tickets += STAKING_GUARANTEED_TICKETS_NO;
                 user_ticket_status.staking_guaranteed_tickets = STAKING_GUARANTEED_TICKETS_NO;
@@ -65,7 +65,7 @@ pub trait GuaranteedTicketsInitModule:
                     total_winning_tickets > 0,
                     "Too many users with guaranteed ticket"
                 );
-                let _ = guranteed_ticket_whitelist.insert(buyer.clone());
+                let _ = guaranteed_ticket_whitelist.insert(buyer.clone());
                 total_winning_tickets -= MIGRATION_GUARANTEED_TICKETS_NO;
                 total_guaranteed_tickets += MIGRATION_GUARANTEED_TICKETS_NO;
                 user_ticket_status.migration_guaranteed_tickets = MIGRATION_GUARANTEED_TICKETS_NO;
