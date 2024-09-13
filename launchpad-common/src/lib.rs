@@ -45,6 +45,13 @@ pub trait LaunchpadMain:
         claim_start_block: u64,
         flags: Flags,
     ) {
+        if ticket_payment_token.is_esdt() {
+            require!(
+                launchpad_token_id != ticket_payment_token.clone().unwrap_esdt(),
+                "Launchpad token must be different from ticket payment token"
+            );
+        }
+        
         self.launchpad_token_id().set(&launchpad_token_id);
 
         self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket);

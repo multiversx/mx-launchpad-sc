@@ -16,7 +16,7 @@ multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
 
 multiversx_sc_wasm_adapter::endpoints! {
-    launchpad_guaranteed_tickets
+    launchpad_guaranteed_tickets_v2
     (
         init => init
         upgrade => upgrade

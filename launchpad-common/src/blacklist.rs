@@ -25,7 +25,6 @@ pub trait BlacklistModule:
         }
     }
 
-    #[endpoint(removeUsersFromBlacklist)]
     fn remove_users_from_blacklist(&self, users_list: MultiValueEncoded<ManagedAddress>) {
         self.require_extended_permissions();
         self.require_before_winner_selection();

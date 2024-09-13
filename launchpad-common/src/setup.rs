@@ -35,6 +35,10 @@ pub trait SetupModule:
     #[endpoint(setLaunchpadTokensPerWinningTicket)]
     fn set_launchpad_tokens_per_winning_ticket(&self, amount: BigUint) {
         self.require_add_tickets_period();
+        require!(
+            !self.were_launchpad_tokens_deposited(),
+            "Tokens already deposited"
+        );
         self.try_set_launchpad_tokens_per_winning_ticket(&amount);
     }
 

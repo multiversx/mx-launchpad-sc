@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           31
+// Endpoints:                           30
 // Async Callback (empty):               1
-// Total number of exported functions:  33
+// Total number of exported functions:  32
 
 #![no_std]
 
@@ -45,7 +45,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getWinningTicketIdsForAddress => get_winning_ticket_ids_for_address
         setSupportAddress => add_support_address
         getSupportAddress => support_address
-        removeUsersFromBlacklist => remove_users_from_blacklist
         isUserBlacklisted => is_user_blacklisted
         confirmTickets => confirm_tickets
         hasUserClaimedTokens => has_user_claimed

@@ -11,6 +11,8 @@ members = [
   "launchpad-with-nft/meta",
   "launchpad-guaranteed-tickets",
   "launchpad-guaranteed-tickets/meta",
+  "launchpad-guaranteed-tickets-v2",
+  "launchpad-guaranteed-tickets-v2/meta",
   "launchpad-migration-guaranteed-tickets",
   "launchpad-migration-guaranteed-tickets/meta",
   "launchpad-nft-and-guaranteed-tickets",
