@@ -8,6 +8,8 @@ use launchpad_common::{
 };
 use multiversx_sc::api::CryptoApi;
 
+use crate::guaranteed_tickets_init::UserTicketsStatus;
+
 const VEC_MAPPER_START_INDEX: usize = 1;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode)]
@@ -66,61 +68,87 @@ pub trait GuaranteedTicketWinnersModule:
             let user_confirmed_tickets = self.nr_confirmed_tickets(&current_user).get();
             let user_ticket_status = user_ticket_status_mapper.get();
 
-            let mut user_guaranteed_tickets_no = 0;
-            let mut user_leftover_tickets = 0;
+            let (guaranteed_tickets, leftover_tickets) =
+                self.calculate_guaranteed_tickets(&user_ticket_status, user_confirmed_tickets);
 
-            for info in user_ticket_status.guaranteed_tickets_info.iter() {
-                if user_confirmed_tickets >= info.min_confirmed_tickets {
-                    user_guaranteed_tickets_no += info.guaranteed_tickets;
-                } else {
-                    user_leftover_tickets += info.guaranteed_tickets;
-                }
-            }
+            op.leftover_tickets += leftover_tickets;
 
-            if user_guaranteed_tickets_no > user_confirmed_tickets {
-                let excess_tickets = user_guaranteed_tickets_no - user_confirmed_tickets;
-                user_leftover_tickets += excess_tickets;
-                user_guaranteed_tickets_no = user_confirmed_tickets;
-            }
-
-            op.leftover_tickets += user_leftover_tickets;
-
-            if user_guaranteed_tickets_no == 0 {
-                return CONTINUE_OP;
-            }
-
-            let ticket_range_mapper = self.ticket_range_for_address(&current_user);
-            if ticket_range_mapper.is_empty() {
-                op.leftover_tickets += user_guaranteed_tickets_no;
-                return CONTINUE_OP;
-            }
-
-            let ticket_range: TicketRange = ticket_range_mapper.get();
-            let user_winning_tickets_no = self.winning_tickets_in_range(&ticket_range);
-
-            if user_guaranteed_tickets_no <= user_winning_tickets_no {
-                op.leftover_tickets += user_guaranteed_tickets_no;
-                return CONTINUE_OP;
-            }
-
-            let mut remaining_tickets_to_be_won =
-                user_guaranteed_tickets_no - user_winning_tickets_no;
-
-            op.leftover_tickets += user_guaranteed_tickets_no - remaining_tickets_to_be_won;
-
-            let mut current_ticket = ticket_range.first_id;
-            while remaining_tickets_to_be_won > 0 {
-                let is_winning_ticket = self.ticket_status(current_ticket).get();
-                if !is_winning_ticket {
-                    self.ticket_status(current_ticket).set(WINNING_TICKET);
-                    op.total_additional_winning_tickets += 1;
-                    remaining_tickets_to_be_won -= 1;
-                }
-                current_ticket += 1;
+            if guaranteed_tickets > 0 {
+                self.process_guaranteed_tickets(&current_user, guaranteed_tickets, op);
             }
 
             CONTINUE_OP
         })
+    }
+
+    fn calculate_guaranteed_tickets(
+        &self,
+        user_ticket_status: &UserTicketsStatus<Self::Api>,
+        user_confirmed_tickets: usize,
+    ) -> (usize, usize) {
+        let mut guaranteed_tickets = 0;
+        let mut leftover_tickets = 0;
+
+        for info in user_ticket_status.guaranteed_tickets_info.iter() {
+            if user_confirmed_tickets >= info.min_confirmed_tickets {
+                guaranteed_tickets += info.guaranteed_tickets;
+            } else {
+                leftover_tickets += info.guaranteed_tickets;
+            }
+        }
+
+        if guaranteed_tickets > user_confirmed_tickets {
+            let excess_tickets = guaranteed_tickets - user_confirmed_tickets;
+            leftover_tickets += excess_tickets;
+            guaranteed_tickets = user_confirmed_tickets;
+        }
+
+        (guaranteed_tickets, leftover_tickets)
+    }
+
+    fn process_guaranteed_tickets(
+        &self,
+        user: &ManagedAddress,
+        guaranteed_tickets: usize,
+        op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
+    ) {
+        let ticket_range_mapper = self.ticket_range_for_address(user);
+        if ticket_range_mapper.is_empty() {
+            op.leftover_tickets += guaranteed_tickets;
+            return;
+        }
+        let ticket_range = ticket_range_mapper.get();
+
+        let user_winning_tickets = self.winning_tickets_in_range(&ticket_range);
+
+        if guaranteed_tickets > user_winning_tickets {
+            let tickets_to_win = guaranteed_tickets - user_winning_tickets;
+            self.select_additional_winning_tickets(ticket_range, tickets_to_win, op);
+        } else {
+            op.leftover_tickets += guaranteed_tickets;
+        }
+    }
+
+    fn select_additional_winning_tickets(
+        &self,
+        ticket_range: TicketRange,
+        tickets_to_win: usize,
+        op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
+    ) {
+        let mut remaining_tickets = tickets_to_win;
+        let mut current_ticket = ticket_range.first_id;
+
+        while remaining_tickets > 0 && current_ticket <= ticket_range.last_id {
+            let is_winning_ticket = self.ticket_status(current_ticket).get();
+            if !is_winning_ticket {
+                self.ticket_status(current_ticket).set(WINNING_TICKET);
+                op.total_additional_winning_tickets += 1;
+                remaining_tickets -= 1;
+            }
+            current_ticket += 1;
+        }
+
+        op.leftover_tickets += remaining_tickets;
     }
 
     // TODO - add a check if current_ticket_pos > last_ticket_pos
@@ -132,35 +160,67 @@ pub trait GuaranteedTicketWinnersModule:
         let last_ticket_pos = self.get_total_tickets();
 
         self.run_while_it_has_gas(|| {
-            if nr_original_winning_tickets + op.total_additional_winning_tickets >= last_ticket_pos
-            {
-                op.leftover_tickets = 0;
-            }
-
-            if op.leftover_tickets == 0 {
+            if self.are_all_tickets_distributed(nr_original_winning_tickets, op, last_ticket_pos) {
                 return STOP_OP;
             }
 
-            let current_ticket_pos = nr_original_winning_tickets + op.leftover_ticket_pos_offset;
-
-            let selection_result =
-                self.try_select_winning_ticket(&mut op.rng, current_ticket_pos, last_ticket_pos);
-            match selection_result {
-                AdditionalSelectionTryResult::Ok => {
-                    op.leftover_tickets -= 1;
-                    op.total_additional_winning_tickets += 1;
-                    op.leftover_ticket_pos_offset += 1;
-                }
-                AdditionalSelectionTryResult::CurrentAlreadyWinning => {
-                    op.leftover_ticket_pos_offset += 1;
-                }
-                AdditionalSelectionTryResult::NewlySelectedAlreadyWinning => {
-                    op.leftover_ticket_pos_offset += 1;
-                }
-            }
-
-            CONTINUE_OP
+            self.distribute_single_leftover_ticket(op, nr_original_winning_tickets, last_ticket_pos)
         })
+    }
+
+    fn are_all_tickets_distributed(
+        &self,
+        nr_original_winning_tickets: usize,
+        op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
+        last_ticket_pos: usize,
+    ) -> bool {
+        if nr_original_winning_tickets + op.total_additional_winning_tickets >= last_ticket_pos {
+            op.leftover_tickets = 0;
+        }
+
+        op.leftover_tickets == 0
+    }
+
+    fn distribute_single_leftover_ticket(
+        &self,
+        op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
+        nr_original_winning_tickets: usize,
+        last_ticket_pos: usize,
+    ) -> bool {
+        let current_ticket_pos = nr_original_winning_tickets + op.leftover_ticket_pos_offset;
+
+        let selection_result = self.select_winning_ticket(op, current_ticket_pos, last_ticket_pos);
+
+        self.process_selection_result(op, selection_result)
+    }
+
+    fn select_winning_ticket(
+        &self,
+        op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
+        current_ticket_pos: usize,
+        last_ticket_pos: usize,
+    ) -> AdditionalSelectionTryResult {
+        self.try_select_winning_ticket(&mut op.rng, current_ticket_pos, last_ticket_pos)
+    }
+
+    fn process_selection_result(
+        &self,
+        op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
+        selection_result: AdditionalSelectionTryResult,
+    ) -> bool {
+        match selection_result {
+            AdditionalSelectionTryResult::Ok => {
+                op.leftover_tickets -= 1;
+                op.total_additional_winning_tickets += 1;
+                op.leftover_ticket_pos_offset += 1;
+            }
+            AdditionalSelectionTryResult::CurrentAlreadyWinning
+            | AdditionalSelectionTryResult::NewlySelectedAlreadyWinning => {
+                op.leftover_ticket_pos_offset += 1;
+            }
+        }
+
+        CONTINUE_OP
     }
 
     fn winning_tickets_in_range(&self, ticket_range: &TicketRange) -> usize {
