@@ -10,7 +10,7 @@ use launchpad_common::{
 };
 use launchpad_migration_guaranteed_tickets::{
     guaranteed_tickets_init::GuaranteedTicketsInitModule,
-    guranteed_ticket_winners::{
+    guaranteed_ticket_winners::{
         GuaranteedTicketWinnersModule, GuaranteedTicketsSelectionOperation,
     },
     LaunchpadMigrationGuaranteedTickets,

@@ -4,7 +4,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use launchpad_common::launch_stage::Flags;
-use launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
+use launchpad_guaranteed_tickets::guaranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 
 #[multiversx_sc::contract]
 pub trait LaunchpadLockedTokensAndGuaranteedTickets:
@@ -20,7 +20,7 @@ pub trait LaunchpadLockedTokensAndGuaranteedTickets:
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
     + launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule
-    + launchpad_guaranteed_tickets::guranteed_ticket_winners::GuaranteedTicketWinnersModule
+    + launchpad_guaranteed_tickets::guaranteed_ticket_winners::GuaranteedTicketWinnersModule
     + launchpad_locked_tokens::locked_launchpad_token_send::LockedLaunchpadTokenSend
 {
     #[allow(clippy::too_many_arguments)]

@@ -5,10 +5,10 @@ multiversx_sc::derive_imports!();
 
 use launchpad_common::launch_stage::Flags;
 
-use crate::guranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
+use crate::guaranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 
 pub mod guaranteed_tickets_init;
-pub mod guranteed_ticket_winners;
+pub mod guaranteed_ticket_winners;
 
 pub type UserTicketsStatus = MultiValue5<usize, usize, usize, usize, usize>;
 
@@ -26,7 +26,7 @@ pub trait LaunchpadMigrationGuaranteedTickets:
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
     + guaranteed_tickets_init::GuaranteedTicketsInitModule
-    + guranteed_ticket_winners::GuaranteedTicketWinnersModule
+    + guaranteed_ticket_winners::GuaranteedTicketWinnersModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
