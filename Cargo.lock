@@ -425,6 +425,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "launchpad-guaranteed-tickets-v2"
+version = "0.0.0"
+dependencies = [
+ "launchpad-common",
+ "multiversx-sc",
+ "multiversx-sc-meta-lib",
+ "multiversx-sc-scenario",
+ "num-bigint",
+]
+
+[[package]]
+name = "launchpad-guaranteed-tickets-v2-meta"
+version = "0.0.0"
+dependencies = [
+ "launchpad-guaranteed-tickets-v2",
+ "multiversx-sc",
+ "multiversx-sc-meta-lib",
+]
+
+[[package]]
 name = "launchpad-locked-tokens"
 version = "0.0.0"
 dependencies = [
