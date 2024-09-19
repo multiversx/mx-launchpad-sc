@@ -31,6 +31,7 @@ pub trait LaunchpadMain:
     + blacklist::BlacklistModule
     + token_send::TokenSendModule
     + user_interactions::UserInteractionsModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[allow(clippy::too_many_arguments)]
     fn init_base(

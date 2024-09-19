@@ -31,6 +31,7 @@ pub trait LaunchpadGuaranteedTickets:
     + guaranteed_tickets_init::GuaranteedTicketsInitModule
     + guaranteed_ticket_winners::GuaranteedTicketWinnersModule
     + token_release::TokenReleaseModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
@@ -104,6 +105,7 @@ pub trait LaunchpadGuaranteedTickets:
 
     #[endpoint(distributeGuaranteedTickets)]
     fn distribute_guaranteed_tickets_endpoint(&self) -> OperationCompletionStatus {
+        self.require_not_paused();
         self.require_winner_selection_period();
 
         let flags_mapper = self.flags();
@@ -152,6 +154,7 @@ pub trait LaunchpadGuaranteedTickets:
 
     #[endpoint(claimLaunchpadTokens)]
     fn claim_launchpad_tokens_endpoint(&self) {
+        self.require_not_paused();
         let caller = self.blockchain().get_caller();
         let user_results_processed = self.claim_list().contains(&caller);
         if !user_results_processed {

@@ -22,6 +22,7 @@ pub trait Launchpad:
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::pause::PauseModule
     + launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule
     + launchpad_guaranteed_tickets::guaranteed_ticket_winners::GuaranteedTicketWinnersModule
     + launchpad_with_nft::nft_config::NftConfigModule

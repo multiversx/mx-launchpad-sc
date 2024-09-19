@@ -16,9 +16,11 @@ pub trait WinnerSelectionModule:
     + crate::blacklist::BlacklistModule
     + crate::token_send::TokenSendModule
     + crate::permissions::PermissionsModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[endpoint(filterTickets)]
     fn filter_tickets(&self) -> OperationCompletionStatus {
+        self.require_not_paused();
         self.require_winner_selection_period();
 
         let flags_mapper = self.flags();
@@ -96,6 +98,7 @@ pub trait WinnerSelectionModule:
 
     #[endpoint(selectWinners)]
     fn select_winners(&self) -> OperationCompletionStatus {
+        self.require_not_paused();
         self.require_winner_selection_period();
 
         let flags_mapper = self.flags();

@@ -52,6 +52,7 @@ version = "0.0.0"
 dependencies = [
  "launchpad-common",
  "multiversx-sc",
+ "multiversx-sc-modules",
 ]
 
 [[package]]
@@ -60,6 +61,7 @@ version = "0.0.0"
 dependencies = [
  "launchpad-common",
  "multiversx-sc",
+ "multiversx-sc-modules",
 ]
 
 [[package]]
@@ -70,6 +72,7 @@ dependencies = [
  "launchpad-guaranteed-tickets",
  "launchpad-locked-tokens",
  "multiversx-sc",
+ "multiversx-sc-modules",
 ]
 
 [[package]]

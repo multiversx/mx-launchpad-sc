@@ -27,6 +27,7 @@ pub trait Launchpad:
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::pause::PauseModule
     + nft_config::NftConfigModule
     + nft_blacklist::NftBlacklistModule
     + mystery_sft::MysterySftModule

@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           38
+// Endpoints:                           41
 // Async Callback (empty):               1
-// Total number of exported functions:  41
+// Total number of exported functions:  44
 
 #![no_std]
 
@@ -58,6 +58,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         getUserTotalClaimableBalance => user_total_claimable_balance
         getUserClaimedBalance => user_claimed_balance
         getUnlockSchedule => unlock_schedule
+        pause => pause_endpoint
+        unpause => unpause_endpoint
+        isPaused => paused_status
     )
 }
 

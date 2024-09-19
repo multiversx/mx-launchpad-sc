@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           33
+// Endpoints:                           36
 // Async Callback (empty):               1
-// Total number of exported functions:  35
+// Total number of exported functions:  38
 
 #![no_std]
 
@@ -51,6 +51,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         isUserBlacklisted => is_user_blacklisted
         confirmTickets => confirm_tickets
         hasUserClaimedTokens => has_user_claimed
+        pause => pause_endpoint
+        unpause => unpause_endpoint
+        isPaused => paused_status
     )
 }
 

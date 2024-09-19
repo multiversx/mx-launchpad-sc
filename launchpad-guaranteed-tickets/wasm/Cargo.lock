@@ -52,6 +52,7 @@ version = "0.0.0"
 dependencies = [
  "launchpad-common",
  "multiversx-sc",
+ "multiversx-sc-modules",
 ]
 
 [[package]]

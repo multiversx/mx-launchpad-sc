@@ -10,10 +10,12 @@ pub trait UserInteractionsModule:
     + crate::tickets::TicketsModule
     + crate::token_send::TokenSendModule
     + crate::permissions::PermissionsModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[payable("*")]
     #[endpoint(confirmTickets)]
     fn confirm_tickets(&self, nr_tickets_to_confirm: usize) {
+        self.require_not_paused();
         let (payment_token, payment_amount) = self.call_value().egld_or_single_fungible_esdt();
 
         self.require_confirmation_period();

@@ -402,6 +402,7 @@ dependencies = [
  "launchpad-common",
  "multiversx-sc",
  "multiversx-sc-meta-lib",
+ "multiversx-sc-modules",
 ]
 
 [[package]]
@@ -419,6 +420,7 @@ dependencies = [
  "launchpad-common",
  "multiversx-sc",
  "multiversx-sc-meta-lib",
+ "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
 ]
@@ -439,6 +441,7 @@ dependencies = [
  "launchpad-common",
  "multiversx-sc",
  "multiversx-sc-meta-lib",
+ "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
 ]
@@ -459,6 +462,7 @@ dependencies = [
  "launchpad-common",
  "multiversx-sc",
  "multiversx-sc-meta-lib",
+ "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
 ]
@@ -472,6 +476,7 @@ dependencies = [
  "launchpad-locked-tokens",
  "multiversx-sc",
  "multiversx-sc-meta-lib",
+ "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
 ]
@@ -510,6 +515,7 @@ dependencies = [
  "launchpad-common",
  "multiversx-sc",
  "multiversx-sc-meta-lib",
+ "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
 ]
