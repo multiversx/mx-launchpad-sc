@@ -5,7 +5,7 @@ use launchpad_common::config;
 
 pub const MAX_PERCENTAGE: u64 = 10_000;
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, ManagedVecItem)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, ManagedVecItem)]
 pub struct UnlockMilestone {
     pub release_epoch: u64,
     pub percentage: u64,
@@ -42,10 +42,10 @@ impl<M: ManagedTypeApi> UnlockSchedule<M> {
 }
 
 #[multiversx_sc::module]
-pub trait TokenReleaseModule: config::ConfigModule {
+pub trait TokenReleaseModule: config::ConfigModule + crate::events::EventsModule {
     #[only_owner]
     #[endpoint(setUnlockSchedule)]
-    fn set_unlock_schedule(&self, milestones: ManagedVec<UnlockMilestone>) {
+    fn set_unlock_schedule(&self, unlock_milestones: MultiValueEncoded<UnlockMilestone>) {
         let configuration = self.configuration();
         require!(
             !configuration.is_empty(),
@@ -60,7 +60,8 @@ pub trait TokenReleaseModule: config::ConfigModule {
             "Can't change the unlock schedule"
         );
 
-        let unlock_schedule = UnlockSchedule::new(milestones);
+        let milestones = unlock_milestones.to_vec();
+        let unlock_schedule = UnlockSchedule::new(milestones.clone());
         require!(unlock_schedule.validate(), "Invalid unlock schedule");
 
         require!(
@@ -69,6 +70,8 @@ pub trait TokenReleaseModule: config::ConfigModule {
         );
 
         self.unlock_schedule().set(unlock_schedule);
+
+        self.emit_set_unlock_schedule_event(milestones);
     }
 
     #[view(getClaimableTokens)]

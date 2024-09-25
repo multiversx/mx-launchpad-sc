@@ -21,6 +21,7 @@ pub trait LaunchpadLockedTokens:
     + token_send::TokenSendModule
     + user_interactions::UserInteractionsModule
     + locked_launchpad_token_send::LockedLaunchpadTokenSend
+    + common_events::CommonEventsModule
     + multiversx_sc_modules::pause::PauseModule
 {
     #[allow(clippy::too_many_arguments)]

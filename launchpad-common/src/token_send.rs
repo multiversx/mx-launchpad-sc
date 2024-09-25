@@ -1,9 +1,9 @@
 multiversx_sc::imports!();
 
-use crate::config::TokenAmountPair;
+use crate::{common_events, config::TokenAmountPair};
 
 #[multiversx_sc::module]
-pub trait TokenSendModule: crate::config::ConfigModule {
+pub trait TokenSendModule: crate::config::ConfigModule + common_events::CommonEventsModule {
     fn refund_ticket_payment(&self, address: &ManagedAddress, nr_tickets_to_refund: usize) {
         if nr_tickets_to_refund == 0 {
             return;
@@ -16,6 +16,11 @@ pub trait TokenSendModule: crate::config::ConfigModule {
             &ticket_price.token_id,
             0,
             &ticket_payment_refund_amount,
+        );
+
+        self.emit_refund_ticket_payment_event(
+            nr_tickets_to_refund,
+            EgldOrEsdtTokenPayment::new(ticket_price.token_id, 0, ticket_payment_refund_amount),
         );
     }
 
