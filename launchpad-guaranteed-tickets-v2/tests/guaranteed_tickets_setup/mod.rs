@@ -35,18 +35,22 @@ pub const TICKET_COST: u64 = 10;
 
 pub struct LaunchpadSetup<LaunchpadBuilder>
 where
-    LaunchpadBuilder: 'static + Copy + Fn() -> launchpad_guaranteed_tickets_v2::ContractObj<DebugApi>,
+    LaunchpadBuilder:
+        'static + Copy + Fn() -> launchpad_guaranteed_tickets_v2::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner_address: Address,
     pub participants: Vec<Address>,
-    pub lp_wrapper:
-        ContractObjWrapper<launchpad_guaranteed_tickets_v2::ContractObj<DebugApi>, LaunchpadBuilder>,
+    pub lp_wrapper: ContractObjWrapper<
+        launchpad_guaranteed_tickets_v2::ContractObj<DebugApi>,
+        LaunchpadBuilder,
+    >,
 }
 
 impl<LaunchpadBuilder> LaunchpadSetup<LaunchpadBuilder>
 where
-    LaunchpadBuilder: 'static + Copy + Fn() -> launchpad_guaranteed_tickets_v2::ContractObj<DebugApi>,
+    LaunchpadBuilder:
+        'static + Copy + Fn() -> launchpad_guaranteed_tickets_v2::ContractObj<DebugApi>,
 {
     pub fn new(nr_winning_tickets: usize, lp_builder: LaunchpadBuilder) -> Self {
         let rust_zero = rust_biguint!(0u64);
@@ -237,7 +241,7 @@ where
             &rust_biguint!(0),
             |sc| {
                 let milestones = ManagedVec::from(unlock_milestones);
-                sc.set_unlock_schedule(milestones);
+                sc.set_unlock_schedule(MultiValueEncoded::from(milestones));
             },
         );
     }

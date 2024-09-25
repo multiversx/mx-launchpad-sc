@@ -1472,7 +1472,8 @@ fn unlock_milestones_wrong_order_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.set_unlock_schedule(ManagedVec::from(unlock_milestones));
+                let unlock_schedule = ManagedVec::from(unlock_milestones);
+                sc.set_unlock_schedule(MultiValueEncoded::from(unlock_schedule));
             },
         )
         .assert_user_error("Invalid unlock schedule");
