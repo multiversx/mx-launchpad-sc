@@ -36,15 +36,6 @@ pub struct CalculateGuaranteedTicketsResult {
     pub leftover_tickets: usize,
 }
 
-impl CalculateGuaranteedTicketsResult {
-    fn new(guaranteed_tickets: usize, leftover_tickets: usize) -> Self {
-        Self {
-            guaranteed_tickets,
-            leftover_tickets,
-        }
-    }
-}
-
 pub enum AdditionalSelectionTryResult {
     Ok,
     CurrentAlreadyWinning,
@@ -117,7 +108,10 @@ pub trait GuaranteedTicketWinnersModule:
             guaranteed_tickets = user_confirmed_tickets;
         }
 
-        CalculateGuaranteedTicketsResult::new(guaranteed_tickets, leftover_tickets)
+        CalculateGuaranteedTicketsResult {
+            guaranteed_tickets,
+            leftover_tickets,
+        }
     }
 
     fn process_guaranteed_tickets(
