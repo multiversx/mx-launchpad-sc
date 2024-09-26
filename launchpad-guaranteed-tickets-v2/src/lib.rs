@@ -76,13 +76,12 @@ pub trait LaunchpadGuaranteedTickets:
         >,
     ) {
         let total_users_count = address_number_pairs.len();
-        let (total_tickets_added, total_guaranteed_tickets_added) =
-            self.add_tickets_with_guaranteed_winners(address_number_pairs);
+        let add_tickets_result = self.add_tickets_with_guaranteed_winners(address_number_pairs);
 
         self.emit_add_tickets_event(
             total_users_count,
-            total_tickets_added,
-            total_guaranteed_tickets_added,
+            add_tickets_result.total_tickets_added,
+            add_tickets_result.total_guaranteed_tickets_added,
         );
     }
 

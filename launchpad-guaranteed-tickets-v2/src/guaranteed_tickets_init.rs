@@ -22,6 +22,20 @@ impl<M: ManagedTypeApi> UserTicketsStatus<M> {
     }
 }
 
+pub struct AddTicketsResult {
+    pub total_tickets_added: usize,
+    pub total_guaranteed_tickets_added: usize,
+}
+
+impl AddTicketsResult {
+    fn new(total_tickets_added: usize, total_guaranteed_tickets_added: usize) -> Self {
+        Self {
+            total_tickets_added,
+            total_guaranteed_tickets_added,
+        }
+    }
+}
+
 #[multiversx_sc::module]
 pub trait GuaranteedTicketsInitModule:
     launchpad_common::launch_stage::LaunchStageModule
@@ -34,7 +48,7 @@ pub trait GuaranteedTicketsInitModule:
         address_number_pairs: MultiValueEncoded<
             MultiValue3<ManagedAddress, usize, ManagedVec<GuaranteedTicketInfo>>,
         >,
-    ) -> (usize, usize) {
+    ) -> AddTicketsResult {
         self.require_add_tickets_period();
 
         let mut guaranteed_ticket_whitelist = self.users_with_guaranteed_ticket();
@@ -79,7 +93,7 @@ pub trait GuaranteedTicketsInitModule:
             .set(total_guaranteed_tickets);
         self.nr_winning_tickets().set(total_winning_tickets);
 
-        (total_tickets_added, total_guaranteed_tickets_added)
+        AddTicketsResult::new(total_tickets_added, total_guaranteed_tickets_added)
     }
 
     fn clear_users_with_guaranteed_ticket_after_blacklist(

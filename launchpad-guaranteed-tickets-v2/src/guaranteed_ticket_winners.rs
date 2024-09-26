@@ -31,6 +31,20 @@ impl<M: ManagedTypeApi + CryptoApi> Default for GuaranteedTicketsSelectionOperat
     }
 }
 
+pub struct CalculateGuaranteedTicketsResult {
+    pub guaranteed_tickets: usize,
+    pub leftover_tickets: usize,
+}
+
+impl CalculateGuaranteedTicketsResult {
+    fn new(guaranteed_tickets: usize, leftover_tickets: usize) -> Self {
+        Self {
+            guaranteed_tickets,
+            leftover_tickets,
+        }
+    }
+}
+
 pub enum AdditionalSelectionTryResult {
     Ok,
     CurrentAlreadyWinning,
@@ -68,13 +82,13 @@ pub trait GuaranteedTicketWinnersModule:
             let user_confirmed_tickets = self.nr_confirmed_tickets(&current_user).get();
             let user_ticket_status = user_ticket_status_mapper.get();
 
-            let (guaranteed_tickets, leftover_tickets) =
+            let result =
                 self.calculate_guaranteed_tickets(&user_ticket_status, user_confirmed_tickets);
 
-            op.leftover_tickets += leftover_tickets;
+            op.leftover_tickets += result.leftover_tickets;
 
-            if guaranteed_tickets > 0 {
-                self.process_guaranteed_tickets(&current_user, guaranteed_tickets, op);
+            if result.guaranteed_tickets > 0 {
+                self.process_guaranteed_tickets(&current_user, result.guaranteed_tickets, op);
             }
 
             CONTINUE_OP
@@ -85,7 +99,7 @@ pub trait GuaranteedTicketWinnersModule:
         &self,
         user_ticket_status: &UserTicketsStatus<Self::Api>,
         user_confirmed_tickets: usize,
-    ) -> (usize, usize) {
+    ) -> CalculateGuaranteedTicketsResult {
         let mut guaranteed_tickets = 0;
         let mut leftover_tickets = 0;
 
@@ -103,7 +117,7 @@ pub trait GuaranteedTicketWinnersModule:
             guaranteed_tickets = user_confirmed_tickets;
         }
 
-        (guaranteed_tickets, leftover_tickets)
+        CalculateGuaranteedTicketsResult::new(guaranteed_tickets, leftover_tickets)
     }
 
     fn process_guaranteed_tickets(
