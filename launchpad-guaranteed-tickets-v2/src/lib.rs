@@ -7,6 +7,7 @@ use launchpad_common::{config::TokenAmountPair, launch_stage::Flags, tickets::WI
 
 use crate::guaranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 
+pub mod events;
 pub mod guaranteed_ticket_winners;
 pub mod guaranteed_tickets_init;
 pub mod token_release;
@@ -31,6 +32,9 @@ pub trait LaunchpadGuaranteedTickets:
     + guaranteed_tickets_init::GuaranteedTicketsInitModule
     + guaranteed_ticket_winners::GuaranteedTicketWinnersModule
     + token_release::TokenReleaseModule
+    + events::EventsModule
+    + launchpad_common::common_events::CommonEventsModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]
@@ -71,7 +75,14 @@ pub trait LaunchpadGuaranteedTickets:
             MultiValue3<ManagedAddress, usize, ManagedVec<GuaranteedTicketInfo>>,
         >,
     ) {
-        self.add_tickets_with_guaranteed_winners(address_number_pairs);
+        let total_users_count = address_number_pairs.len();
+        let add_tickets_result = self.add_tickets_with_guaranteed_winners(address_number_pairs);
+
+        self.emit_add_tickets_event(
+            total_users_count,
+            add_tickets_result.total_tickets_added,
+            add_tickets_result.total_guaranteed_tickets_added,
+        );
     }
 
     #[only_owner]
@@ -90,6 +101,8 @@ pub trait LaunchpadGuaranteedTickets:
         let users_vec = users_list.to_vec();
         self.add_users_to_blacklist(&users_vec);
         self.clear_users_with_guaranteed_ticket_after_blacklist(&users_vec);
+
+        self.emit_add_users_to_blacklist_event(users_vec);
     }
 
     #[endpoint(removeGuaranteedUsersFromBlacklist)]
@@ -100,10 +113,13 @@ pub trait LaunchpadGuaranteedTickets:
         let users_vec = users_list.to_vec();
         self.remove_users_from_blacklist(users_list);
         self.remove_guaranteed_tickets_from_blacklist(&users_vec);
+
+        self.emit_remove_guaranteed_users_from_blacklist_event(users_vec);
     }
 
     #[endpoint(distributeGuaranteedTickets)]
     fn distribute_guaranteed_tickets_endpoint(&self) -> OperationCompletionStatus {
+        self.require_not_paused();
         self.require_winner_selection_period();
 
         let flags_mapper = self.flags();
@@ -144,6 +160,10 @@ pub trait LaunchpadGuaranteedTickets:
                 self.nr_winning_tickets().update(|nr_winning| {
                     *nr_winning += current_operation.total_additional_winning_tickets
                 });
+
+                self.emit_distribute_guaranteed_tickets_completed_event(
+                    current_operation.total_additional_winning_tickets,
+                );
             }
         };
 
@@ -152,6 +172,7 @@ pub trait LaunchpadGuaranteedTickets:
 
     #[endpoint(claimLaunchpadTokens)]
     fn claim_launchpad_tokens_endpoint(&self) {
+        self.require_not_paused();
         let caller = self.blockchain().get_caller();
         let user_results_processed = self.claim_list().contains(&caller);
         if !user_results_processed {
@@ -164,7 +185,13 @@ pub trait LaunchpadGuaranteedTickets:
             self.send()
                 .direct_esdt(&caller, &launchpad_token_id, 0, &claimable_tokens);
             self.user_claimed_balance(&caller)
-                .update(|balance| *balance += claimable_tokens);
+                .update(|balance| *balance += &claimable_tokens);
+
+            self.emit_claim_launchpad_tokens_event(EsdtTokenPayment::new(
+                launchpad_token_id,
+                0,
+                claimable_tokens,
+            ));
         }
     }
 

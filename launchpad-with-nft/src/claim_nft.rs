@@ -12,7 +12,9 @@ pub trait ClaimNftModule:
     + launchpad_common::permissions::PermissionsModule
     + launchpad_common::user_interactions::UserInteractionsModule
     + launchpad_common::ongoing_operation::OngoingOperationModule
+    + launchpad_common::common_events::CommonEventsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::pause::PauseModule
     + crate::nft_config::NftConfigModule
     + crate::mystery_sft::MysterySftModule
     + crate::confirm_nft::ConfirmNftModule

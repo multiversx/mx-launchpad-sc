@@ -7,8 +7,8 @@ use launchpad_common::{config::TokenAmountPair, launch_stage::Flags, tickets::WI
 
 use crate::guaranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 
-pub mod guaranteed_tickets_init;
 pub mod guaranteed_ticket_winners;
+pub mod guaranteed_tickets_init;
 pub mod token_release;
 
 pub type UserTicketsStatus = MultiValue5<usize, usize, usize, usize, usize>;
@@ -26,9 +26,11 @@ pub trait LaunchpadGuaranteedTickets:
     + launchpad_common::blacklist::BlacklistModule
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
+    + launchpad_common::common_events::CommonEventsModule
     + guaranteed_tickets_init::GuaranteedTicketsInitModule
     + guaranteed_ticket_winners::GuaranteedTicketWinnersModule
     + token_release::TokenReleaseModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]

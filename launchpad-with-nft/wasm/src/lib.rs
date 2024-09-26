@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           39
+// Endpoints:                           42
 // Async Callback:                       1
-// Total number of exported functions:  41
+// Total number of exported functions:  44
 
 #![no_std]
 
@@ -49,6 +49,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         isUserBlacklisted => is_user_blacklisted
         confirmTickets => confirm_tickets
         hasUserClaimedTokens => has_user_claimed
+        pause => pause_endpoint
+        unpause => unpause_endpoint
+        isPaused => paused_status
         setNftCost => set_nft_cost
         getNftCost => nft_cost
         issueMysterySft => issue_mystery_sft

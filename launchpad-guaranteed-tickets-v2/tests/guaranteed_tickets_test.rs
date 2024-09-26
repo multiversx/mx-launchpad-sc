@@ -1472,7 +1472,8 @@ fn unlock_milestones_wrong_order_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.set_unlock_schedule(ManagedVec::from(unlock_milestones));
+                let unlock_schedule = ManagedVec::from(unlock_milestones);
+                sc.set_unlock_schedule(MultiValueEncoded::from(unlock_schedule));
             },
         )
         .assert_user_error("Invalid unlock schedule");
@@ -1668,5 +1669,77 @@ fn multiple_guaranteed_tickets_test() {
         lp_setup.lp_wrapper.address_ref(),
         LAUNCHPAD_TOKEN_ID,
         &rust_biguint!(0),
+    );
+}
+
+#[test]
+fn contract_pause_test() {
+    let nr_winning_tickets = 1;
+    let mut lp_setup = LaunchpadSetup::new(
+        nr_winning_tickets,
+        launchpad_guaranteed_tickets_v2::contract_obj,
+    );
+    let unlock_milestones = vec![UnlockMilestone {
+        release_epoch: 0,
+        percentage: 10_000,
+    }];
+    lp_setup.set_unlock_schedule(unlock_milestones);
+    let participant = &lp_setup.participants[0].clone();
+
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+
+    // Check pause functionality
+    lp_setup.pause_contract();
+    lp_setup
+        .confirm(participant, 1)
+        .assert_error(4, "Contract is paused");
+    lp_setup.unpause_contract();
+
+    lp_setup.confirm(participant, 1).assert_ok();
+
+    lp_setup
+        .b_mock
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+
+    // Check pause functionality
+    lp_setup.pause_contract();
+    lp_setup
+        .filter_tickets()
+        .assert_error(4, "Contract is paused");
+    lp_setup.unpause_contract();
+
+    lp_setup.filter_tickets().assert_ok();
+
+    // Check pause functionality
+    lp_setup.pause_contract();
+    lp_setup
+        .select_winners()
+        .assert_error(4, "Contract is paused");
+    lp_setup.unpause_contract();
+    lp_setup.select_base_winners_mock(1).assert_ok();
+
+    // Check pause functionality
+    lp_setup.pause_contract();
+    lp_setup
+        .distribute_tickets()
+        .assert_error(4, "Contract is paused");
+    lp_setup.unpause_contract();
+    lp_setup.distribute_tickets().assert_ok();
+
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    lp_setup.b_mock.set_block_epoch(0);
+
+    // Check pause functionality
+    lp_setup.pause_contract();
+    lp_setup
+        .claim_user(participant)
+        .assert_error(4, "Contract is paused");
+    lp_setup.unpause_contract();
+
+    lp_setup.claim_user(participant).assert_ok();
+    lp_setup.b_mock.check_esdt_balance(
+        participant,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
     );
 }

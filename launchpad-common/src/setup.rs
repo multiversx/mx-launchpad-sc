@@ -4,7 +4,9 @@ use crate::config::{TimelineConfig, TokenAmountPair};
 
 #[multiversx_sc::module]
 pub trait SetupModule:
-    crate::launch_stage::LaunchStageModule + crate::config::ConfigModule
+    crate::launch_stage::LaunchStageModule
+    + crate::config::ConfigModule
+    + crate::common_events::CommonEventsModule
 {
     fn deposit_launchpad_tokens(&self, total_winning_tickets: usize) {
         require!(
@@ -28,7 +30,10 @@ pub trait SetupModule:
     #[endpoint(setTicketPrice)]
     fn set_ticket_price(&self, token_id: EgldOrEsdtTokenIdentifier, amount: BigUint) {
         self.require_add_tickets_period();
-        self.try_set_ticket_price(token_id, amount);
+        self.try_set_ticket_price(token_id.clone(), amount.clone());
+
+        let ticket_price = EgldOrEsdtTokenPayment::new(token_id, 0, amount);
+        self.emit_set_ticket_price_event(ticket_price);
     }
 
     #[only_owner]

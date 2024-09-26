@@ -10,10 +10,13 @@ pub trait UserInteractionsModule:
     + crate::tickets::TicketsModule
     + crate::token_send::TokenSendModule
     + crate::permissions::PermissionsModule
+    + crate::common_events::CommonEventsModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[payable("*")]
     #[endpoint(confirmTickets)]
     fn confirm_tickets(&self, nr_tickets_to_confirm: usize) {
+        self.require_not_paused();
         let (payment_token, payment_amount) = self.call_value().egld_or_single_fungible_esdt();
 
         self.require_confirmation_period();
@@ -45,6 +48,14 @@ pub trait UserInteractionsModule:
         require!(payment_amount == total_ticket_price, "Wrong amount sent");
 
         self.nr_confirmed_tickets(&caller).set(total_confirmed);
+
+        let token_payment = EgldOrEsdtTokenPayment::new(payment_token, 0, payment_amount);
+        self.emit_confirm_tickets_event(
+            nr_tickets_to_confirm,
+            total_confirmed,
+            total_tickets,
+            token_payment,
+        );
     }
 
     fn claim_launchpad_tokens<

@@ -16,9 +16,12 @@ pub trait WinnerSelectionModule:
     + crate::blacklist::BlacklistModule
     + crate::token_send::TokenSendModule
     + crate::permissions::PermissionsModule
+    + crate::common_events::CommonEventsModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[endpoint(filterTickets)]
     fn filter_tickets(&self) -> OperationCompletionStatus {
+        self.require_not_paused();
         self.require_winner_selection_period();
 
         let flags_mapper = self.flags();
@@ -86,6 +89,8 @@ pub trait WinnerSelectionModule:
 
                 self.last_ticket_id().set(new_last_ticket_id);
                 flags.were_tickets_filtered = true;
+
+                self.emit_filter_tickets_completed_event(new_last_ticket_id);
             }
         };
 
@@ -96,6 +101,7 @@ pub trait WinnerSelectionModule:
 
     #[endpoint(selectWinners)]
     fn select_winners(&self) -> OperationCompletionStatus {
+        self.require_not_paused();
         self.require_winner_selection_period();
 
         let flags_mapper = self.flags();
@@ -133,6 +139,8 @@ pub trait WinnerSelectionModule:
                 let claimable_ticket_payment = ticket_price.amount * (nr_winning_tickets as u32);
                 self.claimable_ticket_payment()
                     .set(&claimable_ticket_payment);
+
+                self.emit_select_winners_completed_event(nr_winning_tickets);
             }
         };
 

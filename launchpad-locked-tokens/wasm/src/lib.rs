@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           32
+// Endpoints:                           35
 // Async Callback (empty):               1
-// Total number of exported functions:  34
+// Total number of exported functions:  37
 
 #![no_std]
 
@@ -50,6 +50,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         hasUserClaimedTokens => has_user_claimed
         getLaunchpadTokensLockPercentage => launchpad_tokens_lock_percentage
         getLaunchpadTokensUnlockEpoch => launchpad_tokens_unlock_epoch
+        pause => pause_endpoint
+        unpause => unpause_endpoint
+        isPaused => paused_status
     )
 }
 

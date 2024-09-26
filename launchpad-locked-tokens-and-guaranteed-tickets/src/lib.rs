@@ -19,9 +19,11 @@ pub trait LaunchpadLockedTokensAndGuaranteedTickets:
     + launchpad_common::blacklist::BlacklistModule
     + launchpad_common::token_send::TokenSendModule
     + launchpad_common::user_interactions::UserInteractionsModule
+    + launchpad_common::common_events::CommonEventsModule
     + launchpad_guaranteed_tickets::guaranteed_tickets_init::GuaranteedTicketsInitModule
     + launchpad_guaranteed_tickets::guaranteed_ticket_winners::GuaranteedTicketWinnersModule
     + launchpad_locked_tokens::locked_launchpad_token_send::LockedLaunchpadTokenSend
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[allow(clippy::too_many_arguments)]
     #[init]

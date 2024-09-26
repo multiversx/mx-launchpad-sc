@@ -4,6 +4,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 pub mod blacklist;
+pub mod common_events;
 pub mod config;
 pub mod launch_stage;
 pub mod ongoing_operation;
@@ -30,7 +31,9 @@ pub trait LaunchpadMain:
     + permissions::PermissionsModule
     + blacklist::BlacklistModule
     + token_send::TokenSendModule
+    + common_events::CommonEventsModule
     + user_interactions::UserInteractionsModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[allow(clippy::too_many_arguments)]
     fn init_base(

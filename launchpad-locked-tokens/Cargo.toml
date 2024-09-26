@@ -14,6 +14,9 @@ path = "../launchpad-common"
 [dependencies.multiversx-sc]
 version = "0.53.0"
 
+[dependencies.multiversx-sc-modules]
+version = "0.53.0"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
 
