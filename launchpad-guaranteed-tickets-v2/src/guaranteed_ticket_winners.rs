@@ -132,6 +132,7 @@ pub trait GuaranteedTicketWinnersModule:
         if guaranteed_tickets > user_winning_tickets {
             let tickets_to_win = guaranteed_tickets - user_winning_tickets;
             self.select_additional_winning_tickets(ticket_range, tickets_to_win, op);
+            op.leftover_tickets += user_winning_tickets;
         } else {
             op.leftover_tickets += guaranteed_tickets;
         }

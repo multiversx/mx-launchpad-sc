@@ -37,7 +37,7 @@ pub trait GuaranteedTicketsInitModule:
     fn add_tickets_with_guaranteed_winners(
         &self,
         address_number_pairs: MultiValueEncoded<
-            MultiValue3<ManagedAddress, usize, ManagedVec<GuaranteedTicketInfo>>,
+            MultiValue3<ManagedAddress, usize, MultiValueEncoded<MultiValue2<usize, usize>>>,
         >,
     ) -> AddTicketsResult {
         self.require_add_tickets_period();
@@ -50,12 +50,23 @@ pub trait GuaranteedTicketsInitModule:
         let mut total_guaranteed_tickets_added = 0;
 
         for multi_arg in address_number_pairs {
-            let (buyer, total_tickets_allowance, guaranteed_ticket_infos) = multi_arg.into_tuple();
+            let (buyer, total_tickets_allowance, guaranteed_ticket_array) = multi_arg.into_tuple();
             self.try_create_tickets(buyer.clone(), total_tickets_allowance);
 
             let mut user_ticket_status = UserTicketsStatus::new(total_tickets_allowance);
 
             let mut user_guaranteed_tickets = 0;
+
+            let mut guaranteed_ticket_infos = ManagedVec::new();
+            for element in guaranteed_ticket_array {
+                let (guaranteed_tickets, min_confirmed_tickets) = element.into_tuple();
+                let guaranteed_ticket_info = GuaranteedTicketInfo {
+                    guaranteed_tickets,
+                    min_confirmed_tickets,
+                };
+                guaranteed_ticket_infos.push(guaranteed_ticket_info);
+            }
+
             for info in guaranteed_ticket_infos.iter() {
                 require!(
                     info.guaranteed_tickets <= info.min_confirmed_tickets,

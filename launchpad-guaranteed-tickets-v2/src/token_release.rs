@@ -45,7 +45,7 @@ impl<M: ManagedTypeApi> UnlockSchedule<M> {
 pub trait TokenReleaseModule: config::ConfigModule + crate::events::EventsModule {
     #[only_owner]
     #[endpoint(setUnlockSchedule)]
-    fn set_unlock_schedule(&self, unlock_milestones: MultiValueEncoded<UnlockMilestone>) {
+    fn set_unlock_schedule(&self, unlock_milestones: MultiValueEncoded<MultiValue2<u64, u64>>) {
         let configuration = self.configuration();
         require!(
             !configuration.is_empty(),
@@ -60,7 +60,15 @@ pub trait TokenReleaseModule: config::ConfigModule + crate::events::EventsModule
             "Can't change the unlock schedule"
         );
 
-        let milestones = unlock_milestones.to_vec();
+        let mut milestones = ManagedVec::new();
+        for unlock_milestone in unlock_milestones {
+            let (release_epoch, percentage) = unlock_milestone.into_tuple();
+            milestones.push(UnlockMilestone {
+                release_epoch,
+                percentage,
+            });
+        }
+
         let unlock_schedule = UnlockSchedule::new(milestones.clone());
         require!(unlock_schedule.validate(), "Invalid unlock schedule");
 
