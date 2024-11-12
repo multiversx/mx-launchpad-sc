@@ -102,6 +102,12 @@ pub trait TicketsModule:
 
         let last_ticket_id_mapper = self.last_ticket_id();
         let first_ticket_id = last_ticket_id_mapper.get() + 1;
+
+        require!(
+            first_ticket_id < usize::MAX - nr_tickets,
+            "Maximum number of tickets was reached"
+        );
+
         let last_ticket_id = first_ticket_id + nr_tickets - 1;
 
         ticket_range_mapper.set(TicketRange {

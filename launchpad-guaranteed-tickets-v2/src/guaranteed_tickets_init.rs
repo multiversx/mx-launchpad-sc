@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+pub const MAX_GUARANTEED_TICKETS_ENTRIES: usize = 10;
+
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, ManagedVecItem)]
 pub struct GuaranteedTicketInfo {
     pub guaranteed_tickets: usize,
@@ -51,6 +53,11 @@ pub trait GuaranteedTicketsInitModule:
 
         for multi_arg in address_number_pairs {
             let (buyer, total_tickets_allowance, guaranteed_ticket_array) = multi_arg.into_tuple();
+            require!(
+                guaranteed_ticket_array.len() <= MAX_GUARANTEED_TICKETS_ENTRIES,
+                "Number of guaranteed tickets entries exceeds maximum allowed"
+            );
+
             self.try_create_tickets(buyer.clone(), total_tickets_allowance);
 
             let mut user_ticket_status = UserTicketsStatus::new(total_tickets_allowance);
@@ -141,17 +148,25 @@ pub trait GuaranteedTicketsInitModule:
                 continue;
             }
 
-            let user_ticket_status = self.blacklist_user_ticket_status(&user).take();
-            let guaranteed_tickets_added = user_ticket_status
+            let blacklist_user_ticket_status_mapper = self.blacklist_user_ticket_status(&user);
+            if blacklist_user_ticket_status_mapper.is_empty() {
+                continue;
+            }
+            let blacklist_user_ticket_status = blacklist_user_ticket_status_mapper.take();
+            let guaranteed_tickets_added = blacklist_user_ticket_status
                 .guaranteed_tickets_info
                 .iter()
                 .fold(0, |acc, info| acc + info.guaranteed_tickets);
 
             if guaranteed_tickets_added > 0 {
+                require!(
+                    guaranteed_tickets_added <= nr_winning_tickets,
+                    "Number of winning tickets exceeded"
+                );
                 whitelist.insert(user.clone());
                 nr_winning_tickets -= guaranteed_tickets_added;
                 total_guaranteed_tickets += guaranteed_tickets_added;
-                user_ticket_status_mapper.set(user_ticket_status);
+                user_ticket_status_mapper.set(blacklist_user_ticket_status);
             }
         }
 
@@ -165,6 +180,7 @@ pub trait GuaranteedTicketsInitModule:
 
     #[storage_mapper("totalGuaranteedTickets")]
     fn total_guaranteed_tickets(&self) -> SingleValueMapper<usize>;
+
     #[storage_mapper("userTicketStatus")]
     fn user_ticket_status(
         &self,

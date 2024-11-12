@@ -36,13 +36,17 @@ pub trait WinnerSelectionModule:
         }
 
         let run_result = self.run_while_it_has_gas(|| {
+            if first_ticket_id_in_batch == last_ticket_id + 1 {
+                return STOP_OP;
+            }
+
             let current_ticket_batch_mapper = self.ticket_batch(first_ticket_id_in_batch);
             let ticket_batch: TicketBatch<Self::Api> = current_ticket_batch_mapper.get();
             let address = &ticket_batch.address;
             let nr_tickets_in_batch = ticket_batch.nr_tickets;
 
             let nr_confirmed_tickets = self.nr_confirmed_tickets(address).get();
-            if self.is_user_blacklisted(address) || nr_confirmed_tickets == 0 {
+            if nr_confirmed_tickets == 0 {
                 self.ticket_range_for_address(address).clear();
                 current_ticket_batch_mapper.clear();
             } else if nr_removed > 0 || nr_confirmed_tickets < nr_tickets_in_batch {
@@ -64,11 +68,7 @@ pub trait WinnerSelectionModule:
             nr_removed += nr_tickets_in_batch - nr_confirmed_tickets;
             first_ticket_id_in_batch += nr_tickets_in_batch;
 
-            if first_ticket_id_in_batch == last_ticket_id + 1 {
-                STOP_OP
-            } else {
-                CONTINUE_OP
-            }
+            CONTINUE_OP
         });
 
         match run_result {
@@ -103,6 +103,8 @@ pub trait WinnerSelectionModule:
     fn select_winners(&self) -> OperationCompletionStatus {
         self.require_not_paused();
         self.require_winner_selection_period();
+
+        self.check_caller_owner_or_user();
 
         let flags_mapper = self.flags();
         let mut flags: Flags = flags_mapper.get();
@@ -192,5 +194,13 @@ pub trait WinnerSelectionModule:
         }
 
         ticket_ids
+    }
+
+    fn check_caller_owner_or_user(&self) {
+        if self.blockchain().get_owner_address() == self.blockchain().get_caller() {
+            return;
+        }
+
+        self.blockchain().check_caller_is_user_account();
     }
 }

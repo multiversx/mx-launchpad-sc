@@ -122,6 +122,8 @@ pub trait LaunchpadGuaranteedTickets:
         self.require_not_paused();
         self.require_winner_selection_period();
 
+        self.check_caller_owner_or_user();
+
         let flags_mapper = self.flags();
         let mut flags = flags_mapper.get();
         require!(

@@ -15,6 +15,10 @@ pub trait BlacklistModule:
 
         let blacklist_mapper = self.blacklist();
         for address in users_list {
+            require!(
+                !blacklist_mapper.contains(&address),
+                "User already blacklisted"
+            );
             let confirmed_tickets_mapper = self.nr_confirmed_tickets(&address);
             let nr_confirmed_tickets = confirmed_tickets_mapper.get();
             if nr_confirmed_tickets > 0 {
@@ -32,6 +36,10 @@ pub trait BlacklistModule:
 
         let blacklist_mapper = self.blacklist();
         for address in users_list {
+            require!(
+                blacklist_mapper.contains(&address),
+                "User is not blacklisted"
+            );
             blacklist_mapper.remove(&address);
         }
     }

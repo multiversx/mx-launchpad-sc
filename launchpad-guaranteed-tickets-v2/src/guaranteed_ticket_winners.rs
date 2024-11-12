@@ -198,18 +198,10 @@ pub trait GuaranteedTicketWinnersModule:
     ) -> bool {
         let current_ticket_pos = nr_original_winning_tickets + op.leftover_ticket_pos_offset;
 
-        let selection_result = self.select_winning_ticket(op, current_ticket_pos, last_ticket_pos);
+        let selection_result =
+            self.try_select_winning_ticket(&mut op.rng, current_ticket_pos, last_ticket_pos);
 
         self.process_selection_result(op, selection_result)
-    }
-
-    fn select_winning_ticket(
-        &self,
-        op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
-        current_ticket_pos: usize,
-        last_ticket_pos: usize,
-    ) -> AdditionalSelectionTryResult {
-        self.try_select_winning_ticket(&mut op.rng, current_ticket_pos, last_ticket_pos)
     }
 
     fn process_selection_result(
