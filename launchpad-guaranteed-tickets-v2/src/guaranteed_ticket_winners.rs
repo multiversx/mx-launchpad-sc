@@ -248,13 +248,18 @@ pub trait GuaranteedTicketWinnersModule:
         }
 
         let rand_pos = rng.next_usize_in_range(current_ticket_position, last_ticket_position + 1);
-        let winning_ticket_id = self.get_ticket_id_from_pos(rand_pos);
-        if self.is_already_winning_ticket(winning_ticket_id) {
+        let selected_ticket_id = self.get_ticket_id_from_pos(rand_pos);
+        if self.is_already_winning_ticket(selected_ticket_id) {
+            // Swap tickets positions so that the current position still has a chance in future selections
+            self.ticket_pos_to_id(current_ticket_position)
+                .set(selected_ticket_id);
+            self.ticket_pos_to_id(rand_pos).set(current_ticket_id);
+
             return AdditionalSelectionTryResult::NewlySelectedAlreadyWinning;
         }
 
         self.ticket_pos_to_id(rand_pos).set(current_ticket_id);
-        self.ticket_status(winning_ticket_id).set(WINNING_TICKET);
+        self.ticket_status(selected_ticket_id).set(WINNING_TICKET);
 
         AdditionalSelectionTryResult::Ok
     }
