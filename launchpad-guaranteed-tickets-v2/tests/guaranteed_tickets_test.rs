@@ -17,7 +17,7 @@ use launchpad_guaranteed_tickets_v2::{
         GuaranteedTicketWinnersModule, GuaranteedTicketsSelectionOperation,
     },
     guaranteed_tickets_init::{GuaranteedTicketInfo, GuaranteedTicketsInitModule},
-    token_release::{TokenReleaseModule, UnlockMilestone},
+    token_release::TokenReleaseModule,
     LaunchpadGuaranteedTickets,
 };
 use multiversx_sc::types::{EgldOrEsdtTokenIdentifier, ManagedVec, MultiValueEncoded};
@@ -39,11 +39,9 @@ fn confirm_all_test() {
         NR_WINNING_TICKETS,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10000,
-    }];
+    let unlock_milestones = vec![(0, 10000).into()];
     lp_setup.set_unlock_schedule(unlock_milestones);
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
     let participants = lp_setup.participants.clone();
 
     for (i, p) in participants.iter().enumerate() {
@@ -160,6 +158,8 @@ fn redistribute_test() {
         NR_WINNING_TICKETS,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+
     let participants = lp_setup.participants.clone();
 
     lp_setup.confirm(&participants[0], 1).assert_ok();
@@ -373,10 +373,7 @@ fn add_migration_guaranteed_tickets_distribution_isolated_steps_scenario_test() 
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let mut participants = lp_setup.participants.clone();
 
@@ -553,10 +550,7 @@ fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let mut participants = lp_setup.participants.clone();
 
@@ -753,10 +747,7 @@ fn condition_checks_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let mut participants = lp_setup.participants.clone();
 
@@ -926,10 +917,7 @@ fn blacklist_scenario_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let mut participants = lp_setup.participants.clone();
 
@@ -1206,17 +1194,11 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![
-        UnlockMilestone {
-            release_epoch: 0,
-            percentage: 5_000,
-        },
-        UnlockMilestone {
-            release_epoch: 1,
-            percentage: 5_000,
-        },
-    ];
+    let unlock_milestones = vec![(0, 5000), (1, 5000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
+
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+
     let mut participants = lp_setup.participants.clone();
 
     let new_participant = lp_setup
@@ -1361,24 +1343,8 @@ fn vesting_with_four_milestones_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![
-        UnlockMilestone {
-            release_epoch: 0,
-            percentage: 2_500, // 25%
-        },
-        UnlockMilestone {
-            release_epoch: 1,
-            percentage: 2_500, // 25%
-        },
-        UnlockMilestone {
-            release_epoch: 2,
-            percentage: 2_500, // 25%
-        },
-        UnlockMilestone {
-            release_epoch: 3,
-            percentage: 2_500, // 25%
-        },
-    ];
+
+    let unlock_milestones = vec![(0, 2500), (1, 2500), (2, 2500), (3, 2500)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let participant = &lp_setup.participants[0].clone();
 
@@ -1444,26 +1410,13 @@ fn vesting_with_four_milestones_test() {
 }
 
 #[test]
-fn unlock_milestones_wrong_order_test() {
+fn unlock_milestones_wrong_step_and_order_test() {
     let mut lp_setup = LaunchpadSetup::new(
         NR_WINNING_TICKETS,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
 
-    let unlock_milestones = vec![
-        UnlockMilestone {
-            release_epoch: 10,
-            percentage: 3000,
-        },
-        UnlockMilestone {
-            release_epoch: 30,
-            percentage: 3000,
-        },
-        UnlockMilestone {
-            release_epoch: 20,
-            percentage: 4000,
-        },
-    ];
+    let unlock_milestones = vec![(10, 3000), (30, 3000), (20, 4000)];
 
     lp_setup
         .b_mock
@@ -1472,11 +1425,33 @@ fn unlock_milestones_wrong_order_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let unlock_schedule = ManagedVec::from(unlock_milestones);
-                sc.set_unlock_schedule(MultiValueEncoded::from(unlock_schedule));
+                let mut unlock_schedule = MultiValueEncoded::new();
+                for milestone in unlock_milestones.clone() {
+                    unlock_schedule.push(milestone.into());
+                }
+                sc.set_unlock_schedule(unlock_schedule);
             },
         )
         .assert_user_error("Invalid unlock schedule");
+
+    // Retry after setup period has passed
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut unlock_schedule = MultiValueEncoded::new();
+                for milestone in unlock_milestones {
+                    unlock_schedule.push(milestone.into());
+                }
+                sc.set_unlock_schedule(unlock_schedule);
+            },
+        )
+        .assert_user_error("Add tickets period has passed");
 }
 
 #[test]
@@ -1488,10 +1463,7 @@ fn multiple_guaranteed_tickets_test() {
     );
 
     // Set unlock schedule: 100% release immediately
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
 
     let mut participants = lp_setup.participants.clone();
@@ -1679,10 +1651,7 @@ fn contract_pause_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10_000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let participant = &lp_setup.participants[0].clone();
 

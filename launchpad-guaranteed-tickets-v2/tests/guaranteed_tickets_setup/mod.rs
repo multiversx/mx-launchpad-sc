@@ -10,8 +10,7 @@ use launchpad_common::{
     winner_selection::WinnerSelectionModule,
 };
 use launchpad_guaranteed_tickets_v2::{
-    guaranteed_tickets_init::GuaranteedTicketInfo,
-    token_release::{TokenReleaseModule, UnlockMilestone},
+    guaranteed_tickets_init::GuaranteedTicketInfo, token_release::TokenReleaseModule,
 };
 use launchpad_guaranteed_tickets_v2::{
     guaranteed_tickets_init::GuaranteedTicketsInitModule, LaunchpadGuaranteedTickets,
@@ -136,8 +135,6 @@ where
             )
             .assert_ok();
 
-        b_mock.set_block_nonce(CONFIRM_START_BLOCK);
-
         Self {
             b_mock,
             owner_address,
@@ -235,14 +232,18 @@ where
         )
     }
 
-    pub fn set_unlock_schedule(&mut self, unlock_milestones: Vec<UnlockMilestone>) {
+    pub fn set_unlock_schedule(&mut self, unlock_milestones: Vec<(u64, u64)>) {
         let _ = self.b_mock.execute_tx(
             &self.owner_address,
             &self.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let milestones = ManagedVec::from(unlock_milestones);
-                sc.set_unlock_schedule(MultiValueEncoded::from(milestones));
+                let mut milestones = MultiValueEncoded::new();
+                for milestone in unlock_milestones {
+                    milestones.push(milestone.into());
+                }
+
+                sc.set_unlock_schedule(milestones);
             },
         );
     }

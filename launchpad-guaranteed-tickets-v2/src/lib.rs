@@ -72,7 +72,7 @@ pub trait LaunchpadGuaranteedTickets:
     fn add_tickets_endpoint(
         &self,
         address_number_pairs: MultiValueEncoded<
-            MultiValue3<ManagedAddress, usize, MultiValueEncoded<MultiValue2<usize, usize>>>,
+            MultiValue3<ManagedAddress, usize, ManagedVec<GuaranteedTicketInfo>>,
         >,
     ) {
         let total_users_count = address_number_pairs.len();
