@@ -39,7 +39,7 @@ fn confirm_all_test() {
         NR_WINNING_TICKETS,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![(0, 10000).into()];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
     let participants = lp_setup.participants.clone();
