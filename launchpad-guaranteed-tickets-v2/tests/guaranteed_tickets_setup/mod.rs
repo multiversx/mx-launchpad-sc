@@ -1,5 +1,6 @@
 use multiversx_sc::types::{
-    Address, EgldOrEsdtTokenIdentifier, ManagedVec, MultiValueEncoded, OperationCompletionStatus,
+    Address, EgldOrEsdtTokenIdentifier, MultiValueEncoded, MultiValueEncodedCounted,
+    OperationCompletionStatus,
 };
 
 use launchpad_common::{
@@ -9,9 +10,7 @@ use launchpad_common::{
     user_interactions::UserInteractionsModule,
     winner_selection::WinnerSelectionModule,
 };
-use launchpad_guaranteed_tickets_v2::{
-    guaranteed_tickets_init::GuaranteedTicketInfo, token_release::TokenReleaseModule,
-};
+use launchpad_guaranteed_tickets_v2::token_release::TokenReleaseModule;
 use launchpad_guaranteed_tickets_v2::{
     guaranteed_tickets_init::GuaranteedTicketsInitModule, LaunchpadGuaranteedTickets,
 };
@@ -97,16 +96,29 @@ where
         b_mock
             .execute_tx(&owner_address, &lp_wrapper, &rust_zero, |sc| {
                 let mut args = MultiValueEncoded::new();
-                args.push((managed_address!(&participants[0]), 1, ManagedVec::new()).into());
-                args.push((managed_address!(&participants[1]), 2, ManagedVec::new()).into());
+                args.push(
+                    (
+                        managed_address!(&participants[0]),
+                        1,
+                        MultiValueEncodedCounted::new(),
+                    )
+                        .into(),
+                );
+                args.push(
+                    (
+                        managed_address!(&participants[1]),
+                        2,
+                        MultiValueEncodedCounted::new(),
+                    )
+                        .into(),
+                );
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 3).into());
                 args.push(
                     (
                         managed_address!(&participants[2]),
                         MAX_TIER_TICKETS,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 3,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );

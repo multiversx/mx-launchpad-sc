@@ -16,11 +16,13 @@ use launchpad_guaranteed_tickets_v2::{
     guaranteed_ticket_winners::{
         GuaranteedTicketWinnersModule, GuaranteedTicketsSelectionOperation,
     },
-    guaranteed_tickets_init::{GuaranteedTicketInfo, GuaranteedTicketsInitModule},
+    guaranteed_tickets_init::GuaranteedTicketsInitModule,
     token_release::TokenReleaseModule,
     LaunchpadGuaranteedTickets,
 };
-use multiversx_sc::types::{EgldOrEsdtTokenIdentifier, ManagedVec, MultiValueEncoded};
+use multiversx_sc::types::{
+    EgldOrEsdtTokenIdentifier, MultiValueEncoded, MultiValueEncodedCounted,
+};
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint};
 
 use crate::guaranteed_tickets_setup::NR_WINNING_TICKETS;
@@ -259,14 +261,13 @@ fn combined_scenario_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 3).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         MAX_TIER_TICKETS,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 3,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
@@ -274,7 +275,7 @@ fn combined_scenario_test() {
                     (
                         managed_address!(&second_new_participant),
                         1,
-                        ManagedVec::new(),
+                        MultiValueEncodedCounted::new(),
                     )
                         .into(),
                 );
@@ -397,25 +398,23 @@ fn add_migration_guaranteed_tickets_distribution_isolated_steps_scenario_test() 
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
+                let mut guaranteed_tickets_info2 = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info2.push((2, 3).into());
                 args.push(
                     (
                         managed_address!(&second_new_participant),
                         MAX_TIER_TICKETS * 2,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 2,
-                            min_confirmed_tickets: 3,
-                        }),
+                        guaranteed_tickets_info2,
                     )
                         .into(),
                 );
@@ -574,25 +573,23 @@ fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
+                let mut guaranteed_tickets_info2 = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info2.push((2, 3).into());
                 args.push(
                     (
                         managed_address!(&second_new_participant),
                         MAX_TIER_TICKETS * 2,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 2,
-                            min_confirmed_tickets: 3,
-                        }),
+                        guaranteed_tickets_info2,
                     )
                         .into(),
                 );
@@ -766,14 +763,13 @@ fn condition_checks_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
@@ -789,14 +785,13 @@ fn condition_checks_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
@@ -815,14 +810,13 @@ fn condition_checks_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
@@ -944,25 +938,23 @@ fn blacklist_scenario_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
+                let mut guaranteed_tickets_info2 = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info2.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&second_new_participant),
                         2,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info2,
                     )
                         .into(),
                 );
@@ -1215,14 +1207,13 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
@@ -1495,40 +1486,37 @@ fn multiple_guaranteed_tickets_test() {
             |sc| {
                 let mut args = MultiValueEncoded::new();
                 // New participant: 1 guaranteed ticket if confirms 2
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 2).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         2,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 2,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
                 // Second new participant: complex guaranteed tickets structure
+                let mut guaranteed_tickets_info2 = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info2.push((1, 6).into());
+                guaranteed_tickets_info2.push((2, 4).into());
+                guaranteed_tickets_info2.push((3, 3).into());
                 args.push(
                     (
                         managed_address!(&second_new_participant),
                         6,
-                        ManagedVec::from(vec![
-                            GuaranteedTicketInfo {
-                                guaranteed_tickets: 1,
-                                min_confirmed_tickets: 6,
-                            },
-                            GuaranteedTicketInfo {
-                                guaranteed_tickets: 2,
-                                min_confirmed_tickets: 4,
-                            },
-                            GuaranteedTicketInfo {
-                                guaranteed_tickets: 3,
-                                min_confirmed_tickets: 3,
-                            },
-                        ]),
+                        guaranteed_tickets_info2,
                     )
                         .into(),
                 );
-                args.push((managed_address!(&participants[5]), 9, ManagedVec::new()).into());
+                args.push(
+                    (
+                        managed_address!(&participants[5]),
+                        9,
+                        MultiValueEncodedCounted::new(),
+                    )
+                        .into(),
+                );
                 sc.add_tickets_endpoint(args);
             },
         )

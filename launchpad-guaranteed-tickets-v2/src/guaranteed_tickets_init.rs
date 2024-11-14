@@ -39,7 +39,7 @@ pub trait GuaranteedTicketsInitModule:
     fn add_tickets_with_guaranteed_winners(
         &self,
         address_number_pairs: MultiValueEncoded<
-            MultiValue3<ManagedAddress, usize, ManagedVec<GuaranteedTicketInfo>>,
+            MultiValue3<ManagedAddress, usize, MultiValueEncodedCounted<MultiValue2<usize, usize>>>,
         >,
     ) -> AddTicketsResult {
         self.require_add_tickets_period();
@@ -52,9 +52,9 @@ pub trait GuaranteedTicketsInitModule:
         let mut total_guaranteed_tickets_added = 0;
 
         for multi_arg in address_number_pairs {
-            let (buyer, total_tickets_allowance, guaranteed_ticket_infos) = multi_arg.into_tuple();
+            let (buyer, total_tickets_allowance, guaranteed_ticket_raw) = multi_arg.into_tuple();
             require!(
-                guaranteed_ticket_infos.len() <= MAX_GUARANTEED_TICKETS_ENTRIES,
+                guaranteed_ticket_raw.len() <= MAX_GUARANTEED_TICKETS_ENTRIES,
                 "Number of guaranteed tickets entries exceeds maximum allowed"
             );
 
@@ -64,12 +64,20 @@ pub trait GuaranteedTicketsInitModule:
 
             let mut user_guaranteed_tickets = 0;
 
-            for info in guaranteed_ticket_infos.iter() {
+            let mut guaranteed_ticket_infos = ManagedVec::new();
+            for info in guaranteed_ticket_raw.into_iter() {
+                let (guaranteed_tickets, min_confirmed_tickets) = info.into_tuple();
                 require!(
-                    info.guaranteed_tickets <= info.min_confirmed_tickets,
+                    guaranteed_tickets <= min_confirmed_tickets,
                     "Invalid guaranteed ticket min confirmed tickets"
                 );
-                user_guaranteed_tickets += info.guaranteed_tickets;
+                user_guaranteed_tickets += guaranteed_tickets;
+
+                let guaranteed_ticket_info = GuaranteedTicketInfo {
+                    guaranteed_tickets,
+                    min_confirmed_tickets,
+                };
+                guaranteed_ticket_infos.push(guaranteed_ticket_info);
             }
 
             if user_guaranteed_tickets > 0 {
