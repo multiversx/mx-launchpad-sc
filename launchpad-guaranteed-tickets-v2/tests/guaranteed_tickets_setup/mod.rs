@@ -1,5 +1,5 @@
 use multiversx_sc::types::{
-    Address, EgldOrEsdtTokenIdentifier, MultiValueEncoded, MultiValueEncodedCounted,
+    Address, EgldOrEsdtTokenIdentifier, MultiValueEncoded, MultiValueManagedVecCounted,
     OperationCompletionStatus,
 };
 
@@ -100,7 +100,7 @@ where
                     (
                         managed_address!(&participants[0]),
                         1,
-                        MultiValueEncodedCounted::new(),
+                        MultiValueManagedVecCounted::new(),
                     )
                         .into(),
                 );
@@ -108,11 +108,11 @@ where
                     (
                         managed_address!(&participants[1]),
                         2,
-                        MultiValueEncodedCounted::new(),
+                        MultiValueManagedVecCounted::new(),
                     )
                         .into(),
                 );
-                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                let mut guaranteed_tickets_info = MultiValueManagedVecCounted::new();
                 guaranteed_tickets_info.push((1, 3).into());
                 args.push(
                     (

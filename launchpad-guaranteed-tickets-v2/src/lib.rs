@@ -72,7 +72,11 @@ pub trait LaunchpadGuaranteedTickets:
     fn add_tickets_endpoint(
         &self,
         address_number_pairs: MultiValueEncoded<
-            MultiValue3<ManagedAddress, usize, MultiValueEncodedCounted<MultiValue2<usize, usize>>>,
+            MultiValue3<
+                ManagedAddress,
+                usize,
+                MultiValueManagedVecCounted<MultiValue2<usize, usize>>,
+            >,
         >,
     ) {
         let add_tickets_result = self.add_tickets_with_guaranteed_winners(address_number_pairs);
