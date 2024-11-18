@@ -21,7 +21,7 @@ use launchpad_guaranteed_tickets_v2::{
     LaunchpadGuaranteedTickets,
 };
 use multiversx_sc::types::{
-    EgldOrEsdtTokenIdentifier, MultiValueEncoded, MultiValueManagedVec, MultiValueManagedVecCounted,
+    EgldOrEsdtTokenIdentifier, MultiValueEncoded, MultiValueEncodedCounted,
 };
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint};
 
@@ -260,8 +260,8 @@ fn combined_scenario_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut args = MultiValueManagedVec::new();
-                let mut guaranteed_tickets_info = MultiValueManagedVecCounted::new();
+                let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info.push((1, 3).into());
                 args.push(
                     (
@@ -275,7 +275,7 @@ fn combined_scenario_test() {
                     (
                         managed_address!(&second_new_participant),
                         1,
-                        MultiValueManagedVecCounted::new(),
+                        MultiValueEncodedCounted::new(),
                     )
                         .into(),
                 );
@@ -397,8 +397,8 @@ fn add_migration_guaranteed_tickets_distribution_isolated_steps_scenario_test() 
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut args = MultiValueManagedVec::new();
-                let mut guaranteed_tickets_info = MultiValueManagedVecCounted::new();
+                let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
@@ -408,7 +408,7 @@ fn add_migration_guaranteed_tickets_distribution_isolated_steps_scenario_test() 
                     )
                         .into(),
                 );
-                let mut guaranteed_tickets_info2 = MultiValueManagedVecCounted::new();
+                let mut guaranteed_tickets_info2 = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info2.push((2, 3).into());
                 args.push(
                     (
@@ -572,8 +572,8 @@ fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut args = MultiValueManagedVec::new();
-                let mut guaranteed_tickets_info = MultiValueManagedVecCounted::new();
+                let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
@@ -583,7 +583,7 @@ fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
                     )
                         .into(),
                 );
-                let mut guaranteed_tickets_info2 = MultiValueManagedVecCounted::new();
+                let mut guaranteed_tickets_info2 = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info2.push((2, 3).into());
                 args.push(
                     (
@@ -762,8 +762,8 @@ fn condition_checks_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut args = MultiValueManagedVec::new();
-                let mut guaranteed_tickets_info = MultiValueManagedVecCounted::new();
+                let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
@@ -784,8 +784,8 @@ fn condition_checks_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut args = MultiValueManagedVec::new();
-                let mut guaranteed_tickets_info = MultiValueManagedVecCounted::new();
+                let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
@@ -809,8 +809,8 @@ fn condition_checks_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut args = MultiValueManagedVec::new();
-                let mut guaranteed_tickets_info = MultiValueManagedVecCounted::new();
+                let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
@@ -937,8 +937,8 @@ fn blacklist_scenario_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut args = MultiValueManagedVec::new();
-                let mut guaranteed_tickets_info = MultiValueManagedVecCounted::new();
+                let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
@@ -948,7 +948,7 @@ fn blacklist_scenario_test() {
                     )
                         .into(),
                 );
-                let mut guaranteed_tickets_info2 = MultiValueManagedVecCounted::new();
+                let mut guaranteed_tickets_info2 = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info2.push((1, 1).into());
                 args.push(
                     (
@@ -1206,8 +1206,8 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut args = MultiValueManagedVec::new();
-                let mut guaranteed_tickets_info = MultiValueManagedVecCounted::new();
+                let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
@@ -1484,9 +1484,9 @@ fn multiple_guaranteed_tickets_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut args = MultiValueManagedVec::new();
+                let mut args = MultiValueEncoded::new();
                 // New participant: 1 guaranteed ticket if confirms 2
-                let mut guaranteed_tickets_info = MultiValueManagedVecCounted::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info.push((1, 2).into());
                 args.push(
                     (
@@ -1497,7 +1497,7 @@ fn multiple_guaranteed_tickets_test() {
                         .into(),
                 );
                 // Second new participant: complex guaranteed tickets structure
-                let mut guaranteed_tickets_info2 = MultiValueManagedVecCounted::new();
+                let mut guaranteed_tickets_info2 = MultiValueEncodedCounted::new();
                 guaranteed_tickets_info2.push((1, 6).into());
                 guaranteed_tickets_info2.push((2, 4).into());
                 guaranteed_tickets_info2.push((3, 3).into());
@@ -1513,7 +1513,7 @@ fn multiple_guaranteed_tickets_test() {
                     (
                         managed_address!(&participants[5]),
                         9,
-                        MultiValueManagedVecCounted::new(),
+                        MultiValueEncodedCounted::new(),
                     )
                         .into(),
                 );
