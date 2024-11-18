@@ -39,7 +39,7 @@ pub trait GuaranteedTicketsInitModule:
 {
     fn add_tickets_with_guaranteed_winners(
         &self,
-        address_number_pairs: MultiValueEncoded<
+        address_number_pairs: MultiValueManagedVec<
             MultiValue3<
                 ManagedAddress,
                 usize,
@@ -57,7 +57,7 @@ pub trait GuaranteedTicketsInitModule:
         let mut total_tickets_added = 0;
         let mut total_guaranteed_tickets_added = 0;
 
-        for multi_arg in address_number_pairs {
+        for multi_arg in address_number_pairs.iter() {
             let (buyer, total_tickets_allowance, guaranteed_ticket_raw) = multi_arg.into_tuple();
             require!(
                 guaranteed_ticket_raw.len() <= MAX_GUARANTEED_TICKETS_ENTRIES,

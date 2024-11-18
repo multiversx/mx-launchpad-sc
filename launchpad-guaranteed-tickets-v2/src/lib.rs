@@ -71,7 +71,7 @@ pub trait LaunchpadGuaranteedTickets:
     #[endpoint(addTickets)]
     fn add_tickets_endpoint(
         &self,
-        address_number_pairs: MultiValueEncoded<
+        address_number_pairs: MultiValueManagedVec<
             MultiValue3<
                 ManagedAddress,
                 usize,

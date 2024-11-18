@@ -1,6 +1,6 @@
 use multiversx_sc::types::{
-    Address, EgldOrEsdtTokenIdentifier, MultiValueEncoded, MultiValueManagedVecCounted,
-    OperationCompletionStatus,
+    Address, EgldOrEsdtTokenIdentifier, MultiValueEncoded, MultiValueManagedVec,
+    MultiValueManagedVecCounted, OperationCompletionStatus,
 };
 
 use launchpad_common::{
@@ -95,7 +95,7 @@ where
         // first user - 1 ticket, second user - 2 tickets, 3rd user - 3 tickets
         b_mock
             .execute_tx(&owner_address, &lp_wrapper, &rust_zero, |sc| {
-                let mut args = MultiValueEncoded::new();
+                let mut args = MultiValueManagedVec::new();
                 args.push(
                     (
                         managed_address!(&participants[0]),
