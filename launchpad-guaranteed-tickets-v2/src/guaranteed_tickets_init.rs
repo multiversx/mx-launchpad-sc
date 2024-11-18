@@ -25,6 +25,7 @@ impl<M: ManagedTypeApi> UserTicketsStatus<M> {
 }
 
 pub struct AddTicketsResult {
+    pub total_users_count: usize,
     pub total_tickets_added: usize,
     pub total_guaranteed_tickets_added: usize,
 }
@@ -48,6 +49,7 @@ pub trait GuaranteedTicketsInitModule:
         let mut total_winning_tickets = self.nr_winning_tickets().get();
         let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
 
+        let mut total_users_count = 0;
         let mut total_tickets_added = 0;
         let mut total_guaranteed_tickets_added = 0;
 
@@ -93,6 +95,7 @@ pub trait GuaranteedTicketsInitModule:
             }
             total_tickets_added += total_tickets_allowance;
 
+            total_users_count += 1;
             self.user_ticket_status(&buyer).set(user_ticket_status);
         }
 
@@ -101,6 +104,7 @@ pub trait GuaranteedTicketsInitModule:
         self.nr_winning_tickets().set(total_winning_tickets);
 
         AddTicketsResult {
+            total_users_count,
             total_tickets_added,
             total_guaranteed_tickets_added,
         }
