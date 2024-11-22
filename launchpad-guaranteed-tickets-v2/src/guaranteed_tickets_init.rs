@@ -1,6 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+pub const MAX_TICKETS_ALLOWANCE: usize = 128;
 pub const MAX_GUARANTEED_TICKETS_ENTRIES: usize = 10;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, ManagedVecItem)]
@@ -55,6 +56,10 @@ pub trait GuaranteedTicketsInitModule:
 
         for multi_arg in address_number_pairs.into_iter() {
             let (buyer, total_tickets_allowance, guaranteed_ticket_raw) = multi_arg.into_tuple();
+            require!(
+                total_tickets_allowance <= MAX_TICKETS_ALLOWANCE,
+                "Total number of tickets exceeds maximum allowed"
+            );
             require!(
                 guaranteed_ticket_raw.len() <= MAX_GUARANTEED_TICKETS_ENTRIES,
                 "Number of guaranteed tickets entries exceeds maximum allowed"
