@@ -1187,17 +1187,17 @@ fn remove_from_blacklist_underflow_and_empty_storage_test() {
 
     let new_participant = lp_setup
         .b_mock
-        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64 * 2));
+        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64));
     participants.push(new_participant.clone());
 
     let new_participant2 = lp_setup
         .b_mock
-        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64 * 2));
-    participants.push(new_participant.clone());
+        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64));
+    participants.push(new_participant2.clone());
 
     lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
 
-    // Set guaranteed tickets for new_participant
+    // Set guaranteed tickets for new_participant2
     lp_setup
         .b_mock
         .execute_tx(
@@ -1206,13 +1206,12 @@ fn remove_from_blacklist_underflow_and_empty_storage_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
-                // New participant with complex structure
                 let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
 
                 guaranteed_tickets_info.push((3, 3).into());
                 args.push(
                     (
-                        managed_address!(&new_participant),
+                        managed_address!(&new_participant2),
                         6,
                         guaranteed_tickets_info,
                     )
@@ -1224,7 +1223,7 @@ fn remove_from_blacklist_underflow_and_empty_storage_test() {
         )
         .assert_ok();
 
-    // Blacklist new_participant
+    // Blacklist new_participant2
     lp_setup
         .b_mock
         .execute_tx(
@@ -1233,14 +1232,14 @@ fn remove_from_blacklist_underflow_and_empty_storage_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut blacklist = MultiValueEncoded::new();
-                blacklist.push(managed_address!(&new_participant));
+                blacklist.push(managed_address!(&new_participant2));
                 blacklist.push(managed_address!(&participants[0]));
                 sc.add_users_to_blacklist_endpoint(blacklist);
             },
         )
         .assert_ok();
 
-    // Set guaranteed tickets for new_participant2
+    // Set guaranteed tickets for new_participant
     lp_setup
         .b_mock
         .execute_tx(
@@ -1249,13 +1248,12 @@ fn remove_from_blacklist_underflow_and_empty_storage_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
-                // New participant with complex structure
                 let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
 
                 guaranteed_tickets_info.push((3, 3).into());
                 args.push(
                     (
-                        managed_address!(&new_participant2),
+                        managed_address!(&new_participant),
                         6,
                         guaranteed_tickets_info,
                     )
@@ -1282,7 +1280,7 @@ fn remove_from_blacklist_underflow_and_empty_storage_test() {
         )
         .assert_ok();
 
-    // Try remove new_participant from blacklist
+    // Try remove new_participant2 from blacklist
     // Should throw an error
     lp_setup
         .b_mock
@@ -1292,11 +1290,128 @@ fn remove_from_blacklist_underflow_and_empty_storage_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut blacklist = MultiValueEncoded::new();
-                blacklist.push(managed_address!(&new_participant));
+                blacklist.push(managed_address!(&new_participant2));
                 sc.remove_guaranteed_users_from_blacklist_endpoint(blacklist);
             },
         )
         .assert_error(4, "Number of winning tickets exceeded");
+
+    // Confirm tickets
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.confirm(&participants[0], 1).assert_ok();
+    lp_setup.confirm(&participants[1], 2).assert_ok();
+    lp_setup.confirm(&participants[2], 3).assert_ok();
+    lp_setup.confirm(&participants[3], 3).assert_ok();
+
+    lp_setup.confirm(&participants[4], 3).assert_error(
+        4,
+        "You have been put into the blacklist and may not confirm tickets",
+    );
+
+    // Set block to winner selection
+    lp_setup
+        .b_mock
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+
+    // Filter tickets and select winners
+    lp_setup.filter_tickets().assert_ok();
+    lp_setup.select_winners().assert_ok();
+    lp_setup.distribute_tickets().assert_ok();
+
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert_eq!(sc.nr_winning_tickets().get(), nr_winning_tickets);
+        })
+        .assert_ok();
+
+    // Set block to claim period
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+
+    // Claim for all users
+    for participant in participants.iter().take(4) {
+        lp_setup.claim_user(participant).assert_ok();
+    }
+
+    // Check balances
+    // First user: 1 winning ticket
+    let winning_tickets_user1 = 1;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[0], &rust_biguint!(2 * TICKET_COST));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[0],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user1 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Second user: 1 winning ticket
+    let winning_tickets_user2 = 1;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[1], &rust_biguint!(2 * TICKET_COST));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[1],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user2 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Third user: 1 winning ticket
+    let winning_tickets_user3 = 1;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[2], &rust_biguint!(2 * TICKET_COST));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[2],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user3 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // New participant: 3 winning tickets
+    let winning_tickets_user4 = 3;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[3], &rust_biguint!(0));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[3],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user4 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Check correct nr_winning_tickets
+    // Does not work without ticket permutation
+    assert_eq!(
+        nr_winning_tickets as u64,
+        winning_tickets_user1
+            + winning_tickets_user2
+            + winning_tickets_user3
+            + winning_tickets_user4
+    );
+
+    // Owner claims
+    lp_setup.claim_owner().assert_ok();
+
+    // Check owner's balances
+    let expected_owner_egld = TICKET_COST * nr_winning_tickets as u64; // 6 winning tickets
+
+    lp_setup
+        .b_mock
+        .check_egld_balance(&lp_setup.owner_address, &rust_biguint!(expected_owner_egld));
+    lp_setup.b_mock.check_esdt_balance(
+        &lp_setup.owner_address,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0), // All tokens were distributed
+    );
+
+    // Check contract balances
+    lp_setup
+        .b_mock
+        .check_egld_balance(lp_setup.lp_wrapper.address_ref(), &rust_biguint!(0));
+    lp_setup.b_mock.check_esdt_balance(
+        lp_setup.lp_wrapper.address_ref(),
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0),
+    );
 }
 
 #[test]
@@ -2077,7 +2192,7 @@ fn no_unlock_schedule_test() {
     lp_setup.claim_owner().assert_ok();
 
     // Check owner's balances
-    let expected_owner_egld = TICKET_COST * nr_winning_tickets as u64; // 9 winning tickets
+    let expected_owner_egld = TICKET_COST * nr_winning_tickets as u64; // 6 winning tickets
 
     lp_setup
         .b_mock
