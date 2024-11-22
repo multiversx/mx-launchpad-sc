@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-pub const MAX_TICKETS_ALLOWANCE: usize = 128;
+pub const MAX_TICKETS_ALLOWANCE: usize = 255;
 pub const MAX_GUARANTEED_TICKETS_ENTRIES: usize = 10;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, ManagedVecItem)]
@@ -153,9 +153,11 @@ pub trait GuaranteedTicketsInitModule:
         let mut whitelist = self.users_with_guaranteed_ticket();
         for user in users {
             let user_ticket_status_mapper = self.user_ticket_status(&user);
-            if !user_ticket_status_mapper.is_empty()
-                || self.ticket_range_for_address(&user).is_empty()
-            {
+            if !user_ticket_status_mapper.is_empty() {
+                continue;
+            }
+
+            if self.ticket_range_for_address(&user).is_empty() {
                 continue;
             }
 
