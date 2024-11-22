@@ -124,7 +124,7 @@ where
                 );
                 sc.add_tickets_endpoint(args);
 
-                // 1 ticket for the max tier gets removed
+                // 1 ticket for the guaranteed entry gets removed
                 assert_eq!(sc.nr_winning_tickets().get(), nr_winning_tickets - 1);
                 assert_eq!(sc.users_with_guaranteed_ticket().len(), 1);
                 assert!(sc
