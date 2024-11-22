@@ -1232,8 +1232,8 @@ fn remove_from_blacklist_underflow_and_empty_storage_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut blacklist = MultiValueEncoded::new();
-                blacklist.push(managed_address!(&new_participant2));
                 blacklist.push(managed_address!(&participants[0]));
+                blacklist.push(managed_address!(&new_participant2));
                 sc.add_users_to_blacklist_endpoint(blacklist);
             },
         )

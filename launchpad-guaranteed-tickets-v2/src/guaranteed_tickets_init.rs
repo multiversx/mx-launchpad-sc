@@ -152,19 +152,13 @@ pub trait GuaranteedTicketsInitModule:
         let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
         let mut whitelist = self.users_with_guaranteed_ticket();
         for user in users {
-            let user_ticket_status_mapper = self.user_ticket_status(&user);
-            if !user_ticket_status_mapper.is_empty() {
-                continue;
-            }
-
-            if self.ticket_range_for_address(&user).is_empty() {
-                continue;
-            }
-
             let blacklist_user_ticket_status_mapper = self.blacklist_user_ticket_status(&user);
-            if blacklist_user_ticket_status_mapper.is_empty() {
+            if blacklist_user_ticket_status_mapper.is_empty()
+                || self.ticket_range_for_address(&user).is_empty()
+            {
                 continue;
             }
+
             let blacklist_user_ticket_status = blacklist_user_ticket_status_mapper.take();
             let guaranteed_tickets_added = blacklist_user_ticket_status
                 .guaranteed_tickets_info
@@ -179,7 +173,8 @@ pub trait GuaranteedTicketsInitModule:
                 whitelist.insert(user.clone());
                 nr_winning_tickets -= guaranteed_tickets_added;
                 total_guaranteed_tickets += guaranteed_tickets_added;
-                user_ticket_status_mapper.set(blacklist_user_ticket_status);
+                self.user_ticket_status(&user)
+                    .set(blacklist_user_ticket_status);
             }
         }
 
