@@ -127,19 +127,17 @@ pub trait GuaranteedTicketsInitModule:
         let mut nr_winning_tickets = self.nr_winning_tickets().get();
         let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
         for user in users {
-            let was_whitelisted = whitelist.swap_remove(&user);
-            if was_whitelisted {
-                let user_ticket_status = self.user_ticket_status(&user).take();
-                let guaranteed_tickets_recovered = user_ticket_status
-                    .guaranteed_tickets_info
-                    .iter()
-                    .fold(0, |acc, info| acc + info.guaranteed_tickets);
+            let _ = whitelist.swap_remove(&user);
+            let user_ticket_status = self.user_ticket_status(&user).take();
+            let guaranteed_tickets_recovered = user_ticket_status
+                .guaranteed_tickets_info
+                .iter()
+                .fold(0, |acc, info| acc + info.guaranteed_tickets);
 
-                nr_winning_tickets += guaranteed_tickets_recovered;
-                total_guaranteed_tickets -= guaranteed_tickets_recovered;
-                self.blacklist_user_ticket_status(&user)
-                    .set(user_ticket_status);
-            }
+            nr_winning_tickets += guaranteed_tickets_recovered;
+            total_guaranteed_tickets -= guaranteed_tickets_recovered;
+            self.blacklist_user_ticket_status(&user)
+                .set(user_ticket_status);
         }
 
         self.nr_winning_tickets().set(nr_winning_tickets);
@@ -152,14 +150,11 @@ pub trait GuaranteedTicketsInitModule:
         let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
         let mut whitelist = self.users_with_guaranteed_ticket();
         for user in users {
-            let blacklist_user_ticket_status_mapper = self.blacklist_user_ticket_status(&user);
-            if blacklist_user_ticket_status_mapper.is_empty()
-                || self.ticket_range_for_address(&user).is_empty()
-            {
+            if self.ticket_range_for_address(&user).is_empty() {
                 continue;
             }
 
-            let blacklist_user_ticket_status = blacklist_user_ticket_status_mapper.take();
+            let blacklist_user_ticket_status = self.blacklist_user_ticket_status(&user).take();
             let guaranteed_tickets_added = blacklist_user_ticket_status
                 .guaranteed_tickets_info
                 .iter()
@@ -173,9 +168,10 @@ pub trait GuaranteedTicketsInitModule:
                 whitelist.insert(user.clone());
                 nr_winning_tickets -= guaranteed_tickets_added;
                 total_guaranteed_tickets += guaranteed_tickets_added;
-                self.user_ticket_status(&user)
-                    .set(blacklist_user_ticket_status);
             }
+
+            self.user_ticket_status(&user)
+                .set(blacklist_user_ticket_status);
         }
 
         self.nr_winning_tickets().set(nr_winning_tickets);
