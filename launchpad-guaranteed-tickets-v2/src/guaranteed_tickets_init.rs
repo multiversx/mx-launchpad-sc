@@ -56,6 +56,10 @@ pub trait GuaranteedTicketsInitModule:
 
         for multi_arg in address_number_pairs.into_iter() {
             let (buyer, total_tickets_allowance, guaranteed_ticket_raw) = multi_arg.into_tuple();
+            if total_tickets_allowance == 0 {
+                continue;
+            }
+
             require!(
                 !self.blockchain().is_smart_contract(&buyer),
                 "Only user accounts can participate"
