@@ -160,7 +160,6 @@ pub trait GuaranteedTicketWinnersModule:
         op.leftover_tickets += remaining_tickets;
     }
 
-    // TODO - add a check if current_ticket_pos > last_ticket_pos
     fn distribute_leftover_tickets(
         &self,
         op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
