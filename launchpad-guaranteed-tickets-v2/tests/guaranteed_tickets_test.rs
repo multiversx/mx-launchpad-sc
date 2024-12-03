@@ -16,11 +16,13 @@ use launchpad_guaranteed_tickets_v2::{
     guaranteed_ticket_winners::{
         GuaranteedTicketWinnersModule, GuaranteedTicketsSelectionOperation,
     },
-    guaranteed_tickets_init::{GuaranteedTicketInfo, GuaranteedTicketsInitModule},
-    token_release::{TokenReleaseModule, UnlockMilestone},
+    guaranteed_tickets_init::GuaranteedTicketsInitModule,
+    token_release::TokenReleaseModule,
     LaunchpadGuaranteedTickets,
 };
-use multiversx_sc::types::{EgldOrEsdtTokenIdentifier, ManagedVec, MultiValueEncoded};
+use multiversx_sc::types::{
+    EgldOrEsdtTokenIdentifier, MultiValueEncoded, MultiValueEncodedCounted,
+};
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint};
 
 use crate::guaranteed_tickets_setup::NR_WINNING_TICKETS;
@@ -39,11 +41,9 @@ fn confirm_all_test() {
         NR_WINNING_TICKETS,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
     let participants = lp_setup.participants.clone();
 
     for (i, p) in participants.iter().enumerate() {
@@ -160,6 +160,8 @@ fn redistribute_test() {
         NR_WINNING_TICKETS,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+
     let participants = lp_setup.participants.clone();
 
     lp_setup.confirm(&participants[0], 1).assert_ok();
@@ -259,14 +261,13 @@ fn combined_scenario_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 3).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         MAX_TIER_TICKETS,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 3,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
@@ -274,7 +275,7 @@ fn combined_scenario_test() {
                     (
                         managed_address!(&second_new_participant),
                         1,
-                        ManagedVec::new(),
+                        MultiValueEncodedCounted::new(),
                     )
                         .into(),
                 );
@@ -373,10 +374,7 @@ fn add_migration_guaranteed_tickets_distribution_isolated_steps_scenario_test() 
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let mut participants = lp_setup.participants.clone();
 
@@ -400,25 +398,23 @@ fn add_migration_guaranteed_tickets_distribution_isolated_steps_scenario_test() 
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
+                let mut guaranteed_tickets_info2 = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info2.push((2, 3).into());
                 args.push(
                     (
                         managed_address!(&second_new_participant),
                         MAX_TIER_TICKETS * 2,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 2,
-                            min_confirmed_tickets: 3,
-                        }),
+                        guaranteed_tickets_info2,
                     )
                         .into(),
                 );
@@ -553,10 +549,7 @@ fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let mut participants = lp_setup.participants.clone();
 
@@ -580,25 +573,23 @@ fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
+                let mut guaranteed_tickets_info2 = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info2.push((2, 3).into());
                 args.push(
                     (
                         managed_address!(&second_new_participant),
                         MAX_TIER_TICKETS * 2,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 2,
-                            min_confirmed_tickets: 3,
-                        }),
+                        guaranteed_tickets_info2,
                     )
                         .into(),
                 );
@@ -753,10 +744,7 @@ fn condition_checks_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let mut participants = lp_setup.participants.clone();
 
@@ -775,14 +763,13 @@ fn condition_checks_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
@@ -798,14 +785,13 @@ fn condition_checks_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
@@ -824,14 +810,13 @@ fn condition_checks_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
@@ -926,10 +911,7 @@ fn blacklist_scenario_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let mut participants = lp_setup.participants.clone();
 
@@ -956,25 +938,23 @@ fn blacklist_scenario_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
+                let mut guaranteed_tickets_info2 = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info2.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&second_new_participant),
                         2,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info2,
                     )
                         .into(),
                 );
@@ -1196,6 +1176,245 @@ fn blacklist_scenario_test() {
 }
 
 #[test]
+fn remove_from_blacklist_underflow_and_empty_storage_test() {
+    let nr_winning_tickets = 6;
+    let mut lp_setup = LaunchpadSetup::new(
+        nr_winning_tickets,
+        launchpad_guaranteed_tickets_v2::contract_obj,
+    );
+
+    let mut participants = lp_setup.participants.clone();
+
+    let new_participant = lp_setup
+        .b_mock
+        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64));
+    participants.push(new_participant.clone());
+
+    let new_participant2 = lp_setup
+        .b_mock
+        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64));
+    participants.push(new_participant2.clone());
+
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+
+    // Set guaranteed tickets for new_participant2
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+
+                guaranteed_tickets_info.push((3, 3).into());
+                args.push(
+                    (
+                        managed_address!(&new_participant2),
+                        6,
+                        guaranteed_tickets_info,
+                    )
+                        .into(),
+                );
+
+                sc.add_tickets_endpoint(args);
+            },
+        )
+        .assert_ok();
+
+    // Blacklist new_participant2
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut blacklist = MultiValueEncoded::new();
+                blacklist.push(managed_address!(&participants[0]));
+                blacklist.push(managed_address!(&new_participant2));
+                sc.add_users_to_blacklist_endpoint(blacklist);
+            },
+        )
+        .assert_ok();
+
+    // Set guaranteed tickets for new_participant
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+
+                guaranteed_tickets_info.push((3, 3).into());
+                args.push(
+                    (
+                        managed_address!(&new_participant),
+                        6,
+                        guaranteed_tickets_info,
+                    )
+                        .into(),
+                );
+
+                sc.add_tickets_endpoint(args);
+            },
+        )
+        .assert_ok();
+
+    // Remove first participant from blacklist
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut blacklist = MultiValueEncoded::new();
+                blacklist.push(managed_address!(&participants[0]));
+                sc.remove_guaranteed_users_from_blacklist_endpoint(blacklist);
+            },
+        )
+        .assert_ok();
+
+    // Try remove new_participant2 from blacklist
+    // Should throw an error
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut blacklist = MultiValueEncoded::new();
+                blacklist.push(managed_address!(&new_participant2));
+                sc.remove_guaranteed_users_from_blacklist_endpoint(blacklist);
+            },
+        )
+        .assert_error(4, "Number of winning tickets exceeded");
+
+    // Confirm tickets
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.confirm(&participants[0], 1).assert_ok();
+    lp_setup.confirm(&participants[1], 2).assert_ok();
+    lp_setup.confirm(&participants[2], 3).assert_ok();
+    lp_setup.confirm(&participants[3], 3).assert_ok();
+
+    lp_setup.confirm(&participants[4], 3).assert_error(
+        4,
+        "You have been put into the blacklist and may not confirm tickets",
+    );
+
+    // Set block to winner selection
+    lp_setup
+        .b_mock
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+
+    // Filter tickets and select winners
+    lp_setup.filter_tickets().assert_ok();
+    lp_setup.select_winners().assert_ok();
+    lp_setup.distribute_tickets().assert_ok();
+
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert_eq!(sc.nr_winning_tickets().get(), nr_winning_tickets);
+        })
+        .assert_ok();
+
+    // Set block to claim period
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+
+    // Claim for all users
+    for participant in participants.iter().take(4) {
+        lp_setup.claim_user(participant).assert_ok();
+    }
+
+    // Check balances
+    // First user: 1 winning ticket
+    let winning_tickets_user1 = 1;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[0], &rust_biguint!(2 * TICKET_COST));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[0],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user1 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Second user: 1 winning ticket
+    let winning_tickets_user2 = 1;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[1], &rust_biguint!(2 * TICKET_COST));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[1],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user2 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Third user: 1 winning ticket
+    let winning_tickets_user3 = 1;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[2], &rust_biguint!(2 * TICKET_COST));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[2],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user3 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // New participant: 3 winning tickets
+    let winning_tickets_user4 = 3;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[3], &rust_biguint!(0));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[3],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user4 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Check correct nr_winning_tickets
+    // Does not work without ticket permutation
+    assert_eq!(
+        nr_winning_tickets as u64,
+        winning_tickets_user1
+            + winning_tickets_user2
+            + winning_tickets_user3
+            + winning_tickets_user4
+    );
+
+    // Owner claims
+    lp_setup.claim_owner().assert_ok();
+
+    // Check owner's balances
+    let expected_owner_egld = TICKET_COST * nr_winning_tickets as u64; // 6 winning tickets
+
+    lp_setup
+        .b_mock
+        .check_egld_balance(&lp_setup.owner_address, &rust_biguint!(expected_owner_egld));
+    lp_setup.b_mock.check_esdt_balance(
+        &lp_setup.owner_address,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0), // All tokens were distributed
+    );
+
+    // Check contract balances
+    lp_setup
+        .b_mock
+        .check_egld_balance(lp_setup.lp_wrapper.address_ref(), &rust_biguint!(0));
+    lp_setup.b_mock.check_esdt_balance(
+        lp_setup.lp_wrapper.address_ref(),
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0),
+    );
+}
+
+#[test]
 fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
     let nr_random_tickets = 1;
     let nr_staking_guaranteed_tickets = 1;
@@ -1206,17 +1425,11 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![
-        UnlockMilestone {
-            release_epoch: 0,
-            percentage: 5_000,
-        },
-        UnlockMilestone {
-            release_epoch: 1,
-            percentage: 5_000,
-        },
-    ];
+    let unlock_milestones = vec![(0, 5000), (1, 5000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
+
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+
     let mut participants = lp_setup.participants.clone();
 
     let new_participant = lp_setup
@@ -1233,14 +1446,13 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
             &rust_biguint!(0),
             |sc| {
                 let mut args = MultiValueEncoded::new();
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 1).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         1,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 1,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
@@ -1361,24 +1573,8 @@ fn vesting_with_four_milestones_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![
-        UnlockMilestone {
-            release_epoch: 0,
-            percentage: 2_500, // 25%
-        },
-        UnlockMilestone {
-            release_epoch: 1,
-            percentage: 2_500, // 25%
-        },
-        UnlockMilestone {
-            release_epoch: 2,
-            percentage: 2_500, // 25%
-        },
-        UnlockMilestone {
-            release_epoch: 3,
-            percentage: 2_500, // 25%
-        },
-    ];
+
+    let unlock_milestones = vec![(0, 2500), (1, 2500), (2, 2500), (3, 2500)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let participant = &lp_setup.participants[0].clone();
 
@@ -1444,26 +1640,13 @@ fn vesting_with_four_milestones_test() {
 }
 
 #[test]
-fn unlock_milestones_wrong_order_test() {
+fn unlock_milestones_wrong_step_and_order_test() {
     let mut lp_setup = LaunchpadSetup::new(
         NR_WINNING_TICKETS,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
 
-    let unlock_milestones = vec![
-        UnlockMilestone {
-            release_epoch: 10,
-            percentage: 3000,
-        },
-        UnlockMilestone {
-            release_epoch: 30,
-            percentage: 3000,
-        },
-        UnlockMilestone {
-            release_epoch: 20,
-            percentage: 4000,
-        },
-    ];
+    let unlock_milestones = vec![(10, 3000), (30, 3000), (20, 4000)];
 
     lp_setup
         .b_mock
@@ -1472,11 +1655,33 @@ fn unlock_milestones_wrong_order_test() {
             &lp_setup.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let unlock_schedule = ManagedVec::from(unlock_milestones);
-                sc.set_unlock_schedule(MultiValueEncoded::from(unlock_schedule));
+                let mut unlock_schedule = MultiValueEncoded::new();
+                for milestone in unlock_milestones.clone() {
+                    unlock_schedule.push(milestone.into());
+                }
+                sc.set_unlock_schedule(unlock_schedule);
             },
         )
         .assert_user_error("Invalid unlock schedule");
+
+    // Retry after setup period has passed
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut unlock_schedule = MultiValueEncoded::new();
+                for milestone in unlock_milestones {
+                    unlock_schedule.push(milestone.into());
+                }
+                sc.set_unlock_schedule(unlock_schedule);
+            },
+        )
+        .assert_user_error("Add tickets period has passed");
 }
 
 #[test]
@@ -1488,10 +1693,7 @@ fn multiple_guaranteed_tickets_test() {
     );
 
     // Set unlock schedule: 100% release immediately
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
 
     let mut participants = lp_setup.participants.clone();
@@ -1523,40 +1725,37 @@ fn multiple_guaranteed_tickets_test() {
             |sc| {
                 let mut args = MultiValueEncoded::new();
                 // New participant: 1 guaranteed ticket if confirms 2
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 2).into());
                 args.push(
                     (
                         managed_address!(&new_participant),
                         2,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 2,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
                 // Second new participant: complex guaranteed tickets structure
+                let mut guaranteed_tickets_info2 = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info2.push((1, 6).into());
+                guaranteed_tickets_info2.push((2, 4).into());
+                guaranteed_tickets_info2.push((3, 3).into());
                 args.push(
                     (
                         managed_address!(&second_new_participant),
                         6,
-                        ManagedVec::from(vec![
-                            GuaranteedTicketInfo {
-                                guaranteed_tickets: 1,
-                                min_confirmed_tickets: 6,
-                            },
-                            GuaranteedTicketInfo {
-                                guaranteed_tickets: 2,
-                                min_confirmed_tickets: 4,
-                            },
-                            GuaranteedTicketInfo {
-                                guaranteed_tickets: 3,
-                                min_confirmed_tickets: 3,
-                            },
-                        ]),
+                        guaranteed_tickets_info2,
                     )
                         .into(),
                 );
-                args.push((managed_address!(&participants[5]), 9, ManagedVec::new()).into());
+                args.push(
+                    (
+                        managed_address!(&participants[5]),
+                        9,
+                        MultiValueEncodedCounted::new(),
+                    )
+                        .into(),
+                );
                 sc.add_tickets_endpoint(args);
             },
         )
@@ -1679,10 +1878,7 @@ fn contract_pause_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![UnlockMilestone {
-        release_epoch: 0,
-        percentage: 10_000,
-    }];
+    let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let participant = &lp_setup.participants[0].clone();
 
@@ -1741,5 +1937,333 @@ fn contract_pause_test() {
         participant,
         LAUNCHPAD_TOKEN_ID,
         &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+}
+
+#[test]
+fn fair_chance_allocation_and_ticket_redistribution_test() {
+    let nr_winning_tickets = 9;
+    let mut lp_setup = LaunchpadSetup::new(
+        nr_winning_tickets,
+        launchpad_guaranteed_tickets_v2::contract_obj,
+    );
+
+    // Set unlock schedule: 100% release immediately
+    let unlock_milestones = vec![(0, 10000)];
+    lp_setup.set_unlock_schedule(unlock_milestones);
+
+    let mut participants = lp_setup.participants.clone();
+
+    let new_participant = lp_setup
+        .b_mock
+        .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64 * 2));
+    participants.push(new_participant.clone());
+
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+
+    // Set guaranteed tickets for users
+    lp_setup
+        .b_mock
+        .execute_tx(
+            &lp_setup.owner_address,
+            &lp_setup.lp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut args = MultiValueEncoded::new();
+                // New participant with complex structure
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 6).into());
+                guaranteed_tickets_info.push((2, 4).into());
+                guaranteed_tickets_info.push((3, 3).into());
+                args.push(
+                    (
+                        managed_address!(&new_participant),
+                        6,
+                        guaranteed_tickets_info,
+                    )
+                        .into(),
+                );
+
+                sc.add_tickets_endpoint(args);
+            },
+        )
+        .assert_ok();
+
+    // Confirm tickets
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.confirm(&participants[0], 1).assert_ok();
+    lp_setup.confirm(&participants[1], 2).assert_ok();
+    lp_setup.confirm(&participants[2], 3).assert_ok();
+    lp_setup.confirm(&participants[3], 4).assert_ok();
+
+    // Set block to winner selection
+    lp_setup
+        .b_mock
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+
+    // Filter tickets and select winners
+    lp_setup.filter_tickets().assert_ok();
+    lp_setup.select_winners().assert_ok();
+    lp_setup.distribute_tickets().assert_ok();
+
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert_eq!(sc.nr_winning_tickets().get(), nr_winning_tickets);
+        })
+        .assert_ok();
+
+    // Set block to claim period
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+
+    // Claim for all users
+    for participant in participants.iter().take(4) {
+        lp_setup.claim_user(participant).assert_ok();
+    }
+
+    // Check balances
+    // First user: 1 ticket, no guarantee, no winning tickets
+    let winning_tickets_user1 = 0u64;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[0], &rust_biguint!(3 * TICKET_COST));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[0],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user1 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Second user: 2 tickets, no guarantee, 2 winning tickets
+    let winning_tickets_user2 = 2;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[1], &rust_biguint!(TICKET_COST));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[1],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user2 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Third user: 3 tickets, 1 guaranteed, 3 winning ticket
+    let winning_tickets_user3 = 3;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[2], &rust_biguint!(0));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[2],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user3 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // New participant: 4 tickets, 5 guaranteed, 4 winning ticket
+    let winning_tickets_user4 = 4;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[3], &rust_biguint!(2 * TICKET_COST));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[3],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user4 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Check correct nr_winning_tickets
+    // Does not work without ticket permutation
+    assert_eq!(
+        nr_winning_tickets as u64,
+        winning_tickets_user1
+            + winning_tickets_user2
+            + winning_tickets_user3
+            + winning_tickets_user4
+    );
+
+    // Owner claims
+    lp_setup.claim_owner().assert_ok();
+
+    // Check owner's balances
+    let expected_owner_egld = TICKET_COST * nr_winning_tickets as u64; // 9 winning tickets
+
+    lp_setup
+        .b_mock
+        .check_egld_balance(&lp_setup.owner_address, &rust_biguint!(expected_owner_egld));
+    lp_setup.b_mock.check_esdt_balance(
+        &lp_setup.owner_address,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0), // All tokens were distributed
+    );
+
+    // Check contract balances
+    lp_setup
+        .b_mock
+        .check_egld_balance(lp_setup.lp_wrapper.address_ref(), &rust_biguint!(0));
+    lp_setup.b_mock.check_esdt_balance(
+        lp_setup.lp_wrapper.address_ref(),
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0),
+    );
+}
+
+#[test]
+fn no_unlock_schedule_test() {
+    let nr_winning_tickets = 6;
+    let mut lp_setup = LaunchpadSetup::new(
+        nr_winning_tickets,
+        launchpad_guaranteed_tickets_v2::contract_obj,
+    );
+
+    // Do not set unlock schedule: 100% release immediately
+
+    let participants = lp_setup.participants.clone();
+
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+
+    // Confirm tickets
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.confirm(&participants[0], 1).assert_ok();
+    lp_setup.confirm(&participants[1], 2).assert_ok();
+    lp_setup.confirm(&participants[2], 3).assert_ok();
+
+    // Set block to winner selection
+    lp_setup
+        .b_mock
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+
+    // Filter tickets and select winners
+    lp_setup.filter_tickets().assert_ok();
+    lp_setup.select_winners().assert_ok();
+    lp_setup.distribute_tickets().assert_ok();
+
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert_eq!(sc.nr_winning_tickets().get(), nr_winning_tickets);
+        })
+        .assert_ok();
+
+    // Set block to claim period
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+
+    // Claim for all users
+    for participant in participants.iter().take(3) {
+        lp_setup.claim_user(participant).assert_ok();
+    }
+
+    // Check balances
+    // First user: 1 ticket, no guarantee, 1 winning ticket
+    let winning_tickets_user1 = 1;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[0], &rust_biguint!(2 * TICKET_COST));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[0],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user1 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Second user: 2 tickets, no guarantee, 2 winning tickets
+    let winning_tickets_user2 = 2;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[1], &rust_biguint!(TICKET_COST));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[1],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user2 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Third user: 3 tickets, 1 guaranteed, 3 winning ticket
+    let winning_tickets_user3 = 3;
+    lp_setup
+        .b_mock
+        .check_egld_balance(&participants[2], &rust_biguint!(0));
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[2],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(winning_tickets_user3 * LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Check correct nr_winning_tickets
+    // Does not work without ticket permutation
+    assert_eq!(
+        nr_winning_tickets as u64,
+        winning_tickets_user1 + winning_tickets_user2 + winning_tickets_user3
+    );
+
+    // Owner claims
+    lp_setup.claim_owner().assert_ok();
+
+    // Check owner's balances
+    let expected_owner_egld = TICKET_COST * nr_winning_tickets as u64; // 6 winning tickets
+
+    lp_setup
+        .b_mock
+        .check_egld_balance(&lp_setup.owner_address, &rust_biguint!(expected_owner_egld));
+    lp_setup.b_mock.check_esdt_balance(
+        &lp_setup.owner_address,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0), // All tokens were distributed
+    );
+
+    // Check contract balances
+    lp_setup
+        .b_mock
+        .check_egld_balance(lp_setup.lp_wrapper.address_ref(), &rust_biguint!(0));
+    lp_setup.b_mock.check_esdt_balance(
+        lp_setup.lp_wrapper.address_ref(),
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0),
+    );
+}
+
+#[test]
+fn no_participants_test() {
+    let nr_winning_tickets = 6;
+    let mut lp_setup = LaunchpadSetup::new(
+        nr_winning_tickets,
+        launchpad_guaranteed_tickets_v2::contract_obj,
+    );
+
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+
+    // Confirm tickets
+    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    // No participant confirms
+
+    // Set block to winner selection
+    lp_setup
+        .b_mock
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+
+    // Filter tickets and select winners
+    lp_setup.filter_tickets().assert_ok();
+    lp_setup.select_winners().assert_ok();
+    lp_setup.distribute_tickets().assert_ok();
+
+    // Set block to claim period
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+
+    // Owner claims
+    lp_setup.claim_owner().assert_ok();
+
+    // Check owner's balances
+    let nr_confirmed_tickets = 0u64;
+    let expected_owner_egld = TICKET_COST * nr_confirmed_tickets; // 0
+
+    lp_setup
+        .b_mock
+        .check_egld_balance(&lp_setup.owner_address, &rust_biguint!(expected_owner_egld));
+    lp_setup.b_mock.check_esdt_balance(
+        &lp_setup.owner_address,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(nr_winning_tickets as u64 * LAUNCHPAD_TOKENS_PER_TICKET), // All tokens were refunded to the owner
+    );
+
+    // Check contract balances
+    lp_setup
+        .b_mock
+        .check_egld_balance(lp_setup.lp_wrapper.address_ref(), &rust_biguint!(0));
+    lp_setup.b_mock.check_esdt_balance(
+        lp_setup.lp_wrapper.address_ref(),
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0),
     );
 }

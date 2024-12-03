@@ -132,6 +132,7 @@ pub trait GuaranteedTicketWinnersModule:
         if guaranteed_tickets > user_winning_tickets {
             let tickets_to_win = guaranteed_tickets - user_winning_tickets;
             self.select_additional_winning_tickets(ticket_range, tickets_to_win, op);
+            op.leftover_tickets += user_winning_tickets;
         } else {
             op.leftover_tickets += guaranteed_tickets;
         }
@@ -159,7 +160,6 @@ pub trait GuaranteedTicketWinnersModule:
         op.leftover_tickets += remaining_tickets;
     }
 
-    // TODO - add a check if current_ticket_pos > last_ticket_pos
     fn distribute_leftover_tickets(
         &self,
         op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
@@ -197,18 +197,10 @@ pub trait GuaranteedTicketWinnersModule:
     ) -> bool {
         let current_ticket_pos = nr_original_winning_tickets + op.leftover_ticket_pos_offset;
 
-        let selection_result = self.select_winning_ticket(op, current_ticket_pos, last_ticket_pos);
+        let selection_result =
+            self.try_select_winning_ticket(&mut op.rng, current_ticket_pos, last_ticket_pos);
 
         self.process_selection_result(op, selection_result)
-    }
-
-    fn select_winning_ticket(
-        &self,
-        op: &mut GuaranteedTicketsSelectionOperation<Self::Api>,
-        current_ticket_pos: usize,
-        last_ticket_pos: usize,
-    ) -> AdditionalSelectionTryResult {
-        self.try_select_winning_ticket(&mut op.rng, current_ticket_pos, last_ticket_pos)
     }
 
     fn process_selection_result(
@@ -255,13 +247,18 @@ pub trait GuaranteedTicketWinnersModule:
         }
 
         let rand_pos = rng.next_usize_in_range(current_ticket_position, last_ticket_position + 1);
-        let winning_ticket_id = self.get_ticket_id_from_pos(rand_pos);
-        if self.is_already_winning_ticket(winning_ticket_id) {
+        let selected_ticket_id = self.get_ticket_id_from_pos(rand_pos);
+        if self.is_already_winning_ticket(selected_ticket_id) {
+            // Swap tickets positions so that the current position still has a chance in future selections
+            self.ticket_pos_to_id(current_ticket_position)
+                .set(selected_ticket_id);
+            self.ticket_pos_to_id(rand_pos).set(current_ticket_id);
+
             return AdditionalSelectionTryResult::NewlySelectedAlreadyWinning;
         }
 
         self.ticket_pos_to_id(rand_pos).set(current_ticket_id);
-        self.ticket_status(winning_ticket_id).set(WINNING_TICKET);
+        self.ticket_status(selected_ticket_id).set(WINNING_TICKET);
 
         AdditionalSelectionTryResult::Ok
     }

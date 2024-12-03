@@ -1,9 +1,11 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use launchpad_common::config;
+use launchpad_common::{config, launch_stage};
 
 pub const MAX_PERCENTAGE: u64 = 10_000;
+pub const MAX_UNLOCK_MILESTONES_ENTRIES: usize = 60;
+pub const MAX_RELEASE_EPOCH_DIFF: u64 = 1800;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, ManagedVecItem)]
 pub struct UnlockMilestone {
@@ -16,12 +18,23 @@ pub struct UnlockSchedule<M: ManagedTypeApi> {
     milestones: ManagedVec<M, UnlockMilestone>,
 }
 
+impl<M: ManagedTypeApi> Default for UnlockSchedule<M> {
+    fn default() -> Self {
+        Self {
+            milestones: ManagedVec::from_single_item(UnlockMilestone {
+                release_epoch: 0,
+                percentage: MAX_PERCENTAGE,
+            }),
+        }
+    }
+}
+
 impl<M: ManagedTypeApi> UnlockSchedule<M> {
     pub fn new(milestones: ManagedVec<M, UnlockMilestone>) -> Self {
         UnlockSchedule { milestones }
     }
 
-    fn validate(&self) -> bool {
+    fn validate(&self, current_epoch: u64) -> bool {
         if self.milestones.is_empty() {
             return false;
         }
@@ -30,9 +43,14 @@ impl<M: ManagedTypeApi> UnlockSchedule<M> {
         let mut last_epoch = 0u64;
 
         for milestone in self.milestones.iter() {
-            if milestone.release_epoch < last_epoch || milestone.percentage > MAX_PERCENTAGE {
+            if milestone.percentage > MAX_PERCENTAGE
+                || milestone.release_epoch < current_epoch
+                || milestone.release_epoch < last_epoch
+                || milestone.release_epoch > current_epoch + MAX_RELEASE_EPOCH_DIFF
+            {
                 return false;
             }
+
             last_epoch = milestone.release_epoch;
             total_percentage += milestone.percentage;
         }
@@ -42,31 +60,32 @@ impl<M: ManagedTypeApi> UnlockSchedule<M> {
 }
 
 #[multiversx_sc::module]
-pub trait TokenReleaseModule: config::ConfigModule + crate::events::EventsModule {
+pub trait TokenReleaseModule:
+    config::ConfigModule + launch_stage::LaunchStageModule + crate::events::EventsModule
+{
     #[only_owner]
     #[endpoint(setUnlockSchedule)]
-    fn set_unlock_schedule(&self, unlock_milestones: MultiValueEncoded<UnlockMilestone>) {
-        let configuration = self.configuration();
+    fn set_unlock_schedule(&self, unlock_milestones: MultiValueEncoded<MultiValue2<u64, u64>>) {
+        self.require_add_tickets_period();
         require!(
-            !configuration.is_empty(),
-            "Timeline configuration is not set"
+            unlock_milestones.len() <= MAX_UNLOCK_MILESTONES_ENTRIES,
+            "Maximum unlock milestones entries exceeded"
         );
-        let confirmation_period_start_block = configuration.get().confirmation_period_start_block;
 
-        let current_block = self.blockchain().get_block_nonce();
+        let mut milestones = ManagedVec::new();
+        for unlock_milestone in unlock_milestones {
+            let (release_epoch, percentage) = unlock_milestone.into_tuple();
+            milestones.push(UnlockMilestone {
+                release_epoch,
+                percentage,
+            });
+        }
+
         let current_epoch = self.blockchain().get_block_epoch();
-        require!(
-            current_block < confirmation_period_start_block || self.unlock_schedule().is_empty(),
-            "Can't change the unlock schedule"
-        );
-
-        let milestones = unlock_milestones.to_vec();
         let unlock_schedule = UnlockSchedule::new(milestones.clone());
-        require!(unlock_schedule.validate(), "Invalid unlock schedule");
-
         require!(
-            unlock_schedule.milestones.get(0).release_epoch >= current_epoch,
-            "First milestone epoch must be in the future"
+            unlock_schedule.validate(current_epoch),
+            "Invalid unlock schedule"
         );
 
         self.unlock_schedule().set(unlock_schedule);
@@ -88,10 +107,12 @@ pub trait TokenReleaseModule: config::ConfigModule + crate::events::EventsModule
         );
 
         let unlock_schedule_mapper = self.unlock_schedule();
-        if unlock_schedule_mapper.is_empty() {
-            return BigUint::zero();
-        }
-        let unlock_schedule = unlock_schedule_mapper.get();
+        let unlock_schedule = if unlock_schedule_mapper.is_empty() {
+            UnlockSchedule::default()
+        } else {
+            unlock_schedule_mapper.get()
+        };
+
         let current_epoch = self.blockchain().get_block_epoch();
 
         let mut claimable_percentage = 0u64;

@@ -1,5 +1,6 @@
 use multiversx_sc::types::{
-    Address, EgldOrEsdtTokenIdentifier, ManagedVec, MultiValueEncoded, OperationCompletionStatus,
+    Address, EgldOrEsdtTokenIdentifier, MultiValueEncoded, MultiValueEncodedCounted,
+    OperationCompletionStatus,
 };
 
 use launchpad_common::{
@@ -9,10 +10,7 @@ use launchpad_common::{
     user_interactions::UserInteractionsModule,
     winner_selection::WinnerSelectionModule,
 };
-use launchpad_guaranteed_tickets_v2::{
-    guaranteed_tickets_init::GuaranteedTicketInfo,
-    token_release::{TokenReleaseModule, UnlockMilestone},
-};
+use launchpad_guaranteed_tickets_v2::token_release::TokenReleaseModule;
 use launchpad_guaranteed_tickets_v2::{
     guaranteed_tickets_init::GuaranteedTicketsInitModule, LaunchpadGuaranteedTickets,
 };
@@ -98,22 +96,35 @@ where
         b_mock
             .execute_tx(&owner_address, &lp_wrapper, &rust_zero, |sc| {
                 let mut args = MultiValueEncoded::new();
-                args.push((managed_address!(&participants[0]), 1, ManagedVec::new()).into());
-                args.push((managed_address!(&participants[1]), 2, ManagedVec::new()).into());
+                args.push(
+                    (
+                        managed_address!(&participants[0]),
+                        1,
+                        MultiValueEncodedCounted::new(),
+                    )
+                        .into(),
+                );
+                args.push(
+                    (
+                        managed_address!(&participants[1]),
+                        2,
+                        MultiValueEncodedCounted::new(),
+                    )
+                        .into(),
+                );
+                let mut guaranteed_tickets_info = MultiValueEncodedCounted::new();
+                guaranteed_tickets_info.push((1, 3).into());
                 args.push(
                     (
                         managed_address!(&participants[2]),
                         MAX_TIER_TICKETS,
-                        ManagedVec::from_single_item(GuaranteedTicketInfo {
-                            guaranteed_tickets: 1,
-                            min_confirmed_tickets: 3,
-                        }),
+                        guaranteed_tickets_info,
                     )
                         .into(),
                 );
                 sc.add_tickets_endpoint(args);
 
-                // 1 ticket for the max tier gets removed
+                // 1 ticket for the guaranteed entry gets removed
                 assert_eq!(sc.nr_winning_tickets().get(), nr_winning_tickets - 1);
                 assert_eq!(sc.users_with_guaranteed_ticket().len(), 1);
                 assert!(sc
@@ -135,8 +146,6 @@ where
                 },
             )
             .assert_ok();
-
-        b_mock.set_block_nonce(CONFIRM_START_BLOCK);
 
         Self {
             b_mock,
@@ -235,14 +244,18 @@ where
         )
     }
 
-    pub fn set_unlock_schedule(&mut self, unlock_milestones: Vec<UnlockMilestone>) {
+    pub fn set_unlock_schedule(&mut self, unlock_milestones: Vec<(u64, u64)>) {
         let _ = self.b_mock.execute_tx(
             &self.owner_address,
             &self.lp_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let milestones = ManagedVec::from(unlock_milestones);
-                sc.set_unlock_schedule(MultiValueEncoded::from(milestones));
+                let mut milestones = MultiValueEncoded::new();
+                for milestone in unlock_milestones {
+                    milestones.push(milestone.into());
+                }
+
+                sc.set_unlock_schedule(milestones);
             },
         );
     }

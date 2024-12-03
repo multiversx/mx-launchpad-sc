@@ -72,14 +72,13 @@ pub trait LaunchpadGuaranteedTickets:
     fn add_tickets_endpoint(
         &self,
         address_number_pairs: MultiValueEncoded<
-            MultiValue3<ManagedAddress, usize, ManagedVec<GuaranteedTicketInfo>>,
+            MultiValue3<ManagedAddress, usize, MultiValueEncodedCounted<MultiValue2<usize, usize>>>,
         >,
     ) {
-        let total_users_count = address_number_pairs.len();
         let add_tickets_result = self.add_tickets_with_guaranteed_winners(address_number_pairs);
 
         self.emit_add_tickets_event(
-            total_users_count,
+            add_tickets_result.total_users_count,
             add_tickets_result.total_tickets_added,
             add_tickets_result.total_guaranteed_tickets_added,
         );
@@ -121,6 +120,8 @@ pub trait LaunchpadGuaranteedTickets:
     fn distribute_guaranteed_tickets_endpoint(&self) -> OperationCompletionStatus {
         self.require_not_paused();
         self.require_winner_selection_period();
+
+        self.check_caller_owner_or_user();
 
         let flags_mapper = self.flags();
         let mut flags = flags_mapper.get();

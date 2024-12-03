@@ -1,6 +1,9 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+pub const MAX_TICKETS_ALLOWANCE: usize = 255;
+pub const MAX_GUARANTEED_TICKETS_ENTRIES: usize = 10;
+
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, ManagedVecItem)]
 pub struct GuaranteedTicketInfo {
     pub guaranteed_tickets: usize,
@@ -23,6 +26,7 @@ impl<M: ManagedTypeApi> UserTicketsStatus<M> {
 }
 
 pub struct AddTicketsResult {
+    pub total_users_count: usize,
     pub total_tickets_added: usize,
     pub total_guaranteed_tickets_added: usize,
 }
@@ -37,7 +41,7 @@ pub trait GuaranteedTicketsInitModule:
     fn add_tickets_with_guaranteed_winners(
         &self,
         address_number_pairs: MultiValueEncoded<
-            MultiValue3<ManagedAddress, usize, ManagedVec<GuaranteedTicketInfo>>,
+            MultiValue3<ManagedAddress, usize, MultiValueEncodedCounted<MultiValue2<usize, usize>>>,
         >,
     ) -> AddTicketsResult {
         self.require_add_tickets_period();
@@ -46,22 +50,49 @@ pub trait GuaranteedTicketsInitModule:
         let mut total_winning_tickets = self.nr_winning_tickets().get();
         let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
 
+        let mut total_users_count = 0;
         let mut total_tickets_added = 0;
         let mut total_guaranteed_tickets_added = 0;
 
-        for multi_arg in address_number_pairs {
-            let (buyer, total_tickets_allowance, guaranteed_ticket_infos) = multi_arg.into_tuple();
+        for multi_arg in address_number_pairs.into_iter() {
+            let (buyer, total_tickets_allowance, guaranteed_ticket_raw) = multi_arg.into_tuple();
+            if total_tickets_allowance == 0 {
+                continue;
+            }
+
+            require!(
+                !self.blockchain().is_smart_contract(&buyer),
+                "Only user accounts can participate"
+            );
+            require!(
+                total_tickets_allowance <= MAX_TICKETS_ALLOWANCE,
+                "Total number of tickets exceeds maximum allowed"
+            );
+            require!(
+                guaranteed_ticket_raw.len() <= MAX_GUARANTEED_TICKETS_ENTRIES,
+                "Number of guaranteed tickets entries exceeds maximum allowed"
+            );
+
             self.try_create_tickets(buyer.clone(), total_tickets_allowance);
 
             let mut user_ticket_status = UserTicketsStatus::new(total_tickets_allowance);
 
             let mut user_guaranteed_tickets = 0;
-            for info in guaranteed_ticket_infos.iter() {
+
+            let mut guaranteed_ticket_infos = ManagedVec::new();
+            for info in guaranteed_ticket_raw.into_iter() {
+                let (guaranteed_tickets, min_confirmed_tickets) = info.into_tuple();
                 require!(
-                    info.guaranteed_tickets <= info.min_confirmed_tickets,
+                    guaranteed_tickets <= min_confirmed_tickets,
                     "Invalid guaranteed ticket min confirmed tickets"
                 );
-                user_guaranteed_tickets += info.guaranteed_tickets;
+                user_guaranteed_tickets += guaranteed_tickets;
+
+                let guaranteed_ticket_info = GuaranteedTicketInfo {
+                    guaranteed_tickets,
+                    min_confirmed_tickets,
+                };
+                guaranteed_ticket_infos.push(guaranteed_ticket_info);
             }
 
             if user_guaranteed_tickets > 0 {
@@ -77,6 +108,7 @@ pub trait GuaranteedTicketsInitModule:
             }
             total_tickets_added += total_tickets_allowance;
 
+            total_users_count += 1;
             self.user_ticket_status(&buyer).set(user_ticket_status);
         }
 
@@ -85,6 +117,7 @@ pub trait GuaranteedTicketsInitModule:
         self.nr_winning_tickets().set(total_winning_tickets);
 
         AddTicketsResult {
+            total_users_count,
             total_tickets_added,
             total_guaranteed_tickets_added,
         }
@@ -98,19 +131,17 @@ pub trait GuaranteedTicketsInitModule:
         let mut nr_winning_tickets = self.nr_winning_tickets().get();
         let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
         for user in users {
-            let was_whitelisted = whitelist.swap_remove(&user);
-            if was_whitelisted {
-                let user_ticket_status = self.user_ticket_status(&user).take();
-                let guaranteed_tickets_recovered = user_ticket_status
-                    .guaranteed_tickets_info
-                    .iter()
-                    .fold(0, |acc, info| acc + info.guaranteed_tickets);
+            let _ = whitelist.swap_remove(&user);
+            let user_ticket_status = self.user_ticket_status(&user).take();
+            let guaranteed_tickets_recovered = user_ticket_status
+                .guaranteed_tickets_info
+                .iter()
+                .fold(0, |acc, info| acc + info.guaranteed_tickets);
 
-                nr_winning_tickets += guaranteed_tickets_recovered;
-                total_guaranteed_tickets -= guaranteed_tickets_recovered;
-                self.blacklist_user_ticket_status(&user)
-                    .set(user_ticket_status);
-            }
+            nr_winning_tickets += guaranteed_tickets_recovered;
+            total_guaranteed_tickets -= guaranteed_tickets_recovered;
+            self.blacklist_user_ticket_status(&user)
+                .set(user_ticket_status);
         }
 
         self.nr_winning_tickets().set(nr_winning_tickets);
@@ -123,25 +154,28 @@ pub trait GuaranteedTicketsInitModule:
         let mut total_guaranteed_tickets = self.total_guaranteed_tickets().get();
         let mut whitelist = self.users_with_guaranteed_ticket();
         for user in users {
-            let user_ticket_status_mapper = self.user_ticket_status(&user);
-            if !user_ticket_status_mapper.is_empty()
-                || self.ticket_range_for_address(&user).is_empty()
-            {
+            if self.ticket_range_for_address(&user).is_empty() {
                 continue;
             }
 
-            let user_ticket_status = self.blacklist_user_ticket_status(&user).take();
-            let guaranteed_tickets_added = user_ticket_status
+            let blacklist_user_ticket_status = self.blacklist_user_ticket_status(&user).take();
+            let guaranteed_tickets_added = blacklist_user_ticket_status
                 .guaranteed_tickets_info
                 .iter()
                 .fold(0, |acc, info| acc + info.guaranteed_tickets);
 
             if guaranteed_tickets_added > 0 {
+                require!(
+                    guaranteed_tickets_added <= nr_winning_tickets,
+                    "Number of winning tickets exceeded"
+                );
                 whitelist.insert(user.clone());
                 nr_winning_tickets -= guaranteed_tickets_added;
                 total_guaranteed_tickets += guaranteed_tickets_added;
-                user_ticket_status_mapper.set(user_ticket_status);
             }
+
+            self.user_ticket_status(&user)
+                .set(blacklist_user_ticket_status);
         }
 
         self.nr_winning_tickets().set(nr_winning_tickets);
@@ -154,6 +188,7 @@ pub trait GuaranteedTicketsInitModule:
 
     #[storage_mapper("totalGuaranteedTickets")]
     fn total_guaranteed_tickets(&self) -> SingleValueMapper<usize>;
+
     #[storage_mapper("userTicketStatus")]
     fn user_ticket_status(
         &self,

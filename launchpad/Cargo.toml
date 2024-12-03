@@ -12,10 +12,10 @@ path = "src/lib.rs"
 path = "../launchpad-common"
 
 [dependencies.multiversx-sc]
-version = "0.53.0"
-
-[dev-dependencies.multiversx-sc-meta-lib]
-version = "0.53.0"
+version = "0.54.2"
 
 [dependencies.multiversx-sc-modules]
-version = "0.53.0"
+version = "0.54.2"
+
+[dev-dependencies.multiversx-sc-meta-lib]
+version = "0.54.2"
