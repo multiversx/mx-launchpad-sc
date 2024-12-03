@@ -116,6 +116,10 @@ pub trait WinnerSelectionModule:
 
         let (mut rng, mut ticket_position) = self.load_select_winners_operation();
         let run_result = self.run_while_it_has_gas(|| {
+            if nr_winning_tickets == 0 {
+                return STOP_OP;
+            }
+
             self.shuffle_single_ticket(&mut rng, ticket_position, last_ticket_position);
 
             if ticket_position == nr_winning_tickets {
