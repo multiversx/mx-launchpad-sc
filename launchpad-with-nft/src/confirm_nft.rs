@@ -51,7 +51,7 @@ pub trait ConfirmNftModule:
         }
     }
 
-    fn require_exact_nft_cost(&self, payment: &EgldOrEsdtTokenPayment<Self::Api>) {
+    fn require_exact_nft_cost(&self, payment: &EgldOrEsdtTokenPayment) {
         let nft_cost = self.nft_cost().get();
         require!(
             payment.token_identifier == nft_cost.token_identifier

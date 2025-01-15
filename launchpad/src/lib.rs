@@ -72,7 +72,7 @@ pub trait Launchpad:
 
     #[endpoint(claimLaunchpadTokens)]
     fn claim_launchpad_tokens_endpoint(&self) {
-        self.claim_launchpad_tokens(Self::default_send_launchpad_tokens_fn);
+        self.claim_refunded_tickets_and_launchpad_tokens(Self::default_send_launchpad_tokens_fn);
     }
 
     #[only_owner]

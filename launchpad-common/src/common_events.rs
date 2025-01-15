@@ -50,7 +50,7 @@ pub trait CommonEventsModule {
     fn emit_refund_ticket_payment_event(
         &self,
         tickets_refunded: usize,
-        token_payment: EgldOrEsdtTokenPayment<Self::Api>,
+        token_payment: EgldOrEsdtTokenPayment,
     ) {
         let user = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
@@ -69,7 +69,7 @@ pub trait CommonEventsModule {
         )
     }
 
-    fn emit_set_ticket_price_event(&self, ticket_price: EgldOrEsdtTokenPayment<Self::Api>) {
+    fn emit_set_ticket_price_event(&self, ticket_price: EgldOrEsdtTokenPayment) {
         let user = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
         let epoch = self.blockchain().get_block_epoch();
@@ -91,7 +91,7 @@ pub trait CommonEventsModule {
         tickets_confirmed: usize,
         total_confirmed: usize,
         total_tickets: usize,
-        token_payment: EgldOrEsdtTokenPayment<Self::Api>,
+        token_payment: EgldOrEsdtTokenPayment,
     ) {
         let user = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();

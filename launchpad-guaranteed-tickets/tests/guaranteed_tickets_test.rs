@@ -13,10 +13,10 @@ use launchpad_common::{
     winner_selection::WinnerSelectionModule,
 };
 use launchpad_guaranteed_tickets::{
-    guaranteed_tickets_init::GuaranteedTicketsInitModule,
     guaranteed_ticket_winners::{
         GuaranteedTicketWinnersModule, GuaranteedTicketsSelectionOperation,
     },
+    guaranteed_tickets_init::GuaranteedTicketsInitModule,
     LaunchpadGuaranteedTickets,
 };
 use multiversx_sc::types::{EgldOrEsdtTokenIdentifier, MultiValueEncoded};

@@ -36,7 +36,7 @@ pub trait NftConfigModule:
         self.nft_cost().set(&nft_cost);
     }
 
-    fn require_valid_cost(&self, cost: &EgldOrEsdtTokenPayment<Self::Api>) {
+    fn require_valid_cost(&self, cost: &EgldOrEsdtTokenPayment) {
         if cost.token_identifier.is_egld() {
             require!(cost.token_nonce == 0, "EGLD token has no nonce");
         } else {
@@ -48,5 +48,5 @@ pub trait NftConfigModule:
 
     #[view(getNftCost)]
     #[storage_mapper("nftCost")]
-    fn nft_cost(&self) -> SingleValueMapper<EgldOrEsdtTokenPayment<Self::Api>>;
+    fn nft_cost(&self) -> SingleValueMapper<EgldOrEsdtTokenPayment>;
 }

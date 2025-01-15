@@ -54,7 +54,7 @@ pub trait LaunchpadMain:
                 "Launchpad token must be different from ticket payment token"
             );
         }
-        
+
         self.launchpad_token_id().set(&launchpad_token_id);
 
         self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket);
