@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           41
+// Endpoints:                           42
 // Async Callback (empty):               1
-// Total number of exported functions:  44
+// Total number of exported functions:  45
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgrade => upgrade
         addTickets => add_tickets_endpoint
         depositLaunchpadTokens => deposit_launchpad_tokens_endpoint
+        refundUserTickets => refund_user_tickets
         addUsersToBlacklist => add_users_to_blacklist_endpoint
         removeGuaranteedUsersFromBlacklist => remove_guaranteed_users_from_blacklist_endpoint
         distributeGuaranteedTickets => distribute_guaranteed_tickets_endpoint

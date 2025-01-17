@@ -11,6 +11,10 @@ pub trait BlacklistModule:
 {
     fn add_users_to_blacklist(&self, users_list: &ManagedVec<ManagedAddress>) {
         self.require_extended_permissions();
+        self.add_users_to_blacklist_without_permissions(users_list);
+    }
+
+    fn add_users_to_blacklist_without_permissions(&self, users_list: &ManagedVec<ManagedAddress>) {
         self.require_before_winner_selection();
 
         let blacklist_mapper = self.blacklist();
