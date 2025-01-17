@@ -1539,7 +1539,7 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
 
     // Claim the rest of the tokens
     lp_setup.b_mock.set_block_round(1);
-    lp_setup.b_mock.set_block_epoch(1);
+    lp_setup.b_mock.set_block_timestamp(1);
     lp_setup.claim_user(&participants[3]).assert_ok();
 
     // User should have all the tokens at this point
@@ -1589,7 +1589,7 @@ fn vesting_with_four_milestones_test() {
     lp_setup.distribute_tickets().assert_ok();
 
     lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
-    lp_setup.b_mock.set_block_epoch(0);
+    lp_setup.b_mock.set_block_timestamp(0);
 
     // First claim (25%)
     lp_setup.claim_user(participant).assert_ok();
@@ -1600,7 +1600,7 @@ fn vesting_with_four_milestones_test() {
     );
 
     // Second claim (50% total)
-    lp_setup.b_mock.set_block_epoch(1);
+    lp_setup.b_mock.set_block_timestamp(1);
     lp_setup.claim_user(participant).assert_ok();
     lp_setup.b_mock.check_esdt_balance(
         participant,
@@ -1609,7 +1609,7 @@ fn vesting_with_four_milestones_test() {
     );
 
     // Third claim (75% total)
-    lp_setup.b_mock.set_block_epoch(2);
+    lp_setup.b_mock.set_block_timestamp(2);
     lp_setup.claim_user(participant).assert_ok();
     lp_setup.b_mock.check_esdt_balance(
         participant,
@@ -1618,7 +1618,7 @@ fn vesting_with_four_milestones_test() {
     );
 
     // Final claim (100% total)
-    lp_setup.b_mock.set_block_epoch(3);
+    lp_setup.b_mock.set_block_timestamp(3);
     lp_setup.claim_user(participant).assert_ok();
     lp_setup.b_mock.check_esdt_balance(
         participant,
@@ -1923,7 +1923,7 @@ fn contract_pause_test() {
     lp_setup.distribute_tickets().assert_ok();
 
     lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
-    lp_setup.b_mock.set_block_epoch(0);
+    lp_setup.b_mock.set_block_timestamp(0);
 
     // Check pause functionality
     lp_setup.pause_contract();

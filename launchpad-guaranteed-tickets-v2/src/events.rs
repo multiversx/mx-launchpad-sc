@@ -7,6 +7,7 @@ use crate::token_release::UnlockMilestone;
 pub struct ClaimLaunchpadTokensEvent<M: ManagedTypeApi> {
     user: ManagedAddress<M>,
     block: u64,
+    timestamp: u64,
     epoch: u64,
     token_payment: EsdtTokenPayment<M>,
 }
@@ -15,6 +16,7 @@ pub struct ClaimLaunchpadTokensEvent<M: ManagedTypeApi> {
 pub struct AddUsersToBlacklistEvent<M: ManagedTypeApi> {
     admin: ManagedAddress<M>,
     block: u64,
+    timestamp: u64,
     epoch: u64,
     users: ManagedVec<M, ManagedAddress<M>>,
 }
@@ -23,6 +25,7 @@ pub struct AddUsersToBlacklistEvent<M: ManagedTypeApi> {
 pub struct RemoveGuaranteedUsersFromBlacklistEvent<M: ManagedTypeApi> {
     admin: ManagedAddress<M>,
     block: u64,
+    timestamp: u64,
     epoch: u64,
     users: ManagedVec<M, ManagedAddress<M>>,
 }
@@ -31,6 +34,7 @@ pub struct RemoveGuaranteedUsersFromBlacklistEvent<M: ManagedTypeApi> {
 pub struct SetUnlockScheduleEvent<M: ManagedTypeApi> {
     admin: ManagedAddress<M>,
     block: u64,
+    timestamp: u64,
     epoch: u64,
     milestones: ManagedVec<M, UnlockMilestone>,
 }
@@ -39,6 +43,7 @@ pub struct SetUnlockScheduleEvent<M: ManagedTypeApi> {
 pub struct AddTicketsEvent<M: ManagedTypeApi> {
     admin: ManagedAddress<M>,
     block: u64,
+    timestamp: u64,
     epoch: u64,
     users_count: usize,
     total_tickets_added: usize,
@@ -49,6 +54,7 @@ pub struct AddTicketsEvent<M: ManagedTypeApi> {
 pub struct DistributeGuaranteedTicketsCompletedEvent<M: ManagedTypeApi> {
     admin: ManagedAddress<M>,
     block: u64,
+    timestamp: u64,
     epoch: u64,
     total_additional_winning_tickets: usize,
 }
@@ -58,14 +64,17 @@ pub trait EventsModule {
     fn emit_claim_launchpad_tokens_event(&self, token_payment: EsdtTokenPayment) {
         let user = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
+        let timestamp = self.blockchain().get_block_timestamp();
         let epoch = self.blockchain().get_block_epoch();
         self.claim_launchpad_tokens_event(
             user.clone(),
             block,
+            timestamp,
             epoch,
             ClaimLaunchpadTokensEvent {
                 user,
                 block,
+                timestamp,
                 epoch,
                 token_payment,
             },
@@ -75,14 +84,17 @@ pub trait EventsModule {
     fn emit_add_users_to_blacklist_event(&self, users: ManagedVec<ManagedAddress>) {
         let admin = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
+        let timestamp = self.blockchain().get_block_timestamp();
         let epoch = self.blockchain().get_block_epoch();
         self.add_users_to_blacklist_event(
             admin.clone(),
             block,
+            timestamp,
             epoch,
             AddUsersToBlacklistEvent {
                 admin,
                 block,
+                timestamp,
                 epoch,
                 users,
             },
@@ -92,14 +104,17 @@ pub trait EventsModule {
     fn emit_remove_guaranteed_users_from_blacklist_event(&self, users: ManagedVec<ManagedAddress>) {
         let admin = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
+        let timestamp = self.blockchain().get_block_timestamp();
         let epoch = self.blockchain().get_block_epoch();
         self.remove_guaranteed_users_from_blacklist_event(
             admin.clone(),
             block,
+            timestamp,
             epoch,
             RemoveGuaranteedUsersFromBlacklistEvent {
                 admin,
                 block,
+                timestamp,
                 epoch,
                 users,
             },
@@ -109,14 +124,17 @@ pub trait EventsModule {
     fn emit_set_unlock_schedule_event(&self, milestones: ManagedVec<UnlockMilestone>) {
         let admin = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
+        let timestamp = self.blockchain().get_block_timestamp();
         let epoch = self.blockchain().get_block_epoch();
         self.set_unlock_schedule_event(
             admin.clone(),
             block,
+            timestamp,
             epoch,
             SetUnlockScheduleEvent {
                 admin,
                 block,
+                timestamp,
                 epoch,
                 milestones,
             },
@@ -131,14 +149,17 @@ pub trait EventsModule {
     ) {
         let admin = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
+        let timestamp = self.blockchain().get_block_timestamp();
         let epoch = self.blockchain().get_block_epoch();
         self.add_tickets_event(
             admin.clone(),
             block,
+            timestamp,
             epoch,
             AddTicketsEvent {
                 admin,
                 block,
+                timestamp,
                 epoch,
                 users_count,
                 total_tickets_added,
@@ -153,14 +174,17 @@ pub trait EventsModule {
     ) {
         let admin = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
+        let timestamp = self.blockchain().get_block_timestamp();
         let epoch = self.blockchain().get_block_epoch();
         self.distribute_guaranteed_tickets_completed_event(
             admin.clone(),
             block,
+            timestamp,
             epoch,
             DistributeGuaranteedTicketsCompletedEvent {
                 admin,
                 block,
+                timestamp,
                 epoch,
                 total_additional_winning_tickets,
             },
@@ -172,6 +196,7 @@ pub trait EventsModule {
         &self,
         #[indexed] caller: ManagedAddress,
         #[indexed] block: u64,
+        #[indexed] timestamp: u64,
         #[indexed] epoch: u64,
         claim_launchpad_tokens_event: ClaimLaunchpadTokensEvent<Self::Api>,
     );
@@ -181,6 +206,7 @@ pub trait EventsModule {
         &self,
         #[indexed] admin: ManagedAddress,
         #[indexed] block: u64,
+        #[indexed] timestamp: u64,
         #[indexed] epoch: u64,
         add_users_to_blacklist_event: AddUsersToBlacklistEvent<Self::Api>,
     );
@@ -190,6 +216,7 @@ pub trait EventsModule {
         &self,
         #[indexed] admin: ManagedAddress,
         #[indexed] block: u64,
+        #[indexed] timestamp: u64,
         #[indexed] epoch: u64,
         remove_guaranteed_users_from_blacklist_event: RemoveGuaranteedUsersFromBlacklistEvent<
             Self::Api,
@@ -201,6 +228,7 @@ pub trait EventsModule {
         &self,
         #[indexed] admin: ManagedAddress,
         #[indexed] block: u64,
+        #[indexed] timestamp: u64,
         #[indexed] epoch: u64,
         set_unlock_schedule_event: SetUnlockScheduleEvent<Self::Api>,
     );
@@ -210,6 +238,7 @@ pub trait EventsModule {
         &self,
         #[indexed] admin: ManagedAddress,
         #[indexed] block: u64,
+        #[indexed] timestamp: u64,
         #[indexed] epoch: u64,
         add_tickets_event: AddTicketsEvent<Self::Api>,
     );
@@ -219,6 +248,7 @@ pub trait EventsModule {
         &self,
         #[indexed] admin: ManagedAddress,
         #[indexed] block: u64,
+        #[indexed] timestamp: u64,
         #[indexed] epoch: u64,
         distribute_guaranteed_tickets_completed_event: DistributeGuaranteedTicketsCompletedEvent<
             Self::Api,
