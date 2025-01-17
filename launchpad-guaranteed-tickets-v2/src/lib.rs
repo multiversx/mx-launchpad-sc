@@ -96,18 +96,8 @@ pub trait LaunchpadGuaranteedTickets:
     }
 
     #[endpoint(refundUserTickets)]
-    fn refund_user_tickets(&self) {
-        let caller = self.blockchain().get_caller();
-        let user_confirmed_tickets = self.nr_confirmed_tickets(&caller).get();
-        require!(
-            user_confirmed_tickets > 0,
-            "User has not confirmed any tickets"
-        );
-        let users_vec = ManagedVec::from_single_item(caller);
-        self.add_users_to_blacklist_without_permissions(&users_vec);
-        self.clear_users_with_guaranteed_ticket_after_blacklist(&users_vec);
-
-        self.emit_add_users_to_blacklist_event(users_vec);
+    fn refund_user_tickets(&self, users_list: MultiValueEncoded<ManagedAddress>) {
+        self.add_users_to_blacklist_endpoint(users_list);
     }
 
     #[endpoint(addUsersToBlacklist)]
