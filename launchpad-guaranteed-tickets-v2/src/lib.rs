@@ -97,7 +97,9 @@ pub trait LaunchpadGuaranteedTickets:
 
     #[endpoint(refundUserTickets)]
     fn refund_user_tickets(&self, users_list: MultiValueEncoded<ManagedAddress>) {
-        self.add_users_to_blacklist_endpoint(users_list);
+        let users_vec = users_list.to_vec();
+        self.add_users_to_blacklist(&users_vec);
+        self.clear_users_with_guaranteed_ticket_after_blacklist(&users_vec);
     }
 
     #[endpoint(addUsersToBlacklist)]
