@@ -3,6 +3,7 @@ multiversx_sc::derive_imports!();
 
 use crate::{
     config::TokenAmountPair,
+    launch_stage::LaunchStage,
     tickets::{TicketRange, WINNING_TICKET},
 };
 
@@ -15,6 +16,10 @@ pub enum ClaimType {
 
 pub struct ClaimRefundedTicketsResultType<M: ManagedTypeApi> {
     pub winning_ticket_ids: ManagedVec<M, usize>,
+}
+
+pub struct ClaimLaunchpadTokensResultType {
+    pub nr_redeemable_tickets: usize,
 }
 
 #[multiversx_sc::module]
@@ -78,9 +83,9 @@ pub trait UserInteractionsModule:
     >(
         &self,
         send_fn: SendLaunchpadTokensFn,
-    ) {
+    ) -> ClaimLaunchpadTokensResultType {
         let winning_ticket_ids = self.claim_refunded_tickets().winning_ticket_ids;
-        self.claim_launchpad_tokens(winning_ticket_ids, send_fn);
+        self.claim_launchpad_tokens(winning_ticket_ids, send_fn)
     }
 
     fn claim_refunded_tickets(&self) -> ClaimRefundedTicketsResultType<Self::Api> {
@@ -91,19 +96,21 @@ pub trait UserInteractionsModule:
         );
 
         let caller = self.blockchain().get_caller();
-        let ticket_range = self.try_get_ticket_range(&caller);
-        let winning_ticket_ids = self.get_winning_ticket_ids(&ticket_range);
-
         let claim_status_mapper = self.claimed_tokens(&caller);
         let claim_status = claim_status_mapper.get();
         match claim_status {
             ClaimType::None => {}
             ClaimType::RefundedTickets => {
-                return ClaimRefundedTicketsResultType { winning_ticket_ids }
+                let ticket_range = self.try_get_ticket_range(&caller);
+                let winning_ticket_ids = self.get_winning_ticket_ids(&ticket_range);
+
+                return ClaimRefundedTicketsResultType { winning_ticket_ids };
             }
             ClaimType::All => sc_panic!("Already claimed"),
         };
 
+        let ticket_range = self.try_get_ticket_range(&caller);
+        let winning_ticket_ids = self.get_winning_ticket_ids(&ticket_range);
         let nr_redeemable_tickets = winning_ticket_ids.len();
         if nr_redeemable_tickets > 0 {
             self.nr_winning_tickets()
@@ -125,8 +132,12 @@ pub trait UserInteractionsModule:
         &self,
         winning_ticket_ids: ManagedVec<usize>,
         send_fn: SendLaunchpadTokensFn,
-    ) {
-        self.require_claim_period();
+    ) -> ClaimLaunchpadTokensResultType {
+        if self.get_launch_stage() != LaunchStage::Claim {
+            return ClaimLaunchpadTokensResultType {
+                nr_redeemable_tickets: 0,
+            };
+        }
 
         let caller = self.blockchain().get_caller();
         let ticket_range = self.try_get_ticket_range(&caller);
@@ -143,6 +154,10 @@ pub trait UserInteractionsModule:
 
         let nr_redeemable_tickets = winning_ticket_ids.len();
         self.send_launchpad_tokens(&caller, nr_redeemable_tickets, send_fn);
+
+        ClaimLaunchpadTokensResultType {
+            nr_redeemable_tickets,
+        }
     }
 
     fn get_winning_ticket_ids(&self, ticket_range: &TicketRange) -> ManagedVec<usize> {

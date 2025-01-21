@@ -52,7 +52,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getSupportAddress => support_address
         isUserBlacklisted => is_user_blacklisted
         confirmTickets => confirm_tickets
-        hasUserClaimedTokens => has_user_claimed
+        getClaimTypeForUser => claimed_tokens
         setUnlockSchedule => set_unlock_schedule
         getClaimableTokens => compute_claimable_tokens
         getUserTotalClaimableBalance => user_total_claimable_balance
