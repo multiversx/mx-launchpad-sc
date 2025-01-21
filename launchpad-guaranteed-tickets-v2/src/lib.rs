@@ -45,9 +45,9 @@ pub trait LaunchpadGuaranteedTickets:
         ticket_payment_token: EgldOrEsdtTokenIdentifier,
         ticket_price: BigUint,
         nr_winning_tickets: usize,
-        confirmation_period_start_block: u64,
-        winner_selection_start_block: u64,
-        claim_start_block: u64,
+        confirmation_period_start_round: u64,
+        winner_selection_start_round: u64,
+        claim_start_round: u64,
     ) {
         self.init_base(
             launchpad_token_id,
@@ -55,9 +55,9 @@ pub trait LaunchpadGuaranteedTickets:
             ticket_payment_token,
             ticket_price,
             nr_winning_tickets,
-            confirmation_period_start_block,
-            winner_selection_start_block,
-            claim_start_block,
+            confirmation_period_start_round,
+            winner_selection_start_round,
+            claim_start_round,
             Flags::default(),
         );
     }
@@ -93,6 +93,13 @@ pub trait LaunchpadGuaranteedTickets:
         let total_tickets = base_selection_winning_tickets + reserved_tickets;
 
         self.deposit_launchpad_tokens(total_tickets);
+    }
+
+    #[endpoint(refundUserTickets)]
+    fn refund_user_tickets(&self, users_list: MultiValueEncoded<ManagedAddress>) {
+        let users_vec = users_list.to_vec();
+        self.add_users_to_blacklist(&users_vec);
+        self.clear_users_with_guaranteed_ticket_after_blacklist(&users_vec);
     }
 
     #[endpoint(addUsersToBlacklist)]

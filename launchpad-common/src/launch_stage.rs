@@ -22,24 +22,24 @@ pub struct Flags {
 #[multiversx_sc::module]
 pub trait LaunchStageModule: crate::config::ConfigModule {
     fn get_launch_stage(&self) -> LaunchStage {
-        let current_block = self.blockchain().get_block_nonce();
+        let current_round = self.blockchain().get_block_round();
         let config: TimelineConfig = self.configuration().get();
         let flags: Flags = self.flags().get();
 
-        if current_block < config.confirmation_period_start_block {
+        if current_round < config.confirmation_period_start_round {
             return LaunchStage::AddTickets;
         }
-        if current_block < config.winner_selection_start_block {
+        if current_round < config.winner_selection_start_round {
             return LaunchStage::Confirm;
         }
 
         let both_selection_steps_completed =
             flags.were_winners_selected && flags.was_additional_step_completed;
-        if current_block >= config.winner_selection_start_block && !both_selection_steps_completed {
+        if current_round >= config.winner_selection_start_round && !both_selection_steps_completed {
             return LaunchStage::WinnerSelection;
         }
-        if current_block >= config.winner_selection_start_block
-            && current_block < config.claim_start_block
+        if current_round >= config.winner_selection_start_round
+            && current_round < config.claim_start_round
         {
             return LaunchStage::WinnerSelection;
         }

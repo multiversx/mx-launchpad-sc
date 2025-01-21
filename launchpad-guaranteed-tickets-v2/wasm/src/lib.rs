@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           41
+// Endpoints:                           42
 // Async Callback (empty):               1
-// Total number of exported functions:  44
+// Total number of exported functions:  45
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgrade => upgrade
         addTickets => add_tickets_endpoint
         depositLaunchpadTokens => deposit_launchpad_tokens_endpoint
+        refundUserTickets => refund_user_tickets
         addUsersToBlacklist => add_users_to_blacklist_endpoint
         removeGuaranteedUsersFromBlacklist => remove_guaranteed_users_from_blacklist_endpoint
         distributeGuaranteedTickets => distribute_guaranteed_tickets_endpoint
@@ -37,9 +38,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         getTotalLaunchpadTokensDeposited => total_launchpad_tokens_deposited
         setTicketPrice => set_ticket_price
         setLaunchpadTokensPerWinningTicket => set_launchpad_tokens_per_winning_ticket
-        setConfirmationPeriodStartBlock => set_confirmation_period_start_block
-        setWinnerSelectionStartBlock => set_winner_selection_start_block
-        setClaimStartBlock => set_claim_start_block
+        setConfirmationPeriodStartRound => set_confirmation_period_start_round
+        setWinnerSelectionStartRound => set_winner_selection_start_round
+        setClaimStartRound => set_claim_start_round
         getTicketRangeForAddress => get_ticket_range_for_address
         getTotalNumberOfTicketsForAddress => get_total_number_of_tickets_for_address
         getTotalNumberOfTickets => last_ticket_id

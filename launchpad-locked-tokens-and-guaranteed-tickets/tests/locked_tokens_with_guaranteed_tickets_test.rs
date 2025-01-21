@@ -3,9 +3,9 @@
 mod guaranteed_tickets_setup;
 
 use guaranteed_tickets_setup::{
-    simple_lock_mock::LockedTokenAttributes, LaunchpadSetup, CLAIM_START_BLOCK,
-    CONFIRM_START_BLOCK, LAUNCHPAD_TOKENS_PER_TICKET, LAUNCHPAD_TOKEN_ID, LOCKED_TOKEN_ID,
-    MAX_TIER_TICKETS, TICKET_COST, UNLOCK_EPOCH, WINNER_SELECTION_START_BLOCK,
+    simple_lock_mock::LockedTokenAttributes, LaunchpadSetup, CLAIM_START_ROUND,
+    CONFIRM_START_ROUND, LAUNCHPAD_TOKENS_PER_TICKET, LAUNCHPAD_TOKEN_ID, LOCKED_TOKEN_ID,
+    MAX_TIER_TICKETS, TICKET_COST, UNLOCK_EPOCH, WINNER_SELECTION_START_ROUND,
 };
 use launchpad_common::{
     config::ConfigModule,
@@ -13,10 +13,10 @@ use launchpad_common::{
     winner_selection::WinnerSelectionModule,
 };
 use launchpad_guaranteed_tickets::{
-    guaranteed_tickets_init::GuaranteedTicketsInitModule,
     guaranteed_ticket_winners::{
         GuaranteedTicketWinnersModule, GuaranteedTicketsSelectionOperation,
     },
+    guaranteed_tickets_init::GuaranteedTicketsInitModule,
 };
 use launchpad_locked_tokens_and_guaranteed_tickets::LaunchpadLockedTokensAndGuaranteedTickets;
 use multiversx_sc::types::MultiValueEncoded;
@@ -42,7 +42,7 @@ fn confirm_all_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_base_winners_mock(1).assert_ok();
@@ -104,7 +104,7 @@ fn confirm_all_test() {
         })
         .assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     // check balances before
     let base_user_balance = rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64);
@@ -172,7 +172,7 @@ fn redistribute_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_base_winners_mock(1).assert_ok();
@@ -252,7 +252,7 @@ fn combined_scenario_test() {
     participants.push(second_new_participant.clone());
 
     // add another "whale"
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND - 1);
     lp_setup
         .b_mock
         .execute_tx(
@@ -277,7 +277,7 @@ fn combined_scenario_test() {
         )
         .assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
     // user[0] and user[1] will not confirm, so they get filtered
     lp_setup.confirm(&participants[2], 3).assert_ok();
@@ -286,7 +286,7 @@ fn combined_scenario_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_base_winners_mock(2).assert_ok();

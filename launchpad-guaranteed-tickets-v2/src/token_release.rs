@@ -5,11 +5,11 @@ use launchpad_common::{config, launch_stage};
 
 pub const MAX_PERCENTAGE: u64 = 10_000;
 pub const MAX_UNLOCK_MILESTONES_ENTRIES: usize = 60;
-pub const MAX_RELEASE_EPOCH_DIFF: u64 = 1800;
+pub const MAX_RELEASE_DIFF: u64 = 60 * 60 * 24 * 365 * 5;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, ManagedVecItem)]
 pub struct UnlockMilestone {
-    pub release_epoch: u64,
+    pub release_round: u64,
     pub percentage: u64,
 }
 
@@ -22,7 +22,7 @@ impl<M: ManagedTypeApi> Default for UnlockSchedule<M> {
     fn default() -> Self {
         Self {
             milestones: ManagedVec::from_single_item(UnlockMilestone {
-                release_epoch: 0,
+                release_round: 0,
                 percentage: MAX_PERCENTAGE,
             }),
         }
@@ -34,24 +34,24 @@ impl<M: ManagedTypeApi> UnlockSchedule<M> {
         UnlockSchedule { milestones }
     }
 
-    fn validate(&self, current_epoch: u64) -> bool {
+    fn validate(&self, current_round: u64) -> bool {
         if self.milestones.is_empty() {
             return false;
         }
 
         let mut total_percentage = 0u64;
-        let mut last_epoch = 0u64;
+        let mut last_round = 0u64;
 
         for milestone in self.milestones.iter() {
             if milestone.percentage > MAX_PERCENTAGE
-                || milestone.release_epoch < current_epoch
-                || milestone.release_epoch < last_epoch
-                || milestone.release_epoch > current_epoch + MAX_RELEASE_EPOCH_DIFF
+                || milestone.release_round < current_round
+                || milestone.release_round < last_round
+                || milestone.release_round > current_round + MAX_RELEASE_DIFF
             {
                 return false;
             }
 
-            last_epoch = milestone.release_epoch;
+            last_round = milestone.release_round;
             total_percentage += milestone.percentage;
         }
 
@@ -74,17 +74,17 @@ pub trait TokenReleaseModule:
 
         let mut milestones = ManagedVec::new();
         for unlock_milestone in unlock_milestones {
-            let (release_epoch, percentage) = unlock_milestone.into_tuple();
+            let (release_round, percentage) = unlock_milestone.into_tuple();
             milestones.push(UnlockMilestone {
-                release_epoch,
+                release_round,
                 percentage,
             });
         }
 
-        let current_epoch = self.blockchain().get_block_epoch();
+        let current_round = self.blockchain().get_block_round();
         let unlock_schedule = UnlockSchedule::new(milestones.clone());
         require!(
-            unlock_schedule.validate(current_epoch),
+            unlock_schedule.validate(current_round),
             "Invalid unlock schedule"
         );
 
@@ -113,11 +113,11 @@ pub trait TokenReleaseModule:
             unlock_schedule_mapper.get()
         };
 
-        let current_epoch = self.blockchain().get_block_epoch();
+        let current_round = self.blockchain().get_block_round();
 
         let mut claimable_percentage = 0u64;
         for milestone in unlock_schedule.milestones.iter() {
-            if milestone.release_epoch <= current_epoch {
+            if milestone.release_round <= current_round {
                 claimable_percentage += milestone.percentage;
             } else {
                 break;

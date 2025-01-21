@@ -48,40 +48,40 @@ pub trait SetupModule:
     }
 
     #[only_owner]
-    #[endpoint(setConfirmationPeriodStartBlock)]
-    fn set_confirmation_period_start_block(&self, new_start_block: u64) {
+    #[endpoint(setConfirmationPeriodStartRound)]
+    fn set_confirmation_period_start_round(&self, new_start_round: u64) {
         self.configuration().update(|config| {
             self.require_valid_config_timeline_change(
-                config.confirmation_period_start_block,
-                new_start_block,
+                config.confirmation_period_start_round,
+                new_start_round,
             );
 
-            config.confirmation_period_start_block = new_start_block;
+            config.confirmation_period_start_round = new_start_round;
             self.require_valid_time_periods(config);
         });
     }
 
     #[only_owner]
-    #[endpoint(setWinnerSelectionStartBlock)]
-    fn set_winner_selection_start_block(&self, new_start_block: u64) {
+    #[endpoint(setWinnerSelectionStartRound)]
+    fn set_winner_selection_start_round(&self, new_start_round: u64) {
         self.configuration().update(|config| {
             self.require_valid_config_timeline_change(
-                config.winner_selection_start_block,
-                new_start_block,
+                config.winner_selection_start_round,
+                new_start_round,
             );
 
-            config.winner_selection_start_block = new_start_block;
+            config.winner_selection_start_round = new_start_round;
             self.require_valid_time_periods(config);
         });
     }
 
     #[only_owner]
-    #[endpoint(setClaimStartBlock)]
-    fn set_claim_start_block(&self, new_start_block: u64) {
+    #[endpoint(setClaimStartRound)]
+    fn set_claim_start_round(&self, new_start_round: u64) {
         self.configuration().update(|config| {
-            self.require_valid_config_timeline_change(config.claim_start_block, new_start_block);
+            self.require_valid_config_timeline_change(config.claim_start_round, new_start_round);
 
-            config.claim_start_block = new_start_block;
+            config.claim_start_round = new_start_round;
             self.require_valid_time_periods(config);
         });
     }
@@ -112,25 +112,25 @@ pub trait SetupModule:
         self.nr_winning_tickets().set(nr_winning_tickets);
     }
 
-    fn require_valid_config_timeline_change(&self, old_start_block: u64, new_start_block: u64) {
-        let current_block = self.blockchain().get_block_nonce();
+    fn require_valid_config_timeline_change(&self, old_start_round: u64, new_start_round: u64) {
+        let current_round = self.blockchain().get_block_round();
         require!(
-            old_start_block > current_block,
-            "Cannot change start block, it's either in progress or passed already"
+            old_start_round > current_round,
+            "Cannot change start round, it's either in progress or passed already"
         );
         require!(
-            new_start_block > current_block,
-            "Start block cannot be in the past"
+            new_start_round > current_round,
+            "Start round cannot be in the past"
         );
     }
 
     fn require_valid_time_periods(&self, config: &TimelineConfig) {
         require!(
-            config.confirmation_period_start_block < config.winner_selection_start_block,
-            "Winner selection start block must be after confirm start block"
+            config.confirmation_period_start_round < config.winner_selection_start_round,
+            "Winner selection start round must be after confirm start round"
         );
         require!(
-            config.winner_selection_start_block <= config.claim_start_block,
+            config.winner_selection_start_round <= config.claim_start_round,
             "Claim period must be after winner selection"
         );
     }

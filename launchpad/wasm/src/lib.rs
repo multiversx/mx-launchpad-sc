@@ -32,9 +32,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         getTotalLaunchpadTokensDeposited => total_launchpad_tokens_deposited
         setTicketPrice => set_ticket_price
         setLaunchpadTokensPerWinningTicket => set_launchpad_tokens_per_winning_ticket
-        setConfirmationPeriodStartBlock => set_confirmation_period_start_block
-        setWinnerSelectionStartBlock => set_winner_selection_start_block
-        setClaimStartBlock => set_claim_start_block
+        setConfirmationPeriodStartRound => set_confirmation_period_start_round
+        setWinnerSelectionStartRound => set_winner_selection_start_round
+        setClaimStartRound => set_claim_start_round
         getTicketRangeForAddress => get_ticket_range_for_address
         getTotalNumberOfTicketsForAddress => get_total_number_of_tickets_for_address
         getTotalNumberOfTickets => last_ticket_id
