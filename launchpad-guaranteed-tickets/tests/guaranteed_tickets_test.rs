@@ -10,6 +10,7 @@ use launchpad_common::{
     config::ConfigModule,
     setup::SetupModule,
     tickets::{TicketsModule, WINNING_TICKET},
+    user_interactions::{ClaimType, UserInteractionsModule},
     winner_selection::WinnerSelectionModule,
 };
 use launchpad_guaranteed_tickets::{
@@ -1227,4 +1228,155 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
         LAUNCHPAD_TOKEN_ID,
         &rust_biguint!(0),
     );
+}
+
+#[test]
+fn claim_lost_ticket_payment_before_claim_period_test() {
+    let mut lp_setup = LaunchpadSetup::new(
+        NR_WINNING_TICKETS,
+        launchpad_guaranteed_tickets::contract_obj,
+    );
+    lp_setup.set_unlock_schedule(0, 10_000, 0, 0, 0);
+    let participants = lp_setup.participants.clone();
+
+    for (i, p) in participants.iter().enumerate() {
+        lp_setup.confirm(p, i + 1).assert_ok();
+    }
+
+    lp_setup
+        .b_mock
+        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+
+    lp_setup.filter_tickets().assert_ok();
+    lp_setup.select_base_winners_mock(1).assert_ok();
+
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert_eq!(sc.ticket_status(1).get(), WINNING_TICKET);
+            assert_eq!(sc.ticket_status(2).get(), WINNING_TICKET);
+            assert_eq!(sc.ticket_status(3).get(), false);
+            assert_eq!(sc.ticket_status(4).get(), false);
+            assert_eq!(sc.ticket_status(5).get(), false);
+            assert_eq!(sc.ticket_status(6).get(), false);
+
+            assert_eq!(
+                sc.get_number_of_winning_tickets_for_address(managed_address!(&participants[0])),
+                1
+            );
+            assert_eq!(
+                sc.get_number_of_winning_tickets_for_address(managed_address!(&participants[1])),
+                1
+            );
+            assert_eq!(
+                sc.get_number_of_winning_tickets_for_address(managed_address!(&participants[2])),
+                0
+            );
+
+            assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS - 1);
+        })
+        .assert_ok();
+
+    lp_setup.distribute_tickets().assert_ok();
+
+    // third user now has ticket with ID 4 as winning
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            assert_eq!(sc.ticket_status(1).get(), WINNING_TICKET);
+            assert_eq!(sc.ticket_status(2).get(), WINNING_TICKET);
+            assert_eq!(sc.ticket_status(3).get(), false);
+            assert_eq!(sc.ticket_status(4).get(), WINNING_TICKET);
+            assert_eq!(sc.ticket_status(5).get(), false);
+            assert_eq!(sc.ticket_status(6).get(), false);
+
+            assert_eq!(
+                sc.get_number_of_winning_tickets_for_address(managed_address!(&participants[0])),
+                1
+            );
+            assert_eq!(
+                sc.get_number_of_winning_tickets_for_address(managed_address!(&participants[1])),
+                1
+            );
+            assert_eq!(
+                sc.get_number_of_winning_tickets_for_address(managed_address!(&participants[2])),
+                1
+            );
+
+            assert_eq!(sc.nr_winning_tickets().get(), NR_WINNING_TICKETS);
+        })
+        .assert_ok();
+
+    let base_user_balance = rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64);
+
+    // check balance before
+    lp_setup.b_mock.check_egld_balance(
+        &participants[2],
+        &(&base_user_balance - &rust_biguint!(3 * TICKET_COST)),
+    );
+    lp_setup
+        .b_mock
+        .check_esdt_balance(&participants[2], LAUNCHPAD_TOKEN_ID, &rust_biguint!(0));
+
+    // user 3 claim
+    lp_setup.claim_user(&participants[2]).assert_ok();
+
+    // check balance after - refunded 2 tickets
+    lp_setup.b_mock.check_egld_balance(
+        &participants[2],
+        &(&base_user_balance - &rust_biguint!(TICKET_COST)),
+    );
+    lp_setup
+        .b_mock
+        .check_esdt_balance(&participants[2], LAUNCHPAD_TOKEN_ID, &rust_biguint!(0));
+
+    // check user state
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            let claim_status = sc.claimed_tokens(&managed_address!(&participants[2])).get();
+            assert!(matches!(claim_status, ClaimType::RefundedTickets));
+        })
+        .assert_ok();
+
+    // user try claim again
+    lp_setup.claim_user(&participants[2]).assert_ok();
+
+    // same balance
+    lp_setup.b_mock.check_egld_balance(
+        &participants[2],
+        &(&base_user_balance - &rust_biguint!(TICKET_COST)),
+    );
+    lp_setup
+        .b_mock
+        .check_esdt_balance(&participants[2], LAUNCHPAD_TOKEN_ID, &rust_biguint!(0));
+
+    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+
+    // user claim launchpad tokens
+    lp_setup.claim_user(&participants[2]).assert_ok();
+
+    lp_setup.b_mock.check_egld_balance(
+        &participants[2],
+        &(&base_user_balance - &rust_biguint!(TICKET_COST)),
+    );
+    lp_setup.b_mock.check_esdt_balance(
+        &participants[2],
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // check user state
+    lp_setup
+        .b_mock
+        .execute_query(&lp_setup.lp_wrapper, |sc| {
+            let claim_status = sc.claimed_tokens(&managed_address!(&participants[2])).get();
+            assert!(matches!(claim_status, ClaimType::All));
+        })
+        .assert_ok();
+
+    // user try claim again
+    lp_setup
+        .claim_user(&participants[2])
+        .assert_user_error("Already claimed all tokens");
 }
