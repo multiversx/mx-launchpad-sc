@@ -5,7 +5,7 @@ use launchpad_common::{config, launch_stage};
 
 pub const MAX_PERCENTAGE: u64 = 10_000;
 pub const MAX_UNLOCK_MILESTONES_ENTRIES: usize = 60;
-pub const MAX_RELEASE_DIFF: u64 = 60 * 60 * 24 * 365 * 5;
+pub const MAX_RELEASE_ROUND_DIFF: u64 = 155_520_000;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, ManagedVecItem)]
 pub struct UnlockMilestone {
@@ -46,7 +46,7 @@ impl<M: ManagedTypeApi> UnlockSchedule<M> {
             if milestone.percentage > MAX_PERCENTAGE
                 || milestone.release_round < current_round
                 || milestone.release_round < last_round
-                || milestone.release_round > current_round + MAX_RELEASE_DIFF
+                || milestone.release_round > current_round + MAX_RELEASE_ROUND_DIFF
             {
                 return false;
             }
