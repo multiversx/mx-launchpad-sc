@@ -5,7 +5,7 @@ use launchpad_common::{config, launch_stage};
 
 pub const MAX_PERCENTAGE: u64 = 10_000;
 pub const MAX_UNLOCK_MILESTONES_ENTRIES: usize = 60;
-pub const MAX_RELEASE_ROUND_DIFF: u64 = 155_520_000;
+pub const MAX_RELEASE_ROUND_DIFF: u64 = 26_280_000; // 5 years in rounds at 6s/block
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, ManagedVecItem)]
 pub struct UnlockMilestone {
