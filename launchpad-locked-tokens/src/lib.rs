@@ -82,7 +82,8 @@ pub trait LaunchpadLockedTokens:
 
     #[endpoint(claimLaunchpadTokens)]
     fn claim_launchpad_tokens_endpoint(&self) {
-        self.claim_launchpad_tokens(Self::send_locked_launchpad_tokens);
+        let _ =
+            self.claim_refunded_tickets_and_launchpad_tokens(Self::send_locked_launchpad_tokens);
     }
 
     #[only_owner]

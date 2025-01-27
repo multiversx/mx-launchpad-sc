@@ -3,7 +3,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use launchpad_common::{config::TokenAmountPair, launch_stage::Flags, tickets::WINNING_TICKET};
+use launchpad_common::user_interactions::ClaimType;
+use launchpad_common::{config::TokenAmountPair, launch_stage::Flags};
 
 use crate::guaranteed_ticket_winners::GuaranteedTicketsSelectionOperation;
 
@@ -182,7 +183,8 @@ pub trait LaunchpadGuaranteedTickets:
     fn claim_launchpad_tokens_endpoint(&self) {
         self.require_not_paused();
         let caller = self.blockchain().get_caller();
-        let user_results_processed = self.claim_list().contains(&caller);
+        let claim_type = self.claimed_tokens(&caller).get();
+        let user_results_processed = matches!(claim_type, ClaimType::All);
         if !user_results_processed {
             self.compute_launchpad_results(&caller);
         };
@@ -204,36 +206,9 @@ pub trait LaunchpadGuaranteedTickets:
     }
 
     fn compute_launchpad_results(&self, caller: &ManagedAddress) {
-        self.require_claim_period();
-
-        let ticket_range = self.try_get_ticket_range(caller);
-        let nr_confirmed_tickets = self.nr_confirmed_tickets(caller).get();
-        let mut nr_redeemable_tickets = 0;
-
-        for ticket_id in ticket_range.first_id..=ticket_range.last_id {
-            let ticket_status = self.ticket_status(ticket_id).get();
-            if ticket_status == WINNING_TICKET {
-                self.ticket_status(ticket_id).clear();
-
-                nr_redeemable_tickets += 1;
-            }
-
-            self.ticket_pos_to_id(ticket_id).clear();
-        }
-
-        self.nr_confirmed_tickets(caller).clear();
-        self.ticket_range_for_address(caller).clear();
-        self.ticket_batch(ticket_range.first_id).clear();
-
-        if nr_redeemable_tickets > 0 {
-            self.nr_winning_tickets()
-                .update(|nr_winning_tickets| *nr_winning_tickets -= nr_redeemable_tickets);
-        }
-
-        self.claim_list().add(caller);
-
-        let nr_tickets_to_refund = nr_confirmed_tickets - nr_redeemable_tickets;
-        self.refund_ticket_payment(caller, nr_tickets_to_refund);
+        let nr_redeemable_tickets = self
+            .claim_refunded_tickets_and_launchpad_tokens(Self::empty_send_fn)
+            .nr_redeemable_tickets;
 
         if nr_redeemable_tickets > 0 {
             let tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
@@ -244,6 +219,9 @@ pub trait LaunchpadGuaranteedTickets:
                 .set(launchpad_tokens_amount_won);
         }
     }
+
+    #[inline(always)]
+    fn empty_send_fn(&self, _address: &ManagedAddress, _payment: &EsdtTokenPayment) {}
 
     #[only_owner]
     #[endpoint(claimTicketPayment)]

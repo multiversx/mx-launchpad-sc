@@ -25,7 +25,7 @@ pub trait TokenSendModule: crate::config::ConfigModule + common_events::CommonEv
     }
 
     fn send_launchpad_tokens<
-        SendLaunchpadTokensFn: Fn(&Self, &ManagedAddress, &EsdtTokenPayment<Self::Api>),
+        SendLaunchpadTokensFn: Fn(&Self, &ManagedAddress, &EsdtTokenPayment),
     >(
         &self,
         address: &ManagedAddress,
@@ -48,7 +48,7 @@ pub trait TokenSendModule: crate::config::ConfigModule + common_events::CommonEv
     fn default_send_launchpad_tokens_fn(
         &self,
         address: &ManagedAddress,
-        payment: &EsdtTokenPayment<Self::Api>,
+        payment: &EsdtTokenPayment,
     ) {
         self.send().direct_esdt(
             address,

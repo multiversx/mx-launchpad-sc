@@ -1,6 +1,26 @@
 multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
-use crate::{config::TokenAmountPair, tickets::WINNING_TICKET};
+use crate::{
+    config::TokenAmountPair,
+    launch_stage::LaunchStage,
+    tickets::{TicketRange, WINNING_TICKET},
+};
+
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub enum ClaimType {
+    None,
+    RefundedTickets,
+    All,
+}
+
+pub struct ClaimRefundedTicketsResultType<M: ManagedTypeApi> {
+    pub winning_ticket_ids: ManagedVec<M, usize>,
+}
+
+pub struct ClaimLaunchpadTokensResultType {
+    pub nr_redeemable_tickets: usize,
+}
 
 #[multiversx_sc::module]
 pub trait UserInteractionsModule:
@@ -58,55 +78,103 @@ pub trait UserInteractionsModule:
         );
     }
 
-    fn claim_launchpad_tokens<
-        SendLaunchpadTokensFn: Fn(&Self, &ManagedAddress, &EsdtTokenPayment<Self::Api>),
+    fn claim_refunded_tickets_and_launchpad_tokens<
+        SendLaunchpadTokensFn: Fn(&Self, &ManagedAddress, &EsdtTokenPayment),
     >(
         &self,
         send_fn: SendLaunchpadTokensFn,
-    ) {
-        self.require_claim_period();
+    ) -> ClaimLaunchpadTokensResultType {
+        let winning_ticket_ids = self.claim_refunded_tickets().winning_ticket_ids;
+        self.claim_launchpad_tokens(winning_ticket_ids, send_fn)
+    }
+
+    fn claim_refunded_tickets(&self) -> ClaimRefundedTicketsResultType<Self::Api> {
+        let flags = self.flags().get();
+        require!(
+            flags.were_winners_selected && flags.was_additional_step_completed,
+            "Not in claim period"
+        );
 
         let caller = self.blockchain().get_caller();
-        require!(!self.has_user_claimed(&caller), "Already claimed");
+        let claim_status_mapper = self.claimed_tokens(&caller);
+        let claim_status = claim_status_mapper.get();
+        match claim_status {
+            ClaimType::None => {}
+            ClaimType::RefundedTickets => {
+                let ticket_range = self.try_get_ticket_range(&caller);
+                let winning_ticket_ids = self.get_winning_ticket_ids(&ticket_range);
+
+                return ClaimRefundedTicketsResultType { winning_ticket_ids };
+            }
+            ClaimType::All => sc_panic!("Already claimed"),
+        };
 
         let ticket_range = self.try_get_ticket_range(&caller);
+        let winning_ticket_ids = self.get_winning_ticket_ids(&ticket_range);
+        let nr_redeemable_tickets = winning_ticket_ids.len();
+        if nr_redeemable_tickets > 0 {
+            self.nr_winning_tickets()
+                .update(|nr_winning_tickets| *nr_winning_tickets -= nr_redeemable_tickets);
+        }
+
+        claim_status_mapper.set(ClaimType::RefundedTickets);
+
         let nr_confirmed_tickets = self.nr_confirmed_tickets(&caller).get();
-        let mut nr_redeemable_tickets = 0;
+        let nr_tickets_to_refund = nr_confirmed_tickets - nr_redeemable_tickets;
+        self.refund_ticket_payment(&caller, nr_tickets_to_refund);
 
-        for ticket_id in ticket_range.first_id..=ticket_range.last_id {
-            let ticket_status = self.ticket_status(ticket_id).get();
-            if ticket_status == WINNING_TICKET {
-                self.ticket_status(ticket_id).clear();
+        ClaimRefundedTicketsResultType { winning_ticket_ids }
+    }
 
-                nr_redeemable_tickets += 1;
-            }
+    fn claim_launchpad_tokens<
+        SendLaunchpadTokensFn: Fn(&Self, &ManagedAddress, &EsdtTokenPayment),
+    >(
+        &self,
+        winning_ticket_ids: ManagedVec<usize>,
+        send_fn: SendLaunchpadTokensFn,
+    ) -> ClaimLaunchpadTokensResultType {
+        if self.get_launch_stage() != LaunchStage::Claim {
+            return ClaimLaunchpadTokensResultType {
+                nr_redeemable_tickets: 0,
+            };
+        }
 
-            self.ticket_pos_to_id(ticket_id).clear();
+        let caller = self.blockchain().get_caller();
+        let ticket_range = self.try_get_ticket_range(&caller);
+
+        for ticket_id in &winning_ticket_ids {
+            self.ticket_status(ticket_id).clear();
         }
 
         self.nr_confirmed_tickets(&caller).clear();
         self.ticket_range_for_address(&caller).clear();
         self.ticket_batch(ticket_range.first_id).clear();
 
-        if nr_redeemable_tickets > 0 {
-            self.nr_winning_tickets()
-                .update(|nr_winning_tickets| *nr_winning_tickets -= nr_redeemable_tickets);
+        self.claimed_tokens(&caller).set(ClaimType::All);
+
+        let nr_redeemable_tickets = winning_ticket_ids.len();
+        self.send_launchpad_tokens(&caller, nr_redeemable_tickets, send_fn);
+
+        ClaimLaunchpadTokensResultType {
+            nr_redeemable_tickets,
+        }
+    }
+
+    fn get_winning_ticket_ids(&self, ticket_range: &TicketRange) -> ManagedVec<usize> {
+        let mut winning_ticket_ids = ManagedVec::new();
+        for ticket_id in ticket_range.first_id..=ticket_range.last_id {
+            let ticket_status = self.ticket_status(ticket_id).get();
+            if ticket_status == WINNING_TICKET {
+                winning_ticket_ids.push(ticket_id);
+            }
+
+            self.ticket_pos_to_id(ticket_id).clear();
         }
 
-        self.claim_list().add(&caller);
-
-        let nr_tickets_to_refund = nr_confirmed_tickets - nr_redeemable_tickets;
-        self.refund_ticket_payment(&caller, nr_tickets_to_refund);
-        self.send_launchpad_tokens(&caller, nr_redeemable_tickets, send_fn);
+        winning_ticket_ids
     }
 
-    #[view(hasUserClaimedTokens)]
-    fn has_user_claimed(&self, address: &ManagedAddress) -> bool {
-        self.claim_list().contains(address)
-    }
-
-    // flags
-
+    #[view(getClaimTypeForUser)]
     #[storage_mapper("claimedTokens")]
-    fn claim_list(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
+    fn claimed_tokens(&self, user: &ManagedAddress) -> SingleValueMapper<ClaimType>;
 }

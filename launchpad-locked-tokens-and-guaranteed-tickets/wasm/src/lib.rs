@@ -48,7 +48,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getSupportAddress => support_address
         isUserBlacklisted => is_user_blacklisted
         confirmTickets => confirm_tickets
-        hasUserClaimedTokens => has_user_claimed
+        getClaimTypeForUser => claimed_tokens
         getLaunchpadTokensLockPercentage => launchpad_tokens_lock_percentage
         getLaunchpadTokensUnlockEpoch => launchpad_tokens_unlock_epoch
         pause => pause_endpoint

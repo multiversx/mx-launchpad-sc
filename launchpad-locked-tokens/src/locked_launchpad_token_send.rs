@@ -43,7 +43,7 @@ pub trait LockedLaunchpadTokenSend {
     fn send_locked_launchpad_tokens(
         &self,
         dest_address: &ManagedAddress,
-        launchpad_tokens: &EsdtTokenPayment<Self::Api>,
+        launchpad_tokens: &EsdtTokenPayment,
     ) {
         let mut unlocked_amount = launchpad_tokens.amount.clone();
 
