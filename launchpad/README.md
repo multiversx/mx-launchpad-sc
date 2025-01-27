@@ -14,9 +14,9 @@ fn init(
     ticket_payment_token: EgldOrEsdtTokenIdentifier,
     ticket_price: BigUint,
     nr_winning_tickets: usize,
-    confirmation_period_start_block: u64,
-    winner_selection_start_block: u64,
-    claim_start_block: u64,
+    confirmation_period_start_round: u64,
+    winner_selection_start_round: u64,
+    claim_start_round: u64,
 )
 ```
 

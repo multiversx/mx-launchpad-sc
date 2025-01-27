@@ -27,9 +27,9 @@ static LAUNCHPAD_TOKEN_ID: &[u8] = b"LAUNCH-123456";
 const LAUNCHPAD_TOKENS_PER_TICKET: u64 = 100_000;
 const TICKET_PRICE: u64 = 100;
 const NR_WINNING_TICKETS: usize = 1;
-const CONFIRM_START_BLOCK: u64 = 10;
-const WINNER_SELECTION_START_BLOCK: u64 = 20;
-const CLAIM_START_BLOCK: u64 = 30;
+const CONFIRM_START_ROUND: u64 = 10;
+const WINNER_SELECTION_START_ROUND: u64 = 20;
+const CLAIM_START_ROUND: u64 = 30;
 const LOCK_PERCENTAGE: u32 = 5_000; // 50%
 const UNLOCK_EPOCH: u64 = 10;
 
@@ -59,9 +59,9 @@ fn launchpad_with_locked_tokens_out_test() {
                 managed_egld_token_id!(),
                 managed_biguint!(TICKET_PRICE),
                 NR_WINNING_TICKETS,
-                CONFIRM_START_BLOCK,
-                WINNER_SELECTION_START_BLOCK,
-                CLAIM_START_BLOCK,
+                CONFIRM_START_ROUND,
+                WINNER_SELECTION_START_ROUND,
+                CLAIM_START_ROUND,
                 LOCK_PERCENTAGE,
                 UNLOCK_EPOCH,
                 managed_address!(simple_lock_sc.address_ref()),
@@ -88,7 +88,7 @@ fn launchpad_with_locked_tokens_out_test() {
     );
 
     // user confirm
-    b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    b_mock.set_block_round(CONFIRM_START_ROUND);
 
     b_mock
         .execute_tx(&user, &lp_sc, &rust_biguint!(TICKET_PRICE), |sc| {
@@ -97,7 +97,7 @@ fn launchpad_with_locked_tokens_out_test() {
         .assert_ok();
 
     // filter + select winners
-    b_mock.set_block_nonce(WINNER_SELECTION_START_BLOCK);
+    b_mock.set_block_round(WINNER_SELECTION_START_ROUND);
 
     b_mock
         .execute_tx(&owner, &lp_sc, &rust_zero, |sc| {
@@ -107,7 +107,7 @@ fn launchpad_with_locked_tokens_out_test() {
         .assert_ok();
 
     // user claim
-    b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    b_mock.set_block_round(CLAIM_START_ROUND);
 
     b_mock
         .execute_tx(&user, &lp_sc, &rust_zero, |sc| {

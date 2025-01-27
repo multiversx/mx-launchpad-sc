@@ -43,9 +43,9 @@ pub trait LaunchpadMain:
         ticket_payment_token: EgldOrEsdtTokenIdentifier,
         ticket_price: BigUint,
         nr_winning_tickets: usize,
-        confirmation_period_start_block: u64,
-        winner_selection_start_block: u64,
-        claim_start_block: u64,
+        confirmation_period_start_round: u64,
+        winner_selection_start_round: u64,
+        claim_start_round: u64,
         flags: Flags,
     ) {
         if ticket_payment_token.is_esdt() {
@@ -54,7 +54,7 @@ pub trait LaunchpadMain:
                 "Launchpad token must be different from ticket payment token"
             );
         }
-        
+
         self.launchpad_token_id().set(&launchpad_token_id);
 
         self.try_set_launchpad_tokens_per_winning_ticket(&launchpad_tokens_per_winning_ticket);
@@ -62,9 +62,9 @@ pub trait LaunchpadMain:
         self.try_set_nr_winning_tickets(nr_winning_tickets);
 
         let config = TimelineConfig {
-            confirmation_period_start_block,
-            winner_selection_start_block,
-            claim_start_block,
+            confirmation_period_start_round,
+            winner_selection_start_round,
+            claim_start_round,
         };
         self.require_valid_time_periods(&config);
         self.configuration().set(&config);

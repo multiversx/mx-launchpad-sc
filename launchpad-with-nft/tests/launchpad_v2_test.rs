@@ -57,7 +57,7 @@ fn select_winners_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     // try select nft winners before base launchpad
     lp_setup
@@ -107,12 +107,12 @@ fn claim_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     lp_setup.select_base_launchpad_winners().assert_ok();
     lp_setup.select_nft_winners().assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     for user in &users {
         lp_setup.claim(user).assert_ok();

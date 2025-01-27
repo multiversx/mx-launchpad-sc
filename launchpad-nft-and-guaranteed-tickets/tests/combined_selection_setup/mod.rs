@@ -31,9 +31,9 @@ pub const NR_WINNING_TICKETS: usize = 2;
 pub const MAX_TIER_TICKETS: usize = 3;
 pub const TOTAL_NFTS: usize = 1;
 
-pub const CONFIRM_START_BLOCK: u64 = 5;
-pub const WINNER_SELECTION_START_BLOCK: u64 = 10;
-pub const CLAIM_START_BLOCK: u64 = 15;
+pub const CONFIRM_START_ROUND: u64 = 5;
+pub const WINNER_SELECTION_START_ROUND: u64 = 10;
+pub const CLAIM_START_ROUND: u64 = 15;
 
 pub static SFT_TOKEN_ID: &[u8] = b"MYSTERY-123456";
 
@@ -90,9 +90,9 @@ where
                     EgldOrEsdtTokenIdentifier::egld(),
                     managed_biguint!(BASE_TICKET_COST),
                     NR_WINNING_TICKETS,
-                    CONFIRM_START_BLOCK,
-                    WINNER_SELECTION_START_BLOCK,
-                    CLAIM_START_BLOCK,
+                    CONFIRM_START_ROUND,
+                    WINNER_SELECTION_START_ROUND,
+                    CLAIM_START_ROUND,
                     EgldOrEsdtTokenIdentifier::egld(),
                     0,
                     managed_biguint!(NFT_TICKET_COST),
@@ -152,7 +152,7 @@ where
             )
             .assert_ok();
 
-        b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+        b_mock.set_block_round(CONFIRM_START_ROUND);
 
         // confirm base launchpad tickets
         for (i, p) in participants.iter().enumerate() {

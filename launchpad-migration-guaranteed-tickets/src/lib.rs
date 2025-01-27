@@ -39,9 +39,9 @@ pub trait LaunchpadMigrationGuaranteedTickets:
         ticket_payment_token: EgldOrEsdtTokenIdentifier,
         ticket_price: BigUint,
         nr_winning_tickets: usize,
-        confirmation_period_start_block: u64,
-        winner_selection_start_block: u64,
-        claim_start_block: u64,
+        confirmation_period_start_round: u64,
+        winner_selection_start_round: u64,
+        claim_start_round: u64,
         min_confirmed_for_guaranteed_ticket: usize,
     ) {
         self.init_base(
@@ -50,9 +50,9 @@ pub trait LaunchpadMigrationGuaranteedTickets:
             ticket_payment_token,
             ticket_price,
             nr_winning_tickets,
-            confirmation_period_start_block,
-            winner_selection_start_block,
-            claim_start_block,
+            confirmation_period_start_round,
+            winner_selection_start_round,
+            claim_start_round,
             Flags::default(),
         );
 

@@ -3,8 +3,8 @@
 mod guaranteed_tickets_setup;
 
 use guaranteed_tickets_setup::{
-    LaunchpadSetup, CLAIM_START_BLOCK, CONFIRM_START_BLOCK, LAUNCHPAD_TOKENS_PER_TICKET,
-    LAUNCHPAD_TOKEN_ID, MAX_TIER_TICKETS, TICKET_COST, WINNER_SELECTION_START_BLOCK,
+    LaunchpadSetup, CLAIM_START_ROUND, CONFIRM_START_ROUND, LAUNCHPAD_TOKENS_PER_TICKET,
+    LAUNCHPAD_TOKEN_ID, MAX_TIER_TICKETS, TICKET_COST, WINNER_SELECTION_START_ROUND,
 };
 use launchpad_common::{
     config::ConfigModule,
@@ -43,7 +43,7 @@ fn confirm_all_test() {
     );
     let unlock_milestones = vec![(0, 10000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
     let participants = lp_setup.participants.clone();
 
     for (i, p) in participants.iter().enumerate() {
@@ -52,7 +52,7 @@ fn confirm_all_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_base_winners_mock(1).assert_ok();
@@ -114,7 +114,7 @@ fn confirm_all_test() {
         })
         .assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     // check balances before
     let base_user_balance = rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64);
@@ -160,7 +160,7 @@ fn redistribute_test() {
         NR_WINNING_TICKETS,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
     let participants = lp_setup.participants.clone();
 
@@ -170,7 +170,7 @@ fn redistribute_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_base_winners_mock(1).assert_ok();
@@ -252,7 +252,7 @@ fn combined_scenario_test() {
     participants.push(second_new_participant.clone());
 
     // add another "whale"
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND - 1);
     lp_setup
         .b_mock
         .execute_tx(
@@ -285,7 +285,7 @@ fn combined_scenario_test() {
         )
         .assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
     // user[0] and user[1] will not confirm, so they get filtered
     lp_setup.confirm(&participants[2], 3).assert_ok();
@@ -294,7 +294,7 @@ fn combined_scenario_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_base_winners_mock(2).assert_ok();
@@ -389,7 +389,7 @@ fn add_migration_guaranteed_tickets_distribution_isolated_steps_scenario_test() 
     participants.push(second_new_participant.clone());
 
     // add 2 new users with migration guaranteed tickets
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND - 1);
     lp_setup
         .b_mock
         .execute_tx(
@@ -424,7 +424,7 @@ fn add_migration_guaranteed_tickets_distribution_isolated_steps_scenario_test() 
         )
         .assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
     // user[0] and user[1] will not confirm, so they get filtered
     // user[3] confirms only 1 from maximum of 2 allowed tickets - should win by migration guaranteed
@@ -434,7 +434,7 @@ fn add_migration_guaranteed_tickets_distribution_isolated_steps_scenario_test() 
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     lp_setup.filter_tickets().assert_ok();
 
@@ -520,7 +520,7 @@ fn add_migration_guaranteed_tickets_distribution_isolated_steps_scenario_test() 
 
     lp_setup.distribute_tickets().assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     // Check user balance after winning 2 of 3 tickets
     lp_setup.claim_user(&participants[2]).assert_ok();
@@ -564,7 +564,7 @@ fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
     participants.push(second_new_participant.clone());
 
     // add 2 new users with migration guaranteed tickets
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND - 1);
     lp_setup
         .b_mock
         .execute_tx(
@@ -599,7 +599,7 @@ fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
         )
         .assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
     // user[0] and user[1] will not confirm, so they get filtered
     // user[3] confirms only 1 from maximum of 2 allowed tickets - should win by migration guaranteed
@@ -609,7 +609,7 @@ fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     lp_setup.filter_tickets().assert_ok();
 
@@ -628,7 +628,7 @@ fn add_migration_guaranteed_tickets_distribution_and_claim_scenario_test() {
         )
         .assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     // check EGLD balances of participants before they claim
     let base_user_balance = rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64);
@@ -754,7 +754,7 @@ fn condition_checks_test() {
     participants.push(new_participant.clone());
 
     // Check error - add tickets for user twice
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND - 1);
     lp_setup
         .b_mock
         .execute_tx(
@@ -801,7 +801,7 @@ fn condition_checks_test() {
         .assert_error(4, "Duplicate entry for user");
 
     // Check error - add tickets after allowed period
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK + 1); // -> Confirm phase
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND + 1); // -> Confirm phase
     lp_setup
         .b_mock
         .execute_tx(
@@ -842,7 +842,7 @@ fn condition_checks_test() {
         )
         .assert_error(4, "Add tickets period has passed");
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
     // User 0 confirms with 0 tickets - the flow should still work
     lp_setup.confirm(&participants[0], 0).assert_ok();
@@ -852,7 +852,7 @@ fn condition_checks_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     lp_setup.filter_tickets().assert_ok();
 
@@ -865,7 +865,7 @@ fn condition_checks_test() {
     lp_setup.distribute_tickets().assert_ok();
 
     // Check error - user claim twice
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
     lp_setup.claim_user(&participants[3]).assert_ok();
 
     lp_setup
@@ -929,7 +929,7 @@ fn blacklist_scenario_test() {
 
     // add 2 new users with migration guaranteed tickets
     // second_new_participant will be blacklisted
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND - 1);
     lp_setup
         .b_mock
         .execute_tx(
@@ -964,7 +964,7 @@ fn blacklist_scenario_test() {
         )
         .assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
     lp_setup.confirm(&participants[2], 3).assert_ok();
     lp_setup.confirm(&participants[3], 1).assert_ok();
@@ -1109,7 +1109,7 @@ fn blacklist_scenario_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     // Check error - try to blacklist user again, in the winner selection phase
     lp_setup
@@ -1161,7 +1161,7 @@ fn blacklist_scenario_test() {
         .assert_ok();
 
     // Check user balance after he wins only 1 ticket
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
     lp_setup.claim_user(&second_new_participant).assert_ok();
 
     lp_setup.b_mock.check_egld_balance(
@@ -1195,7 +1195,7 @@ fn remove_from_blacklist_underflow_and_empty_storage_test() {
         .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64));
     participants.push(new_participant2.clone());
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND - 1);
 
     // Set guaranteed tickets for new_participant2
     lp_setup
@@ -1297,7 +1297,7 @@ fn remove_from_blacklist_underflow_and_empty_storage_test() {
         .assert_error(4, "Number of winning tickets exceeded");
 
     // Confirm tickets
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
     lp_setup.confirm(&participants[0], 1).assert_ok();
     lp_setup.confirm(&participants[1], 2).assert_ok();
     lp_setup.confirm(&participants[2], 3).assert_ok();
@@ -1308,10 +1308,10 @@ fn remove_from_blacklist_underflow_and_empty_storage_test() {
         "You have been put into the blacklist and may not confirm tickets",
     );
 
-    // Set block to winner selection
+    // Set round to winner selection
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     // Filter tickets and select winners
     lp_setup.filter_tickets().assert_ok();
@@ -1325,8 +1325,8 @@ fn remove_from_blacklist_underflow_and_empty_storage_test() {
         })
         .assert_ok();
 
-    // Set block to claim period
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    // Set round to claim period
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     // Claim for all users
     for participant in participants.iter().take(4) {
@@ -1425,10 +1425,10 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
         nr_winning_tickets,
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
-    let unlock_milestones = vec![(0, 5000), (1, 5000)];
+    let unlock_milestones = vec![(15, 5000), (20, 5000)];
     lp_setup.set_unlock_schedule(unlock_milestones);
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
     let mut participants = lp_setup.participants.clone();
 
@@ -1437,7 +1437,7 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
         .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64));
     participants.push(new_participant.clone());
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND - 1);
     lp_setup
         .b_mock
         .execute_tx(
@@ -1461,13 +1461,13 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
         )
         .assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
     lp_setup.confirm(&participants[3], 1).assert_ok();
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     lp_setup.filter_tickets().assert_ok();
 
@@ -1475,7 +1475,7 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
 
     lp_setup.distribute_tickets().assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     // Check user balance after winning 1 ticket
     lp_setup.claim_user(&participants[3]).assert_ok();
@@ -1538,8 +1538,7 @@ fn confirm_less_tickets_than_total_available_with_vesting_scenario_test() {
     );
 
     // Claim the rest of the tokens
-    lp_setup.b_mock.set_block_round(1);
-    lp_setup.b_mock.set_block_epoch(1);
+    lp_setup.b_mock.set_block_round(20);
     lp_setup.claim_user(&participants[3]).assert_ok();
 
     // User should have all the tokens at this point
@@ -1574,22 +1573,21 @@ fn vesting_with_four_milestones_test() {
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
 
-    let unlock_milestones = vec![(0, 2500), (1, 2500), (2, 2500), (3, 2500)];
+    let unlock_milestones = vec![(15, 2500), (20, 2500), (25, 2500), (30, 2500)];
     lp_setup.set_unlock_schedule(unlock_milestones);
     let participant = &lp_setup.participants[0].clone();
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
     lp_setup.confirm(participant, 1).assert_ok();
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_base_winners_mock(1).assert_ok();
     lp_setup.distribute_tickets().assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
-    lp_setup.b_mock.set_block_epoch(0);
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     // First claim (25%)
     lp_setup.claim_user(participant).assert_ok();
@@ -1600,7 +1598,7 @@ fn vesting_with_four_milestones_test() {
     );
 
     // Second claim (50% total)
-    lp_setup.b_mock.set_block_epoch(1);
+    lp_setup.b_mock.set_block_round(20);
     lp_setup.claim_user(participant).assert_ok();
     lp_setup.b_mock.check_esdt_balance(
         participant,
@@ -1609,7 +1607,7 @@ fn vesting_with_four_milestones_test() {
     );
 
     // Third claim (75% total)
-    lp_setup.b_mock.set_block_epoch(2);
+    lp_setup.b_mock.set_block_round(25);
     lp_setup.claim_user(participant).assert_ok();
     lp_setup.b_mock.check_esdt_balance(
         participant,
@@ -1618,7 +1616,7 @@ fn vesting_with_four_milestones_test() {
     );
 
     // Final claim (100% total)
-    lp_setup.b_mock.set_block_epoch(3);
+    lp_setup.b_mock.set_block_round(30);
     lp_setup.claim_user(participant).assert_ok();
     lp_setup.b_mock.check_esdt_balance(
         participant,
@@ -1665,7 +1663,7 @@ fn unlock_milestones_wrong_step_and_order_test() {
         .assert_user_error("Invalid unlock schedule");
 
     // Retry after setup period has passed
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
     lp_setup
         .b_mock
@@ -1713,7 +1711,7 @@ fn multiple_guaranteed_tickets_test() {
         .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64 * 3));
     participants.push(third_new_participant.clone());
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND - 1);
 
     // Set guaranteed tickets for users
     lp_setup
@@ -1762,7 +1760,7 @@ fn multiple_guaranteed_tickets_test() {
         .assert_ok();
 
     // Confirm tickets
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
     lp_setup.confirm(&participants[0], 1).assert_ok();
     lp_setup.confirm(&participants[1], 2).assert_ok();
     lp_setup.confirm(&participants[2], 3).assert_ok();
@@ -1770,18 +1768,18 @@ fn multiple_guaranteed_tickets_test() {
     lp_setup.confirm(&participants[4], 4).assert_ok();
     lp_setup.confirm(&participants[5], 9).assert_ok();
 
-    // Set block to winner selection
+    // Set round to winner selection
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     // Filter tickets and select winners
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_winners().assert_ok();
     lp_setup.distribute_tickets().assert_ok();
 
-    // Set block to claim period
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    // Set round to claim period
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     // Claim for all users
     for participant in participants.iter().take(6) {
@@ -1882,7 +1880,7 @@ fn contract_pause_test() {
     lp_setup.set_unlock_schedule(unlock_milestones);
     let participant = &lp_setup.participants[0].clone();
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
     // Check pause functionality
     lp_setup.pause_contract();
@@ -1895,7 +1893,7 @@ fn contract_pause_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     // Check pause functionality
     lp_setup.pause_contract();
@@ -1922,8 +1920,7 @@ fn contract_pause_test() {
     lp_setup.unpause_contract();
     lp_setup.distribute_tickets().assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
-    lp_setup.b_mock.set_block_epoch(0);
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     // Check pause functionality
     lp_setup.pause_contract();
@@ -1959,7 +1956,7 @@ fn fair_chance_allocation_and_ticket_redistribution_test() {
         .create_user_account(&rust_biguint!(TICKET_COST * MAX_TIER_TICKETS as u64 * 2));
     participants.push(new_participant.clone());
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND - 1);
 
     // Set guaranteed tickets for users
     lp_setup
@@ -1990,16 +1987,16 @@ fn fair_chance_allocation_and_ticket_redistribution_test() {
         .assert_ok();
 
     // Confirm tickets
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
     lp_setup.confirm(&participants[0], 1).assert_ok();
     lp_setup.confirm(&participants[1], 2).assert_ok();
     lp_setup.confirm(&participants[2], 3).assert_ok();
     lp_setup.confirm(&participants[3], 4).assert_ok();
 
-    // Set block to winner selection
+    // Set round to winner selection
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     // Filter tickets and select winners
     lp_setup.filter_tickets().assert_ok();
@@ -2013,8 +2010,8 @@ fn fair_chance_allocation_and_ticket_redistribution_test() {
         })
         .assert_ok();
 
-    // Set block to claim period
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    // Set round to claim period
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     // Claim for all users
     for participant in participants.iter().take(4) {
@@ -2114,18 +2111,18 @@ fn no_unlock_schedule_test() {
 
     let participants = lp_setup.participants.clone();
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND - 1);
 
     // Confirm tickets
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
     lp_setup.confirm(&participants[0], 1).assert_ok();
     lp_setup.confirm(&participants[1], 2).assert_ok();
     lp_setup.confirm(&participants[2], 3).assert_ok();
 
-    // Set block to winner selection
+    // Set round to winner selection
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     // Filter tickets and select winners
     lp_setup.filter_tickets().assert_ok();
@@ -2139,8 +2136,8 @@ fn no_unlock_schedule_test() {
         })
         .assert_ok();
 
-    // Set block to claim period
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    // Set round to claim period
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     // Claim for all users
     for participant in participants.iter().take(3) {
@@ -2222,24 +2219,24 @@ fn no_participants_test() {
         launchpad_guaranteed_tickets_v2::contract_obj,
     );
 
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK - 1);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND - 1);
 
     // Confirm tickets
-    lp_setup.b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
     // No participant confirms
 
-    // Set block to winner selection
+    // Set round to winner selection
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
 
     // Filter tickets and select winners
     lp_setup.filter_tickets().assert_ok();
     lp_setup.select_winners().assert_ok();
     lp_setup.distribute_tickets().assert_ok();
 
-    // Set block to claim period
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    // Set round to claim period
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     // Owner claims
     lp_setup.claim_owner().assert_ok();

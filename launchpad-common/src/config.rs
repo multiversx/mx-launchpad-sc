@@ -9,9 +9,9 @@ pub struct TokenAmountPair<M: ManagedTypeApi> {
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct TimelineConfig {
-    pub confirmation_period_start_block: u64,
-    pub winner_selection_start_block: u64,
-    pub claim_start_block: u64,
+    pub confirmation_period_start_round: u64,
+    pub winner_selection_start_round: u64,
+    pub claim_start_round: u64,
 }
 
 #[multiversx_sc::module]

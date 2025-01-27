@@ -22,9 +22,9 @@ pub mod simple_lock_mock;
 
 pub static LAUNCHPAD_TOKEN_ID: &[u8] = b"LAUNCH-123456";
 pub const LAUNCHPAD_TOKENS_PER_TICKET: u64 = 100;
-pub const CONFIRM_START_BLOCK: u64 = 5;
-pub const WINNER_SELECTION_START_BLOCK: u64 = 10;
-pub const CLAIM_START_BLOCK: u64 = 15;
+pub const CONFIRM_START_ROUND: u64 = 5;
+pub const WINNER_SELECTION_START_ROUND: u64 = 10;
+pub const CLAIM_START_ROUND: u64 = 15;
 
 pub const NR_LAUNCHPAD_PARTICIPANTS: usize = 3;
 pub const NR_WINNING_TICKETS: usize = 3;
@@ -99,9 +99,9 @@ where
                     EgldOrEsdtTokenIdentifier::egld(),
                     managed_biguint!(TICKET_COST),
                     NR_WINNING_TICKETS,
-                    CONFIRM_START_BLOCK,
-                    WINNER_SELECTION_START_BLOCK,
-                    CLAIM_START_BLOCK,
+                    CONFIRM_START_ROUND,
+                    WINNER_SELECTION_START_ROUND,
+                    CLAIM_START_ROUND,
                     MAX_TIER_TICKETS,
                     LOCK_PERCENTAGE,
                     UNLOCK_EPOCH,
@@ -144,7 +144,7 @@ where
             )
             .assert_ok();
 
-        b_mock.set_block_nonce(CONFIRM_START_BLOCK);
+        b_mock.set_block_round(CONFIRM_START_ROUND);
 
         Self {
             b_mock,

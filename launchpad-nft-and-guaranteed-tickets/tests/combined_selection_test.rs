@@ -1,8 +1,8 @@
 #![allow(clippy::bool_assert_comparison)]
 
 use combined_selection_setup::{
-    LaunchpadSetup, BASE_TICKET_COST, CLAIM_START_BLOCK, LAUNCHPAD_TOKENS_PER_TICKET,
-    LAUNCHPAD_TOKEN_ID, NFT_TICKET_COST, SFT_TOKEN_ID, WINNER_SELECTION_START_BLOCK,
+    LaunchpadSetup, BASE_TICKET_COST, CLAIM_START_ROUND, LAUNCHPAD_TOKENS_PER_TICKET,
+    LAUNCHPAD_TOKEN_ID, NFT_TICKET_COST, SFT_TOKEN_ID, WINNER_SELECTION_START_ROUND,
 };
 use launchpad_common::{
     config::ConfigModule,
@@ -83,7 +83,7 @@ fn combined_selection_test() {
 
     lp_setup
         .b_mock
-        .set_block_nonce(WINNER_SELECTION_START_BLOCK);
+        .set_block_round(WINNER_SELECTION_START_ROUND);
     lp_setup.select_base_launchpad_winners().assert_ok();
 
     lp_setup
@@ -144,7 +144,7 @@ fn combined_selection_test() {
         })
         .assert_ok();
 
-    lp_setup.b_mock.set_block_nonce(CLAIM_START_BLOCK);
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
 
     for p in &part {
         lp_setup.claim(p).assert_ok();

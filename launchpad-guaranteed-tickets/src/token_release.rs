@@ -49,12 +49,11 @@ pub trait TokenReleaseModule: config::ConfigModule {
             !configuration.is_empty(),
             "Timeline configuration is not set"
         );
-        let confirmation_period_start_block = configuration.get().confirmation_period_start_block;
+        let confirmation_period_start_round = configuration.get().confirmation_period_start_round;
 
-        let current_block = self.blockchain().get_block_nonce();
         let current_round = self.blockchain().get_block_round();
         require!(
-            current_block < confirmation_period_start_block || self.unlock_schedule().is_empty(),
+            current_round < confirmation_period_start_round || self.unlock_schedule().is_empty(),
             "Can't change the unlock schedule"
         );
         require!(
