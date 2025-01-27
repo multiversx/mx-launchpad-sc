@@ -19,6 +19,12 @@ pub trait BlacklistModule:
                 !blacklist_mapper.contains(&address),
                 "User already blacklisted"
             );
+
+            require!(
+                !self.ticket_range_for_address(&address).is_empty(),
+                "User has no ticket allowance"
+            );
+
             let confirmed_tickets_mapper = self.nr_confirmed_tickets(&address);
             let nr_confirmed_tickets = confirmed_tickets_mapper.get();
             if nr_confirmed_tickets > 0 {
