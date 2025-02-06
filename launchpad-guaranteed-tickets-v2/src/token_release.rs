@@ -66,7 +66,6 @@ pub trait TokenReleaseModule:
     #[only_owner]
     #[endpoint(setUnlockSchedule)]
     fn set_unlock_schedule(&self, unlock_milestones: MultiValueEncoded<MultiValue2<u64, u64>>) {
-        self.require_add_tickets_period();
         require!(
             unlock_milestones.len() <= MAX_UNLOCK_MILESTONES_ENTRIES,
             "Maximum unlock milestones entries exceeded"
