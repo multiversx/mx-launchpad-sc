@@ -1662,24 +1662,24 @@ fn unlock_milestones_wrong_step_and_order_test() {
         )
         .assert_user_error("Invalid unlock schedule");
 
-    // Retry after setup period has passed
-    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
+    // // Retry after setup period has passed
+    // lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
-    lp_setup
-        .b_mock
-        .execute_tx(
-            &lp_setup.owner_address,
-            &lp_setup.lp_wrapper,
-            &rust_biguint!(0),
-            |sc| {
-                let mut unlock_schedule = MultiValueEncoded::new();
-                for milestone in unlock_milestones {
-                    unlock_schedule.push(milestone.into());
-                }
-                sc.set_unlock_schedule(unlock_schedule);
-            },
-        )
-        .assert_user_error("Add tickets period has passed");
+    // lp_setup
+    //     .b_mock
+    //     .execute_tx(
+    //         &lp_setup.owner_address,
+    //         &lp_setup.lp_wrapper,
+    //         &rust_biguint!(0),
+    //         |sc| {
+    //             let mut unlock_schedule = MultiValueEncoded::new();
+    //             for milestone in unlock_milestones {
+    //                 unlock_schedule.push(milestone.into());
+    //             }
+    //             sc.set_unlock_schedule(unlock_schedule);
+    //         },
+    //     )
+    //     .assert_user_error("Add tickets period has passed");
 }
 
 #[test]

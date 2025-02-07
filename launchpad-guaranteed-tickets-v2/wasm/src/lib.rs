@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           42
+// Endpoints:                           43
 // Async Callback (empty):               1
-// Total number of exported functions:  45
+// Total number of exported functions:  46
 
 #![no_std]
 
@@ -55,6 +55,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         confirmTickets => confirm_tickets
         hasUserClaimedTokens => has_user_claimed
         setUnlockSchedule => set_unlock_schedule
+        refundWinningTickets => refund_winning_tickets
         getClaimableTokens => compute_claimable_tokens
         getUserTotalClaimableBalance => user_total_claimable_balance
         getUserClaimedBalance => user_claimed_balance
