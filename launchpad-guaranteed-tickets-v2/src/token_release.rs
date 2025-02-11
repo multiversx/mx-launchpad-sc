@@ -109,10 +109,7 @@ pub trait TokenReleaseModule:
         let mut remaining_payment_amount = payment_amount;
         for user in users {
             let user_claimed_balance = self.user_claimed_balance(&user).get();
-            require!(
-                user_claimed_balance == BigUint::zero(),
-                "User already claimed tokens"
-            );
+            require!(user_claimed_balance == 0, "User already claimed tokens");
 
             let user_total_claimable_balance = self.user_total_claimable_balance(&user).take();
             if user_total_claimable_balance == 0 {
