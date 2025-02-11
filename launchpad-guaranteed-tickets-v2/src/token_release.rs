@@ -116,9 +116,8 @@ pub trait TokenReleaseModule:
                 continue;
             }
 
-            let refund_amount = &user_total_claimable_balance
-                / &launchpad_tokens_per_winning_ticket
-                * &ticket_price.amount;
+            let refund_amount = &ticket_price.amount * &user_total_claimable_balance
+                / &launchpad_tokens_per_winning_ticket;
 
             require!(
                 remaining_payment_amount >= refund_amount,
