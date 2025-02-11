@@ -175,6 +175,10 @@ pub trait TokenReleaseModule:
         let current_claimable_tokens =
             &user_total_claimable_balance * claimable_percentage / MAX_PERCENTAGE;
 
+        if user_claimed_balance >= current_claimable_tokens {
+            return BigUint::zero();
+        }
+
         current_claimable_tokens - user_claimed_balance
     }
 
