@@ -1662,24 +1662,24 @@ fn unlock_milestones_wrong_step_and_order_test() {
         )
         .assert_user_error("Invalid unlock schedule");
 
-    // Retry after setup period has passed
-    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
+    // // Retry after setup period has passed
+    // lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
 
-    lp_setup
-        .b_mock
-        .execute_tx(
-            &lp_setup.owner_address,
-            &lp_setup.lp_wrapper,
-            &rust_biguint!(0),
-            |sc| {
-                let mut unlock_schedule = MultiValueEncoded::new();
-                for milestone in unlock_milestones {
-                    unlock_schedule.push(milestone.into());
-                }
-                sc.set_unlock_schedule(unlock_schedule);
-            },
-        )
-        .assert_user_error("Add tickets period has passed");
+    // lp_setup
+    //     .b_mock
+    //     .execute_tx(
+    //         &lp_setup.owner_address,
+    //         &lp_setup.lp_wrapper,
+    //         &rust_biguint!(0),
+    //         |sc| {
+    //             let mut unlock_schedule = MultiValueEncoded::new();
+    //             for milestone in unlock_milestones {
+    //                 unlock_schedule.push(milestone.into());
+    //             }
+    //             sc.set_unlock_schedule(unlock_schedule);
+    //         },
+    //     )
+    //     .assert_user_error("Add tickets period has passed");
 }
 
 #[test]
@@ -2258,6 +2258,82 @@ fn no_participants_test() {
     lp_setup
         .b_mock
         .check_egld_balance(lp_setup.lp_wrapper.address_ref(), &rust_biguint!(0));
+    lp_setup.b_mock.check_esdt_balance(
+        lp_setup.lp_wrapper.address_ref(),
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(0),
+    );
+}
+
+#[test]
+fn update_vesting_after_claim_test() {
+    let nr_winning_tickets = 1;
+    let mut lp_setup = LaunchpadSetup::new(
+        nr_winning_tickets,
+        launchpad_guaranteed_tickets_v2::contract_obj,
+    );
+
+    let unlock_milestones = vec![(15, 2500), (20, 2500), (25, 2500), (30, 2500)];
+    lp_setup.set_unlock_schedule(unlock_milestones);
+    let participant = &lp_setup.participants[0].clone();
+
+    lp_setup.b_mock.set_block_round(CONFIRM_START_ROUND);
+    lp_setup.confirm(participant, 1).assert_ok();
+
+    lp_setup
+        .b_mock
+        .set_block_round(WINNER_SELECTION_START_ROUND);
+    lp_setup.filter_tickets().assert_ok();
+    lp_setup.select_base_winners_mock(1).assert_ok();
+    lp_setup.distribute_tickets().assert_ok();
+
+    lp_setup.b_mock.set_block_round(CLAIM_START_ROUND);
+
+    // First claim (25%)
+    // Should receive 25% of the tokens
+    lp_setup.claim_user(participant).assert_ok();
+    lp_setup.b_mock.check_esdt_balance(
+        participant,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET / 4),
+    );
+
+    // Second claim (50% total)
+    // Should receive 25% of the tokens
+    lp_setup.b_mock.set_block_round(20);
+    lp_setup.claim_user(participant).assert_ok();
+    lp_setup.b_mock.check_esdt_balance(
+        participant,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET / 2),
+    );
+
+    let new_unlock_milestones = vec![(25, 3000), (30, 7000)];
+    lp_setup.set_unlock_schedule(new_unlock_milestones);
+
+    // Third claim
+    // Should receive 30% of the tokens according to the new schedule
+    // 50% of the tokens were already claimed
+    // The user shouldn't receive any more tokens until the new vesting unlocks more than 50%
+    lp_setup.b_mock.set_block_round(25);
+    lp_setup.claim_user(participant).assert_ok();
+    lp_setup.b_mock.check_esdt_balance(
+        participant,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET / 2),
+    );
+
+    // Final claim (100% total)
+    // Should receive 50% of the tokens according to the new schedule (total - already claimed)
+    lp_setup.b_mock.set_block_round(30);
+    lp_setup.claim_user(participant).assert_ok();
+    lp_setup.b_mock.check_esdt_balance(
+        participant,
+        LAUNCHPAD_TOKEN_ID,
+        &rust_biguint!(LAUNCHPAD_TOKENS_PER_TICKET),
+    );
+
+    // Check if SC funds are 0 after all tokens were claimed
     lp_setup.b_mock.check_esdt_balance(
         lp_setup.lp_wrapper.address_ref(),
         LAUNCHPAD_TOKEN_ID,

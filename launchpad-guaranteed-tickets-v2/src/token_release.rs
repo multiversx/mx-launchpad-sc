@@ -66,7 +66,6 @@ pub trait TokenReleaseModule:
     #[only_owner]
     #[endpoint(setUnlockSchedule)]
     fn set_unlock_schedule(&self, unlock_milestones: MultiValueEncoded<MultiValue2<u64, u64>>) {
-        self.require_add_tickets_period();
         require!(
             unlock_milestones.len() <= MAX_UNLOCK_MILESTONES_ENTRIES,
             "Maximum unlock milestones entries exceeded"
@@ -91,6 +90,51 @@ pub trait TokenReleaseModule:
         self.unlock_schedule().set(unlock_schedule);
 
         self.emit_set_unlock_schedule_event(milestones);
+    }
+
+    #[payable("*")]
+    #[only_owner]
+    #[endpoint(refundWinningTickets)]
+    fn refund_winning_tickets(&self, users: MultiValueEncoded<ManagedAddress>) {
+        let (payment_token, payment_amount) = self.call_value().egld_or_single_fungible_esdt();
+
+        let launchpad_tokens_per_winning_ticket = self.launchpad_tokens_per_winning_ticket().get();
+        let ticket_price = self.ticket_price().get();
+
+        require!(
+            payment_token == ticket_price.token_id,
+            "Invalid payment token"
+        );
+
+        let mut remaining_payment_amount = payment_amount;
+        for user in users {
+            let user_claimed_balance = self.user_claimed_balance(&user).get();
+            require!(user_claimed_balance == 0, "User already claimed tokens");
+
+            let user_total_claimable_balance = self.user_total_claimable_balance(&user).take();
+            if user_total_claimable_balance == 0 {
+                continue;
+            }
+
+            let refund_amount = &ticket_price.amount * &user_total_claimable_balance
+                / &launchpad_tokens_per_winning_ticket;
+
+            require!(
+                remaining_payment_amount >= refund_amount,
+                "Insufficient funds deposited"
+            );
+
+            self.send()
+                .direct(&user, &ticket_price.token_id, 0, &refund_amount);
+
+            remaining_payment_amount -= refund_amount;
+        }
+
+        if remaining_payment_amount > 0 {
+            let owner = self.blockchain().get_caller();
+            self.send()
+                .direct(&owner, &ticket_price.token_id, 0, &remaining_payment_amount);
+        }
     }
 
     #[view(getClaimableTokens)]
@@ -126,6 +170,10 @@ pub trait TokenReleaseModule:
 
         let current_claimable_tokens =
             &user_total_claimable_balance * claimable_percentage / MAX_PERCENTAGE;
+
+        if user_claimed_balance >= current_claimable_tokens {
+            return BigUint::zero();
+        }
 
         current_claimable_tokens - user_claimed_balance
     }
